@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Tarot Reading Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; 
+            padding: 15px; 
+            background: #f5f5f5;
+            font-size: 16px;
+            -webkit-text-size-adjust: 100%;
+            touch-action: manipulation;
+        }
+        .container { max-width: 100%; margin: 0 auto; padding: 0 5px; }
+        .input-group { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            margin-bottom: 15px; 
+        }
+        label { 
+            font-weight: bold; 
+            white-space: nowrap;
+        }
+        input[type="number"] { 
+            width: 80px; 
+            padding: 8px; 
+            font-size: 16px; 
+            border: 2px solid #ccc; 
+            border-radius: 6px;
+            text-align: center;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="text"] {
+            flex: 1;
+            min-width: 0;
+            padding: 8px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            box-sizing: border-box;
+        }
+        .day-toggles {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .day-btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 14px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+        .day-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .btn-new-session {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            min-height: 44px;
+            width: 100%;
+            touch-action: manipulation;
+        }
+        .btn-load-session {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            min-height: 44px;
+            width: 100%;
+            touch-action: manipulation;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        .session-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .session-item:hover {
+            background-color: #f8f9fa;
+        }
+        .session-info {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .session-details {
+            font-size: 14px;
+            color: #666;
+        }
+        .event-settings {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .settings-header {
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            font-weight: bold;
+        }
+        .settings-content {
+            padding: 15px;
+            display: none;
+            overflow: hidden;
+        }
+        .settings-content.open {
+            display: block;
+        }
+        .collapse-icon {
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+        .collapse-icon.open {
+            transform: rotate(180deg);
+        }
+        .buttons { 
+            display: flex; 
+            gap: 10px; 
+            margin: 20px 0; 
+        }
+        .btn-create-session {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            min-height: 44px;
+            width: 100%;
+            touch-action: manipulation;
+        }
+        .btn-create-session.inactive {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .required-field {
+            border: 2px solid #dc3545 !important;
+        }
+        .required-group {
+            border: 2px solid #dc3545;
+            border-radius: 6px;
+            padding: 8px;
+        }
+        .btn-add { 
+            flex: 3; 
+            background: #28a745; 
+            color: white; 
+            border: none; 
+            padding: 18px; 
+            font-size: 18px; 
+            border-radius: 8px; 
+            cursor: pointer;
+            min-height: 60px;
+            touch-action: manipulation;
+        }
+        .btn-remove { 
+            flex: 1; 
+            background: #dc3545; 
+            color: white; 
+            border: none; 
+            padding: 18px; 
+            font-size: 18px; 
+            border-radius: 8px; 
+            cursor: pointer;
+            min-height: 60px;
+            touch-action: manipulation;
+        }
+        .totals { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .totals-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .totals-table td:first-child {
+            color: #666;
+        }
+        .totals-table td:last-child {
+            text-align: right;
+            font-weight: 500;
+        }
+        .grand-total {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #28a745;
+            padding-top: 8px;
+            border-top: 2px solid #28a745;
+        }
+        .readings-list { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 20px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .reading-item { 
+            display: flex; 
+            align-items: flex-start; 
+            gap: 10px;
+            padding: 15px 0; 
+            border-bottom: 2px solid #ddd; 
+            min-height: 50px;
+            flex-direction: column;
+        }
+        .reading-item:last-child { 
+            border-bottom: none; 
+        }
+        .reading-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+        .reading-item:last-child { border-bottom: none; }
+        .index { font-size: 14px; color: #999; font-weight: bold; min-width: 25px; }
+        .timestamp { font-size: 15px; color: #666; flex: 1; }
+        .tip-input { 
+            width: 70px !important; 
+            max-width: 70px !important;
+            min-width: 70px !important;
+            padding: 12px 6px !important; 
+            font-size: 14px !important; 
+            border: 2px solid #ccc !important; 
+            background-color: white !important;
+            border-radius: 6px !important;
+            text-align: center !important;
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            box-sizing: border-box !important;
+            min-height: 44px !important;
+        }
+        .delete-btn {
+            background: #dc3545 !important;
+            color: white !important;
+            border: none !important;
+            padding: 8px 12px !important;
+            font-size: 12px !important;
+            border-radius: 4px !important;
+            cursor: pointer !important;
+            min-height: 44px !important;
+            min-width: 40px !important;
+        }
+        .payment-methods {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .payment-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            min-height: 32px;
+            touch-action: manipulation;
+        }
+        .payment-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .payment-other {
+            width: 60px;
+            padding: 4px;
+            font-size: 11px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+            -webkit-appearance: none;
+            appearance: none;
+            min-height: 32px;
+        }
+        .payment-other.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .timer {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .timer h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .timer-display {
+            font-size: 80px;
+            font-weight: bold;
+            font-family: monospace;
+            margin: 30px 0;
+            color: #333;
+        }
+        .timer-display.blink {
+            animation: blink 1s infinite;
+        }
+        .timer-display.warning {
+            animation: warning-blink 0.5s infinite;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; color: #dc3545; }
+            51%, 100% { opacity: 0.3; color: #dc3545; }
+        }
+        @keyframes warning-blink {
+            0%, 50% { color: #333; }
+            51%, 100% { color: #999; }
+        }
+        .timer-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        .timer-input {
+            width: 80px;
+            padding: 8px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            text-align: center;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .arrow-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            min-height: 44px;
+            min-width: 44px;
+        }
+        .timer-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .timer-btn {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+        .start-btn { 
+            background: #28a745; 
+            color: white; 
+            flex: 3;
+            padding: 24px 32px;
+            font-size: 22px;
+            font-weight: bold;
+            min-height: 70px;
+        }
+        .pause-btn { background: #ffc107; color: black; }
+        .reset-btn { background: #dc3545; color: white; }
+        .version { 
+            position: fixed; 
+            top: 5px; 
+            right: 5px; 
+            font-size: 10px; 
+            color: #999; 
+            background: rgba(255,255,255,0.8); 
+            padding: 2px 4px; 
+            border-radius: 3px;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 24px;
+            font-size: 14px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s ease;
+            min-width: 200px;
+            max-width: 90vw;
+        }
+        .toast.success { background: #28a745; }
+        .toast.error { background: #dc3545; }
+        .toast-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 10px;
+        }
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(100%); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="version">v12:28am</div>
+    <div class="container">
+        <div class="event-settings">
+            <div class="settings-header" onclick="toggleSettings()">
+                <span>Event Settings</span>
+                <span class="collapse-icon">▼</span>
+            </div>
+            <div class="settings-content" id="settingsContent">
+                <div class="input-group">
+                    <label for="price">Reading Price ($)</label>
+                    <input type="number" id="price" value="40" step="0.01" min="0">
+                </div>
+
+                <div class="input-group">
+                    <label for="location">Location:</label>
+                    <input type="text" id="location" placeholder="City name">
+                </div>
+
+                <div class="day-toggles">
+                    <button class="day-btn" onclick="toggleDay('fri')">Fri</button>
+                    <button class="day-btn" onclick="toggleDay('sat')">Sat</button>
+                    <button class="day-btn" onclick="toggleDay('sun')">Sun</button>
+                </div>
+
+                <div class="input-group">
+                    <button class="btn-create-session inactive" onclick="handleCreateSession()">Create Session</button>
+                </div>
+                <div class="input-group">
+                    <button class="btn-new-session" onclick="startNewSession()" style="display: none;">New Session</button>
+                </div>
+                <div class="input-group">
+                    <button class="btn-load-session" onclick="showLoadSessionModal()">Load Existing Session</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-add" onclick="addReading()">+ Add Reading</button>
+            <button class="btn-remove" onclick="removeReading()">-</button>
+        </div>
+
+        <div class="totals">
+            <table class="totals-table">
+                <tr>
+                    <td>Readings:</td>
+                    <td><span id="readingCount">0</span></td>
+                </tr>
+                <tr>
+                    <td>Base Total:</td>
+                    <td>$<span id="baseTotal">0.00</span></td>
+                </tr>
+                <tr>
+                    <td>Tips Total:</td>
+                    <td>$<span id="tipsTotal">0.00</span></td>
+                </tr>
+            </table>
+            <div class="grand-total">Total: $<span id="grandTotal">0.00</span></div>
+        </div>
+
+        <div class="readings-list">
+            <h3>Readings Log</h3>
+            <div id="readingsList"></div>
+        </div>
+
+        <div class="timer">
+            <h3>Timer</h3>
+            <div class="timer-controls">
+                <button class="arrow-btn" onclick="adjustTime(-1)">▼</button>
+                <input type="number" class="timer-input" id="timerInput" value="15" min="0" max="99" inputmode="numeric">
+                <button class="arrow-btn" onclick="adjustTime(1)">▲</button>
+            </div>
+            <div class="timer-display" id="timerDisplay">15:00</div>
+            <div class="timer-buttons">
+                <button class="timer-btn start-btn" onclick="startTimer()">Start</button>
+                <button class="timer-btn pause-btn" onclick="pauseTimer()">Pause</button>
+                <button class="timer-btn reset-btn" onclick="resetTimer()">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Session Modal -->
+    <div id="loadSessionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Load Existing Session</h3>
+                <button class="modal-close" onclick="closeLoadSessionModal()">×</button>
+            </div>
+            <div id="sessionsList"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://uuindvqgdblkjzvjsyrz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_MsdJm2VITIPWik4dBPErrw_QjfIsKe9';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Central Session Store
+        class SessionStore {
+            constructor() {
+                this._sessionId = null;
+                this._location = '';
+                this._selectedDay = null;
+                this._price = 40;
+                this._readings = [];
+                this.saveTimeout = null;
+            }
+
+            // Getters
+            get sessionId() { return this._sessionId; }
+            get location() { return this._location; }
+            get selectedDay() { return this._selectedDay; }
+            get price() { return this._price; }
+            get readings() { return this._readings; }
+
+            // Computed properties
+            get canCreateSession() {
+                return this._location.trim() && this._selectedDay && this._price;
+            }
+            get hasValidSession() {
+                return this._sessionId && this._location.trim() && this._selectedDay;
+            }
+            get sessionPhase() {
+                if (this.hasValidSession) return 'ACTIVE';
+                if (this.canCreateSession) return 'READY_TO_CREATE';
+                return 'SETUP';
+            }
+
+            // Setters with side effects
+            set sessionId(value) {
+                this._sessionId = value;
+                this.updateUI();
+                this.save();
+            }
+            set location(value) {
+                this._location = value;
+                document.getElementById('location').value = value;
+                console.log('Location changed to:', value, 'canCreateSession:', this.canCreateSession, 'sessionPhase:', this.sessionPhase);
+                this.updateUI();
+                this.debouncedSave();
+            }
+            set selectedDay(value) {
+                this._selectedDay = value;
+                document.querySelectorAll('.day-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.textContent.toLowerCase() === value);
+                });
+                console.log('SelectedDay changed to:', value, 'canCreateSession:', this.canCreateSession, 'sessionPhase:', this.sessionPhase);
+                this.updateUI();
+                this.debouncedSave();
+            }
+            set price(value) {
+                this._price = value;
+                document.getElementById('price').value = value;
+                this.updateUI();
+                this.debouncedSave();
+            }
+            set readings(value) {
+                this._readings = value;
+                this.updateReadingsList();
+                this.updateTotals();
+                this.save();
+            }
+
+            // Methods
+            addReading(reading) {
+                this._readings.push(reading);
+                this.updateReadingsList();
+                this.updateTotals();
+                this.save();
+            }
+            removeReading(index) {
+                this._readings.splice(index, 1);
+                this.updateReadingsList();
+                this.updateTotals();
+                this.save();
+            }
+            updateReading(index, field, value) {
+                this._readings[index][field] = value;
+                this.updateReadingsList();
+                this.updateTotals();
+                this.debouncedSave();
+            }
+
+            startOver() {
+                this._sessionId = null;
+                this._location = '';
+                this._selectedDay = null;
+                this._price = 40;
+                this._readings = [];
+                document.getElementById('location').value = '';
+                document.getElementById('price').value = '40';
+                document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
+                localStorage.removeItem('readingTracker');
+                this.updateUI();
+            }
+
+            clear() {
+                this.startOver();
+            }
+
+            updateUI() {
+                this.updateButtons();
+                this.updateSections();
+            }
+
+            updateButtons() {
+                const createBtn = document.querySelector('.btn-create-session');
+                const newBtn = document.querySelector('.btn-new-session');
+                const locationInput = document.getElementById('location');
+                const dayToggles = document.querySelector('.day-toggles');
+                
+                // Create Session button - only visible in setup phase
+                if (this.sessionPhase === 'SETUP' || this.sessionPhase === 'READY_TO_CREATE') {
+                    createBtn.style.display = 'block';
+                    if (this.sessionPhase === 'READY_TO_CREATE') {
+                        createBtn.classList.remove('inactive');
+                        createBtn.classList.add('active');
+                    } else {
+                        createBtn.classList.remove('active');
+                        createBtn.classList.add('inactive');
+                    }
+                } else {
+                    createBtn.style.display = 'none';
+                }
+                
+                // Highlight required fields and auto-expand when in setup mode
+                if (this.sessionPhase === 'SETUP') {
+                    // Auto-expand settings panel
+                    const content = document.getElementById('settingsContent');
+                    const icon = document.querySelector('.collapse-icon');
+                    if (!content.classList.contains('open')) {
+                        content.classList.add('open');
+                        icon.classList.add('open');
+                    }
+                    
+                    if (!this._location.trim()) {
+                        locationInput.classList.add('required-field');
+                    } else {
+                        locationInput.classList.remove('required-field');
+                    }
+                    
+                    if (!this._selectedDay) {
+                        dayToggles.classList.add('required-group');
+                    } else {
+                        dayToggles.classList.remove('required-group');
+                    }
+                } else {
+                    locationInput.classList.remove('required-field');
+                    dayToggles.classList.remove('required-group');
+                }
+                
+                // New Session button - only show when session is active
+                newBtn.style.display = this.sessionPhase === 'ACTIVE' ? 'block' : 'none';
+                
+                // Auto-expand settings when create button becomes ready
+                if (this.sessionPhase === 'READY_TO_CREATE') {
+                    const content = document.getElementById('settingsContent');
+                    const icon = document.querySelector('.collapse-icon');
+                    if (!content.classList.contains('open')) {
+                        content.classList.add('open');
+                        icon.classList.add('open');
+                    }
+                }
+            }
+
+            updateSections() {
+                const buttonsDiv = document.querySelector('.buttons');
+                const totalsDiv = document.querySelector('.totals');
+                const readingsDiv = document.querySelector('.readings-list');
+                
+                const showSections = this.sessionPhase === 'ACTIVE';
+                buttonsDiv.style.display = showSections ? 'flex' : 'none';
+                totalsDiv.style.display = showSections ? 'block' : 'none';
+                readingsDiv.style.display = showSections ? 'block' : 'none';
+            }
+
+            updateReadingsList() {
+                const list = document.getElementById('readingsList');
+                const methods = ['cash', 'cc', 'venmo', 'paypal', 'cashapp'];
+                list.innerHTML = this._readings.map((reading, index) => `
+                    <div class="reading-item" data-index="${index}">
+                        <div class="reading-row">
+                            <span class="index">${index + 1}.</span>
+                            <span class="timestamp">${reading.timestamp}</span>
+                            <input type="number" class="tip-input" placeholder="Tip" 
+                                   value="${reading.tip || ''}" step="0.01" min="0" inputmode="decimal"
+                                   onchange="session.updateReading(${index}, 'tip', parseFloat(this.value) || 0)"
+                                   onkeydown="if(event.key==='Enter') this.blur()">
+                            <button class="delete-btn" onclick="deleteReading(${index})">×</button>
+                        </div>
+                        <div class="payment-methods">
+                            ${methods.map(method => `
+                                <button class="payment-btn ${reading.payment === method ? 'active' : ''}" 
+                                        onclick="session.updateReading(${index}, 'payment', '${method}')">
+                                    ${method === 'cc' ? 'CC' : method === 'cashapp' ? 'Cash App' : method.charAt(0).toUpperCase() + method.slice(1)}
+                                </button>
+                            `).join('')}
+                            <button class="payment-btn ${reading.payment && !methods.includes(reading.payment) ? 'active' : ''}" 
+                                    onclick="selectOther(${index})">
+                                ${reading.payment && !methods.includes(reading.payment) ? reading.payment : 'Other'}
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateTotals() {
+                const count = this._readings.length;
+                const baseTotal = count * this._price;
+                const tipsTotal = this._readings.reduce((sum, reading) => sum + (reading.tip || 0), 0);
+                const grandTotal = baseTotal + tipsTotal;
+
+                document.getElementById('readingCount').textContent = count;
+                document.getElementById('baseTotal').textContent = baseTotal.toFixed(2);
+                document.getElementById('tipsTotal').textContent = tipsTotal.toFixed(2);
+                document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+            }
+
+            async save() {
+                const state = {
+                    sessionId: this._sessionId,
+                    location: this._location,
+                    selectedDay: this._selectedDay,
+                    price: this._price,
+                    readings: this._readings
+                };
+                localStorage.setItem('readingTracker', JSON.stringify(state));
+
+                if (this._sessionId) {
+                    try {
+                        await supabase
+                            .from('blacksheep_reading_tracker_sessions')
+                            .update({
+                                reading_price: this._price,
+                                readings: this._readings
+                            })
+                            .eq('id', this._sessionId);
+                    } catch (error) {
+                        // Silently fail - localStorage backup exists
+                    }
+                }
+            }
+
+            debouncedSave() {
+                clearTimeout(this.saveTimeout);
+                this.saveTimeout = setTimeout(() => this.save(), 500);
+            }
+
+            loadFromStorage() {
+                const saved = localStorage.getItem('readingTracker');
+                if (saved) {
+                    const state = JSON.parse(saved);
+                    this._sessionId = state.sessionId || null;
+                    this._location = state.location || '';
+                    this._selectedDay = state.selectedDay || null;
+                    this._price = state.price || 40;
+                    this._readings = state.readings || [];
+                    
+                    // Update DOM without triggering saves
+                    document.getElementById('location').value = this._location;
+                    document.getElementById('price').value = this._price;
+                    document.querySelectorAll('.day-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.textContent.toLowerCase() === this._selectedDay);
+                    });
+                    
+                    // Update readings display and totals
+                    this.updateReadingsList();
+                    this.updateTotals();
+                    this.updateUI();
+                }
+            }
+        }
+
+        // Initialize store
+        const session = new SessionStore();
+
+        function startNewSession() {
+            vibrate([100, 50, 100]);
+            if (confirm('Start a new session? This will clear all current data and start over.')) {
+                session.startOver();
+                resetTimer();
+                document.getElementById('timerInput').value = '15';
+                showToast('Ready to create new session', 'success');
+            }
+        }
+
+        async function showLoadSessionModal() {
+            vibrate([50]);
+            try {
+                const { data, error } = await supabase
+                    .from('blacksheep_reading_tracker_sessions')
+                    .select('*')
+                    .order('session_date', { ascending: false })
+                    .order('created_at', { ascending: false });
+                
+                if (data && data.length > 0) {
+                    const sessionsList = document.getElementById('sessionsList');
+                    sessionsList.innerHTML = data.map(session => {
+                        const readingCount = session.readings ? session.readings.length : 0;
+                        const date = new Date(session.session_date).toLocaleDateString();
+                        return `
+                            <div class="session-item" onclick="selectSession('${session.id}')">
+                                <div class="session-info">${session.location || 'No location'} - ${session.selected_day || 'No day'}</div>
+                                <div class="session-details">${date} • ${readingCount} readings • $${session.reading_price || 0}</div>
+                            </div>
+                        `;
+                    }).join('');
+                    document.getElementById('loadSessionModal').style.display = 'block';
+                } else {
+                    showToast('No existing sessions found', 'error');
+                }
+            } catch (error) {
+                showToast('Failed to load sessions', 'error');
+            }
+        }
+
+        function closeLoadSessionModal() {
+            vibrate([30]);
+            document.getElementById('loadSessionModal').style.display = 'none';
+        }
+
+        async function selectSession(sessionId) {
+            vibrate([50]);
+            try {
+                const { data, error } = await supabase
+                    .from('blacksheep_reading_tracker_sessions')
+                    .select('*')
+                    .eq('id', sessionId)
+                    .single();
+                
+                if (data) {
+                    await loadExistingSession(data);
+                    closeLoadSessionModal();
+                } else {
+                    showToast('Session not found', 'error');
+                }
+            } catch (error) {
+                showToast('Failed to load session', 'error');
+            }
+        }
+
+        async function loadExistingSession(sessionData) {
+            session.sessionId = sessionData.id;
+            session.location = sessionData.location || '';
+            session.selectedDay = sessionData.selected_day;
+            session.price = sessionData.reading_price || 40;
+            session.readings = sessionData.readings || [];
+            showToast(`Loaded session: ${sessionData.location} - ${sessionData.selected_day}`, 'success');
+        }
+
+        async function createSession() {
+            if (!session.canCreateSession) {
+                showToast('Location and day are required', 'error');
+                return;
+            }
+            
+            vibrate([50]);
+            
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const { data } = await supabase
+                    .from('blacksheep_reading_tracker_sessions')
+                    .select('*')
+                    .eq('session_date', today)
+                    .eq('location', session.location)
+                    .eq('selected_day', session.selectedDay)
+                    .limit(1);
+                
+                if (data && data[0]) {
+                    const message = `${session.location} - ${session.selectedDay} already exists. Load existing session?`;
+                    if (confirm(message)) {
+                        session.sessionId = data[0].id;
+                        session.readings = data[0].readings || [];
+                        if (data[0].reading_price) session.price = data[0].reading_price;
+                        // Collapse settings panel
+                        const content = document.getElementById('settingsContent');
+                        const icon = document.querySelector('.collapse-icon');
+                        content.classList.remove('open');
+                        icon.classList.remove('open');
+                        showToast(`Loaded existing session: ${session.location} - ${session.selectedDay}`, 'success');
+                    } else {
+                        session.location = '';
+                        session.selectedDay = null;
+                        showToast('Location and day must be unique', 'error');
+                    }
+                    return;
+                }
+                
+                const { data: newData } = await supabase
+                    .from('blacksheep_reading_tracker_sessions')
+                    .insert([{
+                        session_date: today,
+                        location: session.location,
+                        selected_day: session.selectedDay,
+                        reading_price: session.price,
+                        readings: session.readings
+                    }])
+                    .select();
+                
+                if (newData && newData[0]) {
+                    session.sessionId = newData[0].id;
+                    session.readings = []; // Clear readings for new session
+                    // Collapse settings panel
+                    const content = document.getElementById('settingsContent');
+                    const icon = document.querySelector('.collapse-icon');
+                    content.classList.remove('open');
+                    icon.classList.remove('open');
+                    showToast('Session created successfully', 'success');
+                }
+            } catch (error) {
+                showToast('Database error, using offline mode', 'error');
+            }
+        }
+
+        async function addReading() {
+            if (!session.hasValidSession) {
+                showToast('Create session first', 'error');
+                return;
+            }
+            
+            vibrate([50]);
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            session.addReading({ timestamp, tip: 0 });
+        }
+
+        function removeReading() {
+            vibrate([50]);
+            if (session.readings.length > 0) {
+                const lastReading = session.readings[session.readings.length - 1];
+                if (confirm(`Delete the ${lastReading.timestamp} reading?`)) {
+                    vibrate([100, 50, 100]);
+                    session.removeReading(session.readings.length - 1);
+                }
+            }
+        }
+
+        function updatePayment(index, method) {
+            vibrate([30]);
+            session.updateReading(index, 'payment', method);
+        }
+
+        function selectOther(index) {
+            vibrate([30]);
+            const methods = ['cash', 'cc', 'venmo', 'paypal', 'cashapp'];
+            const currentValue = session.readings[index].payment && !methods.includes(session.readings[index].payment) ? session.readings[index].payment : '';
+            const newValue = prompt('Enter payment method:', currentValue);
+            if (newValue !== null && newValue.trim()) {
+                session.updateReading(index, 'payment', newValue.trim());
+            }
+        }
+
+
+
+        function deleteReading(index) {
+            vibrate([50]);
+            const reading = session.readings[index];
+            if (confirm(`Delete the ${reading.timestamp} reading?`)) {
+                vibrate([100, 50, 100]);
+                session.removeReading(index);
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+        function toggleDay(day) {
+            vibrate([50]);
+            session.selectedDay = day;
+        }
+
+        function toggleSettings() {
+            vibrate([50]);
+            const content = document.getElementById('settingsContent');
+            const icon = document.querySelector('.collapse-icon');
+            content.classList.toggle('open');
+            icon.classList.toggle('open');
+        }
+
+        let timerInterval = null;
+        let timerSeconds = 900; // 15 minutes default
+        let isRunning = false;
+        let isBlinking = false;
+        let alarmInterval = null;
+        let audioContext = null;
+
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playBeep(frequency = 1000, duration = 0.15) {
+            initAudio();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            oscillator.type = 'square';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function playAlarmSequence() {
+            // Three rapid beeps
+            playBeep(1000, 0.1);
+            setTimeout(() => playBeep(1000, 0.1), 150);
+            setTimeout(() => playBeep(1000, 0.1), 300);
+            // Longer tone after gap
+            setTimeout(() => playBeep(1000, 0.4), 600);
+        }
+
+        function vibrate(pattern) {
+            if (navigator.vibrate) {
+                navigator.vibrate(pattern);
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span>${message}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 3000);
+        }
+
+        function startAlarm() {
+            playAlarmSequence();
+            alarmInterval = setInterval(() => {
+                playAlarmSequence();
+            }, 1500);
+        }
+
+        function stopAlarm() {
+            if (alarmInterval) {
+                clearInterval(alarmInterval);
+                alarmInterval = null;
+            }
+        }
+
+        function adjustTime(minutes) {
+            vibrate([30]);
+            if (!isRunning) {
+                const input = document.getElementById('timerInput');
+                let newValue = parseInt(input.value) + minutes;
+                if (newValue < 0) newValue = 0;
+                if (newValue > 99) newValue = 99;
+                input.value = newValue;
+                timerSeconds = newValue * 60;
+                updateTimerDisplay();
+            }
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timerSeconds / 60);
+            const seconds = timerSeconds % 60;
+            document.getElementById('timerDisplay').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            vibrate([80]);
+            if (!isRunning && timerSeconds > 0) {
+                isRunning = true;
+                stopBlinking();
+                timerInterval = setInterval(() => {
+                    timerSeconds--;
+                    updateTimerDisplay();
+                    
+                    if (timerSeconds === 10) {
+                        startWarningBlink();
+                    }
+                    
+                    if (timerSeconds <= 0) {
+                        pauseTimer();
+                        stopWarningBlink();
+                        startBlinking();
+                        startAlarm();
+                    }
+                }, 1000);
+            }
+        }
+
+        function pauseTimer() {
+            vibrate([50]);
+            isRunning = false;
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function resetTimer() {
+            vibrate([100]);
+            pauseTimer();
+            stopBlinking();
+            stopWarningBlink();
+            stopAlarm();
+            const minutes = parseInt(document.getElementById('timerInput').value);
+            timerSeconds = minutes * 60;
+            updateTimerDisplay();
+        }
+
+        function startBlinking() {
+            isBlinking = true;
+            document.getElementById('timerDisplay').classList.add('blink');
+        }
+
+        function stopBlinking() {
+            isBlinking = false;
+            document.getElementById('timerDisplay').classList.remove('blink');
+        }
+
+        function startWarningBlink() {
+            document.getElementById('timerDisplay').classList.add('warning');
+        }
+
+        function stopWarningBlink() {
+            document.getElementById('timerDisplay').classList.remove('warning');
+        }
+
+        // Initialize audio context on first user interaction
+        document.addEventListener('click', initAudio, { once: true });
+
+        document.getElementById('timerInput').addEventListener('input', function() {
+            if (!isRunning) {
+                timerSeconds = parseInt(this.value) * 60;
+                updateTimerDisplay();
+            }
+        });
+
+        document.getElementById('price').addEventListener('input', function() {
+            session.price = parseFloat(this.value) || 0;
+        });
+
+        document.getElementById('location').addEventListener('input', function() {
+            session.location = this.value;
+        });
+
+        function handleCreateSession() {
+            const createBtn = document.querySelector('.btn-create-session');
+            if (createBtn.classList.contains('inactive')) {
+                showToast('Location and day are required', 'error');
+                vibrate([50]);
+            } else {
+                createSession();
+            }
+        }
+
+        // Check for saved session on page load
+        window.addEventListener('load', async function() {
+            console.log('Page loaded. Session state:', {
+                sessionId: session.sessionId,
+                location: session.location,
+                selectedDay: session.selectedDay,
+                sessionPhase: session.sessionPhase,
+                hasValidSession: session.hasValidSession
+            });
+            
+            const saved = localStorage.getItem('readingTracker');
+            if (saved) {
+                const state = JSON.parse(saved);
+                const location = state.location || 'Unknown location';
+                const day = state.selectedDay || 'Unknown day';
+                const message = `I have saved data from ${location} - ${day}. Would you like to load that data? (OK) or start a new session? (Cancel)`;
+                if (confirm(message)) {
+                    session.loadFromStorage();
+                } else {
+                    session.startOver();
+                }
+            } else {
+                // Initialize UI on first load
+                session.updateUI();
+            }
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('loadSessionModal');
+            if (event.target === modal) {
+                closeLoadSessionModal();
+            }
+        });
+    </script>
+</body>
+</html>
