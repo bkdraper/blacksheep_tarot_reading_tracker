@@ -819,6 +819,8 @@
                         await supabase
                             .from('blacksheep_reading_tracker_sessions')
                             .update({
+                                location: this._location,
+                                selected_day: this._selectedDay,
                                 reading_price: this._price,
                                 readings: this._readings
                             })
