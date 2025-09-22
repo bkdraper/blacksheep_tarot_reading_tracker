@@ -73,6 +73,7 @@ Each reading contains:
 ## Deployment
 - **Hosted on AWS Amplify** under the `reading-tracker` app
 - **Live URL**: https://tracker.blacksheep-gypsies.com
+- **Amplify Console**: https://us-east-1.console.aws.amazon.com/amplify/apps/d2otujcpa37fuv/overview
 - **Custom Domain Setup**: 
   - Subdomain configured in AWS Amplify console
   - CNAME record added in Squarespace: Settings > Domains > blacksheep-gypsies.com > DNS > Custom Records
