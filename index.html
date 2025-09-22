@@ -315,42 +315,101 @@
             min-height: 44px !important;
             min-width: 40px !important;
         }
-        .payment-methods {
-            display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
-            margin-top: 8px;
-        }
-        .payment-btn {
-            padding: 4px 8px;
-            font-size: 11px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+        .payment-method-btn {
+            padding: 8px 12px;
+            font-size: 12px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
             background: white;
             cursor: pointer;
-            min-height: 32px;
+            min-height: 44px;
+            margin-top: 8px;
+            touch-action: manipulation;
+            width: 120px;
+            align-self: flex-end;
+        }
+        .payment-method-btn.selected {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .payment-sheet {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+            z-index: 1001;
+            animation: slideUpSheet 0.3s ease;
+        }
+        .payment-sheet-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .payment-sheet-options {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .payment-option {
+            padding: 16px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            font-size: 14px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             touch-action: manipulation;
         }
-        .payment-btn.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
+        .payment-option:hover {
+            background: #f8f9fa;
         }
-        .payment-other {
-            width: 60px;
-            padding: 4px;
-            font-size: 11px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            text-align: center;
-            -webkit-appearance: none;
-            appearance: none;
-            min-height: 32px;
+        .payment-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
         }
-        .payment-other.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
+        .session-sheet {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+            z-index: 1001;
+            animation: slideUpSheet 0.3s ease;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .session-sheet-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .session-sheet-content {
+            padding: 20px;
         }
         .timer {
             background: white;
@@ -359,6 +418,17 @@
             margin-top: 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             text-align: center;
+        }
+        .timer-canvas-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .timer-canvas {
+            border: none;
+            padding: 0;
+            margin: 0;
         }
         .timer h3 {
             font-size: 24px;
@@ -467,6 +537,22 @@
             min-width: 200px;
             max-width: 90vw;
         }
+        .snackbar {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #d4edda;
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease;
+            min-width: 200px;
+            max-width: 90vw;
+        }
         .toast.success { background: #28a745; }
         .toast.error { background: #dc3545; }
         .toast-close {
@@ -482,10 +568,35 @@
             from { transform: translateX(-50%) translateY(100%); opacity: 0; }
             to { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+        @keyframes slideUpSheet {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <div class="version">v12:28am</div>
+    <div class="version">v1:15pm</div>
     <div class="container">
         <div class="event-settings">
             <div class="settings-header" onclick="toggleSettings()">
@@ -516,7 +627,7 @@
                     <button class="btn-new-session" onclick="startNewSession()" style="display: none;">New Session</button>
                 </div>
                 <div class="input-group">
-                    <button class="btn-load-session" onclick="showLoadSessionModal()">Load Existing Session</button>
+                    <button class="btn-load-session" onclick="showLoadSession()">Load Existing Session</button>
                 </div>
             </div>
         </div>
@@ -556,7 +667,10 @@
                 <input type="number" class="timer-input" id="timerInput" value="15" min="0" max="99" inputmode="numeric">
                 <button class="arrow-btn" onclick="adjustTime(1)">▲</button>
             </div>
-            <div class="timer-display" id="timerDisplay">15:00</div>
+            <div class="timer-canvas-container">
+                <canvas id="timerCanvas" class="timer-canvas" width="300" height="300"></canvas>
+            </div>
+            <div class="timer-display" id="timerDisplay" style="display: none;">15:00</div>
             <div class="timer-buttons">
                 <button class="timer-btn start-btn" onclick="startTimer()">Start</button>
                 <button class="timer-btn pause-btn" onclick="pauseTimer()">Pause</button>
@@ -565,13 +679,31 @@
         </div>
     </div>
 
-    <!-- Load Session Modal -->
-    <div id="loadSessionModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Load Existing Session</h3>
-                <button class="modal-close" onclick="closeLoadSessionModal()">×</button>
-            </div>
+    <!-- Payment Method Sheet -->
+    <div id="paymentOverlay" class="payment-overlay" onclick="closePaymentSheet()"></div>
+    <div id="paymentSheet" class="payment-sheet">
+        <div class="payment-sheet-header">
+            <h3>Select Payment Method</h3>
+            <button class="modal-close" onclick="closePaymentSheet()">×</button>
+        </div>
+        <div class="payment-sheet-options">
+            <button class="payment-option" onclick="selectPaymentMethod('Cash')">Cash</button>
+            <button class="payment-option" onclick="selectPaymentMethod('CC')">Credit Card</button>
+            <button class="payment-option" onclick="selectPaymentMethod('Venmo')">Venmo</button>
+            <button class="payment-option" onclick="selectPaymentMethod('PayPal')">PayPal</button>
+            <button class="payment-option" onclick="selectPaymentMethod('Cash App')">Cash App</button>
+            <button class="payment-option" onclick="selectCustomPayment()">Other</button>
+        </div>
+    </div>
+
+    <!-- Load Session Sheet -->
+    <div id="sessionOverlay" class="payment-overlay" onclick="closeSessionSheet()"></div>
+    <div id="sessionSheet" class="session-sheet">
+        <div class="session-sheet-header">
+            <h3>Load Existing Session</h3>
+            <button class="modal-close" onclick="closeSessionSheet()">×</button>
+        </div>
+        <div class="session-sheet-content">
             <div id="sessionsList"></div>
         </div>
     </div>
@@ -764,7 +896,6 @@
 
             updateReadingsList() {
                 const list = document.getElementById('readingsList');
-                const methods = ['cash', 'cc', 'venmo', 'paypal', 'cashapp'];
                 list.innerHTML = this._readings.map((reading, index) => `
                     <div class="reading-item" data-index="${index}">
                         <div class="reading-row">
@@ -776,18 +907,10 @@
                                    onkeydown="if(event.key==='Enter') this.blur()">
                             <button class="delete-btn" onclick="deleteReading(${index})">×</button>
                         </div>
-                        <div class="payment-methods">
-                            ${methods.map(method => `
-                                <button class="payment-btn ${reading.payment === method ? 'active' : ''}" 
-                                        onclick="session.updateReading(${index}, 'payment', '${method}')">
-                                    ${method === 'cc' ? 'CC' : method === 'cashapp' ? 'Cash App' : method.charAt(0).toUpperCase() + method.slice(1)}
-                                </button>
-                            `).join('')}
-                            <button class="payment-btn ${reading.payment && !methods.includes(reading.payment) ? 'active' : ''}" 
-                                    onclick="selectOther(${index})">
-                                ${reading.payment && !methods.includes(reading.payment) ? reading.payment : 'Other'}
-                            </button>
-                        </div>
+                        <button class="payment-method-btn ${reading.payment ? 'selected' : ''}" 
+                                onclick="openPaymentSheet(${index})">
+                            ${reading.payment || 'Payment Method'}
+                        </button>
                     </div>
                 `).join('');
             }
@@ -874,8 +997,13 @@
             }
         }
 
-        async function showLoadSessionModal() {
+        async function showLoadSession() {
             vibrate([50]);
+            const btn = document.querySelector('.btn-load-session');
+            const originalText = btn.textContent;
+            btn.innerHTML = '<span class="spinner"></span>Loading...';
+            btn.classList.add('loading');
+            
             try {
                 const { data, error } = await supabase
                     .from('blacksheep_reading_tracker_sessions')
@@ -888,29 +1016,40 @@
                     sessionsList.innerHTML = data.map(session => {
                         const readingCount = session.readings ? session.readings.length : 0;
                         const date = new Date(session.session_date).toLocaleDateString();
+                        const baseTotal = readingCount * (session.reading_price || 0);
+                        const tipsTotal = session.readings ? session.readings.reduce((sum, reading) => sum + (reading.tip || 0), 0) : 0;
+                        const grandTotal = baseTotal + tipsTotal;
                         return `
                             <div class="session-item" onclick="selectSession('${session.id}')">
                                 <div class="session-info">${session.location || 'No location'} - ${session.selected_day || 'No day'}</div>
-                                <div class="session-details">${date} • ${readingCount} readings • $${session.reading_price || 0}</div>
+                                <div class="session-details">${date} • ${readingCount} readings • $${grandTotal.toFixed(2)}</div>
                             </div>
                         `;
                     }).join('');
-                    document.getElementById('loadSessionModal').style.display = 'block';
+                    showSheet('sessionOverlay', 'sessionSheet');
                 } else {
                     showToast('No existing sessions found', 'error');
                 }
             } catch (error) {
                 showToast('Failed to load sessions', 'error');
+            } finally {
+                btn.textContent = originalText;
+                btn.classList.remove('loading');
             }
         }
 
-        function closeLoadSessionModal() {
+        function closeSessionSheet() {
             vibrate([30]);
-            document.getElementById('loadSessionModal').style.display = 'none';
+            hideSheet('sessionOverlay', 'sessionSheet');
         }
 
         async function selectSession(sessionId) {
             vibrate([50]);
+            const sessionItem = event.target.closest('.session-item');
+            const originalHTML = sessionItem.innerHTML;
+            sessionItem.innerHTML = '<div class="session-info"><span class="spinner"></span>Loading session...</div>';
+            sessionItem.style.pointerEvents = 'none';
+            
             try {
                 const { data, error } = await supabase
                     .from('blacksheep_reading_tracker_sessions')
@@ -920,12 +1059,15 @@
                 
                 if (data) {
                     await loadExistingSession(data);
-                    closeLoadSessionModal();
+                    closeSessionSheet();
                 } else {
                     showToast('Session not found', 'error');
                 }
             } catch (error) {
                 showToast('Failed to load session', 'error');
+            } finally {
+                sessionItem.innerHTML = originalHTML;
+                sessionItem.style.pointerEvents = 'auto';
             }
         }
 
@@ -935,7 +1077,8 @@
             session.selectedDay = sessionData.selected_day;
             session.price = sessionData.reading_price || 40;
             session.readings = sessionData.readings || [];
-            showToast(`Loaded session: ${sessionData.location} - ${sessionData.selected_day}`, 'success');
+            collapseSettings();
+            showSnackbar(`Loaded session: ${sessionData.location} - ${sessionData.selected_day}`);
         }
 
         async function createSession() {
@@ -945,6 +1088,10 @@
             }
             
             vibrate([50]);
+            const btn = document.querySelector('.btn-create-session');
+            const originalText = btn.textContent;
+            btn.innerHTML = '<span class="spinner"></span>Creating...';
+            btn.classList.add('loading');
             
             try {
                 const today = new Date().toISOString().split('T')[0];
@@ -957,17 +1104,15 @@
                     .limit(1);
                 
                 if (data && data[0]) {
+                    btn.textContent = originalText;
+                    btn.classList.remove('loading');
                     const message = `${session.location} - ${session.selectedDay} already exists. Load existing session?`;
                     if (confirm(message)) {
                         session.sessionId = data[0].id;
                         session.readings = data[0].readings || [];
                         if (data[0].reading_price) session.price = data[0].reading_price;
-                        // Collapse settings panel
-                        const content = document.getElementById('settingsContent');
-                        const icon = document.querySelector('.collapse-icon');
-                        content.classList.remove('open');
-                        icon.classList.remove('open');
-                        showToast(`Loaded existing session: ${session.location} - ${session.selectedDay}`, 'success');
+                        collapseSettings();
+                        showSnackbar(`Loaded existing session: ${session.location} - ${session.selectedDay}`);
                     } else {
                         session.location = '';
                         session.selectedDay = null;
@@ -990,15 +1135,14 @@
                 if (newData && newData[0]) {
                     session.sessionId = newData[0].id;
                     session.readings = []; // Clear readings for new session
-                    // Collapse settings panel
-                    const content = document.getElementById('settingsContent');
-                    const icon = document.querySelector('.collapse-icon');
-                    content.classList.remove('open');
-                    icon.classList.remove('open');
+                    collapseSettings();
                     showToast('Session created successfully', 'success');
                 }
             } catch (error) {
                 showToast('Database error, using offline mode', 'error');
+            } finally {
+                btn.textContent = originalText;
+                btn.classList.remove('loading');
             }
         }
 
@@ -1030,13 +1174,45 @@
             session.updateReading(index, 'payment', method);
         }
 
-        function selectOther(index) {
+        let currentPaymentIndex = null;
+
+        function showSheet(overlayId, sheetId) {
+            document.getElementById(overlayId).style.display = 'block';
+            document.getElementById(sheetId).style.display = 'block';
+        }
+
+        function hideSheet(overlayId, sheetId) {
+            document.getElementById(overlayId).style.display = 'none';
+            document.getElementById(sheetId).style.display = 'none';
+        }
+
+        function openPaymentSheet(index) {
             vibrate([30]);
-            const methods = ['cash', 'cc', 'venmo', 'paypal', 'cashapp'];
-            const currentValue = session.readings[index].payment && !methods.includes(session.readings[index].payment) ? session.readings[index].payment : '';
+            currentPaymentIndex = index;
+            showSheet('paymentOverlay', 'paymentSheet');
+        }
+
+        function closePaymentSheet() {
+            vibrate([30]);
+            hideSheet('paymentOverlay', 'paymentSheet');
+            currentPaymentIndex = null;
+        }
+
+        function selectPaymentMethod(method) {
+            vibrate([30]);
+            if (currentPaymentIndex !== null) {
+                session.updateReading(currentPaymentIndex, 'payment', method);
+                closePaymentSheet();
+            }
+        }
+
+        function selectCustomPayment() {
+            vibrate([30]);
+            const currentValue = currentPaymentIndex !== null && session.readings[currentPaymentIndex].payment ? session.readings[currentPaymentIndex].payment : '';
             const newValue = prompt('Enter payment method:', currentValue);
             if (newValue !== null && newValue.trim()) {
-                session.updateReading(index, 'payment', newValue.trim());
+                session.updateReading(currentPaymentIndex, 'payment', newValue.trim());
+                closePaymentSheet();
             }
         }
 
@@ -1052,18 +1228,16 @@
         }
 
 
-
-
-
-
-
-
-
-
-
         function toggleDay(day) {
             vibrate([50]);
             session.selectedDay = day;
+        }
+
+        function collapseSettings() {
+            const content = document.getElementById('settingsContent');
+            const icon = document.querySelector('.collapse-icon');
+            content.classList.remove('open');
+            icon.classList.remove('open');
         }
 
         function toggleSettings() {
@@ -1080,6 +1254,8 @@
         let isBlinking = false;
         let alarmInterval = null;
         let audioContext = null;
+        let wakeLock = null;
+        let silentAudio = null;
 
         function initAudio() {
             if (!audioContext) {
@@ -1136,6 +1312,19 @@
             }, 3000);
         }
 
+        function showSnackbar(message) {
+            const snackbar = document.createElement('div');
+            snackbar.className = 'snackbar';
+            snackbar.textContent = message;
+            document.body.appendChild(snackbar);
+            
+            setTimeout(() => {
+                if (snackbar.parentElement) {
+                    snackbar.remove();
+                }
+            }, 2000);
+        }
+
         function startAlarm() {
             playAlarmSequence();
             alarmInterval = setInterval(() => {
@@ -1163,18 +1352,164 @@
             }
         }
 
+        function initCanvas() {
+            canvas = document.getElementById('timerCanvas');
+            ctx = canvas.getContext('2d');
+            // Ensure crisp lines
+            ctx.imageSmoothingEnabled = false;
+            drawTimer();
+        }
+
+        function drawTimer() {
+            if (!ctx) return;
+            
+            const centerX = 150;
+            const centerY = 150;
+            const radius = 120;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, 300, 300);
+            
+            // Background circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 12;
+            ctx.stroke();
+            
+            // Progress arc
+            if (isRunning) {
+                // When running: show actual progress with gradient colors
+                const progress = timerSeconds / totalSeconds;
+                if (progress > 0) {
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, -Math.PI/2, -Math.PI/2 + (2 * Math.PI * progress));
+                    
+                    // Calculate gradient color (green to red)
+                    const red = Math.round(220 * (1 - progress) + 40 * progress);
+                    const green = Math.round(167 * progress + 53 * (1 - progress));
+                    const blue = Math.round(69 * (1 - progress));
+                    ctx.strokeStyle = `rgb(${red}, ${green}, ${blue})`;
+                    
+                    ctx.lineWidth = 12;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                }
+            } else {
+                // When not running: always show full green circle
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.strokeStyle = '#28a745'; // Always green
+                ctx.lineWidth = 12;
+                ctx.stroke();
+            }
+            
+            // Time text
+            const minutes = Math.floor(timerSeconds / 60);
+            const seconds = timerSeconds % 60;
+            const timeText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Text color
+            if (isRunning) {
+                const progress = timerSeconds / totalSeconds;
+                const red = Math.round(51 * (1 - progress) + 220 * (1 - progress));
+                const green = Math.round(51 * progress + 53 * (1 - progress));
+                const blue = Math.round(51 * (1 - progress));
+                ctx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+            } else {
+                ctx.fillStyle = '#333'; // Dark gray when not running
+            }
+            ctx.font = 'bold 72px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(timeText, centerX, centerY);
+            
+            // Animate if running
+            if (isRunning) {
+                canvasAnimationId = requestAnimationFrame(drawTimer);
+            }
+        }
+
         function updateTimerDisplay() {
             const minutes = Math.floor(timerSeconds / 60);
             const seconds = timerSeconds % 60;
             document.getElementById('timerDisplay').textContent = 
                 `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Update canvas
+            if (canvas) {
+                drawTimer();
+            }
+        }
+
+        let keepAwakeInterval = null;
+        let canvasAnimationId = null;
+        let canvas = null;
+        let ctx = null;
+        let totalSeconds = 900;
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake lock acquired');
+                } else {
+                    console.log('Wake lock not supported');
+                }
+            } catch (err) {
+                console.log('Wake lock failed:', err);
+            }
+            
+            // Always use audio fallback as additional insurance
+            try {
+                initAudio();
+                // Create looping silent audio
+                const buffer = audioContext.createBuffer(1, 1, 22050);
+                silentAudio = audioContext.createBufferSource();
+                silentAudio.buffer = buffer;
+                silentAudio.loop = true;
+                const gainNode = audioContext.createGain();
+                silentAudio.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                gainNode.gain.setValueAtTime(0.001, audioContext.currentTime); // Very quiet but not silent
+                silentAudio.start();
+                console.log('Silent audio started');
+            } catch (audioErr) {
+                console.log('Silent audio failed:', audioErr);
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock) {
+                wakeLock.release();
+                wakeLock = null;
+                console.log('Wake lock released');
+            }
+            if (silentAudio) {
+                silentAudio.stop();
+                silentAudio = null;
+                console.log('Silent audio stopped');
+            }
+            if (keepAwakeInterval) {
+                clearInterval(keepAwakeInterval);
+                keepAwakeInterval = null;
+                document.body.style.transform = '';
+            }
         }
 
         function startTimer() {
             vibrate([80]);
             if (!isRunning && timerSeconds > 0) {
                 isRunning = true;
+                totalSeconds = timerSeconds; // Store initial time for progress calculation
                 stopBlinking();
+                requestWakeLock();
+                
+                // Start canvas animation
+                if (canvas) {
+                    drawTimer();
+                }
+                
                 timerInterval = setInterval(() => {
                     timerSeconds--;
                     updateTimerDisplay();
@@ -1196,6 +1531,14 @@
         function pauseTimer() {
             vibrate([50]);
             isRunning = false;
+            releaseWakeLock();
+            
+            // Stop canvas animation
+            if (canvasAnimationId) {
+                cancelAnimationFrame(canvasAnimationId);
+                canvasAnimationId = null;
+            }
+            
             if (timerInterval) {
                 clearInterval(timerInterval);
                 timerInterval = null;
@@ -1208,8 +1551,10 @@
             stopBlinking();
             stopWarningBlink();
             stopAlarm();
+            releaseWakeLock();
             const minutes = parseInt(document.getElementById('timerInput').value);
             timerSeconds = minutes * 60;
+            totalSeconds = timerSeconds;
             updateTimerDisplay();
         }
 
@@ -1237,8 +1582,14 @@
         document.getElementById('timerInput').addEventListener('input', function() {
             if (!isRunning) {
                 timerSeconds = parseInt(this.value) * 60;
+                totalSeconds = timerSeconds;
                 updateTimerDisplay();
             }
+        });
+
+        // Initialize canvas on page load
+        window.addEventListener('load', function() {
+            initCanvas();
         });
 
         document.getElementById('price').addEventListener('input', function() {
@@ -1286,11 +1637,10 @@
             }
         });
 
-        // Close modal when clicking outside
+        // Close sheets when clicking outside
         window.addEventListener('click', function(event) {
-            const modal = document.getElementById('loadSessionModal');
-            if (event.target === modal) {
-                closeLoadSessionModal();
+            if (event.target === document.getElementById('sessionOverlay')) {
+                closeSessionSheet();
             }
         });
     </script>

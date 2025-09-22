@@ -44,10 +44,12 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 - Day selection buttons with active state highlighting
 - Haptic feedback on all button interactions (50-100ms patterns)
 - Audio-first timer alerts with visual backup indicators
-- No default payment method selection - user must choose
-- Payment method prompt dialog for custom entries
+- Payment method modal sheet with predefined and custom options
 - Visual dividers between reading entries (2px solid #ddd)
 - Automatic session persistence with restoration dialog
+- Bottom sheet animations for modal interactions
+- Top snackbar notifications for session loading
+- Performance reporting in session list (total earnings display)
 
 ### Input Sizing
 - Reading price: 80px width (rarely changes)
@@ -57,11 +59,13 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 - All inputs center-aligned for better readability
 
 ### Timer Design
-- Timer display: 80px font size, monospace for consistent digit width
+- Canvas timer: 300x300px circular countdown with gradient colors (green to red)
+- Timer text: 72px font size, center-aligned within canvas
 - Start button: flex:3 ratio, 70px height for prominence
 - Pause/Reset buttons: flex:1 ratio, equal sizing
 - Arrow buttons: 40px width for time adjustment
-- Warning states: grey background at 10s, red blinking at 0s
+- Visual warnings: Circle color transitions from green to red as time decreases
+- Canvas styling: border: none, padding: 0, crisp rendering enabled
 
 ## Features
 
@@ -88,17 +92,21 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 - **Add/Remove Buttons**: Large touch-friendly buttons with haptic feedback and confirmation dialogs
 - **Totals Table**: Compact table showing readings count, base total, tips total
 - **Grand Total**: Prominent green total with border
-- **Readings Log**: Two-row layout with timestamps, tip inputs, payment method selection, and delete buttons
-- **Payment Methods**: Compact button row with cash, cc, venmo, paypal, cashapp, and custom "Other" option
+- **Readings Log**: Two-row layout with timestamps, tip inputs, payment method button, and delete buttons
+- **Payment Method Sheet**: Bottom modal sheet with cash, cc, venmo, paypal, cashapp, and custom "Other" option
+- **Session Loading Sheet**: Bottom modal sheet showing existing sessions with performance data
+- **Snackbar Notifications**: Top sliding notifications for session loading confirmations
 - **Session Restoration**: Dialog on page load asking to restore previous session data
 
 ### Timer Features
-- **Large Display**: 80px font size for easy visibility
+- **Canvas Display**: 300x300px circular countdown with 72px text for easy visibility
 - **Audio Alarms**: Web Audio API generated beeps (1000Hz square wave)
-- **Visual Warnings**: Grey background at 10 seconds, red blinking at 0
+- **Visual Progress**: Circular progress bar with gradient colors from green to red
 - **Haptic Feedback**: Button presses only (no countdown vibrations)
 - **Time Adjustment**: Arrow buttons for quick minute adjustments
 - **Alarm Sequence**: Three rapid beeps + longer tone, repeating every 1.5 seconds
+- **Wake Lock System**: Screen Wake Lock API + silent audio fallback to prevent sleep
+- **Animation**: requestAnimationFrame for smooth canvas updates
 
 ### Data Structure
 Each reading contains:
@@ -123,6 +131,9 @@ Timer state:
 - `isRunning`: Timer active state
 - `timerInterval`: Interval reference for countdown
 - `alarmInterval`: Interval reference for alarm sequence
+- `wakeLock`: Screen Wake Lock API reference
+- `silentAudio`: Audio element for wake lock fallback
+- Canvas context for drawing circular timer
 
 Persistence:
 - Supabase database for cloud sync
@@ -147,6 +158,13 @@ Persistence:
 - All mobile browser style overrides use !important declarations
 - Command pattern: Use macro-actions like startOver() for atomic operations
 - Declarative UI: SessionStore setters automatically trigger UI updates
+- DRY principle: Utility functions for sheet management and settings collapse
+- Implementation-agnostic naming: Function names describe purpose, not implementation
+- Performance reporting: Session list shows total earnings for quick overview
+- Canvas timer: Uses requestAnimationFrame for smooth animations and better performance
+- Wake lock limitations: Screen Wake Lock API requires HTTPS, effectiveness varies by browser
+- Canvas rendering: imageSmoothingEnabled = false for crisp circle rendering
+- Canvas centering: Flex container wrapper ensures perfect centering across all browsers
 
 ## Usage
 1. Set reading price (defaults to $40)
@@ -164,6 +182,13 @@ Persistence:
 - **User Interaction**: Audio context initialized on first click
 - **Volume**: 30% gain to prevent harsh sounds
 
+### Wake Lock System
+- **Screen Wake Lock API**: Primary method for preventing screen sleep (HTTPS required)
+- **Silent Audio Fallback**: Looping silent audio for browsers without Wake Lock API
+- **Automatic Management**: Wake lock requested on timer start, released on stop/pause
+- **Browser Compatibility**: Works on Samsung Browser, limited effectiveness on Chrome
+- **Duration Limits**: Tested effective up to 10 minutes, may not prevent indefinite sleep
+
 ### Haptic Feedback
 - **Button Presses**: 50ms vibration for standard actions
 - **Confirmations**: 100-50-100ms pattern for destructive actions
@@ -172,11 +197,12 @@ Persistence:
 - **No Countdown Vibration**: Audio and visual only for timer events
 
 ### Payment Method System
-- **Predefined Methods**: Cash, CC, Venmo, PayPal, Cash App buttons
-- **Custom Methods**: "Other" button opens prompt dialog for custom text
-- **Active States**: Blue highlighting for selected payment method
-- **No Defaults**: New readings require manual payment method selection
-- **Compact Layout**: 32px height buttons with 11px font size
+- **Modal Sheet Interface**: Single "Payment Method" button opens bottom sheet
+- **Predefined Methods**: Cash, CC, Venmo, PayPal, Cash App options in sheet
+- **Custom Methods**: "Other" option opens prompt dialog for custom text
+- **Selected State**: Button shows selected method name and styling
+- **No Defaults**: New readings show "Payment Method" placeholder
+- **Sheet Animation**: Smooth slideUpSheet animation with overlay
 
 ### Data Persistence
 - **Supabase Database**: Primary storage with table 'blacksheep_reading_tracker_sessions'
@@ -187,17 +213,18 @@ Persistence:
 - **Graceful Degradation**: Falls back to localStorage if database unavailable
 
 ### CSS Classes
-- `.timer-display`: 80px font, monospace, center-aligned
+- `.timer-canvas-container`: Flex container for canvas centering (justify-content: center, align-items: center)
+- `.timer-canvas`: 300x300px canvas, border: none, padding: 0, margin: 0
 - `.timer h3`: 24px font size for larger header
 - `.start-btn`: flex:3, 70px height, prominent green styling
 - `.tip-input`: 70px width with !important for mobile override
-- `.payment-btn`: 32px height, 11px font, compact payment method buttons
-- `.payment-btn.active`: blue background for selected payment method
+- `.payment-method-btn`: Single button for payment method selection
+- `.payment-method-btn.selected`: Blue styling when payment method chosen
 - `.reading-item`: 2px solid #ddd border-bottom for visual separation
 - `.event-settings`: collapsible panel with smooth transitions
 - `.day-btn.active`: highlighted state for selected day
-- `.blink`: red background animation for timer alarm
-- `.warning`: grey background for 10-second warning
+- `.sheet`: Bottom modal sheet with slideUpSheet animation
+- `.snackbar`: Top notification with slideDown animation
 
 ## Browser Compatibility
 Designed for modern mobile browsers with support for:
