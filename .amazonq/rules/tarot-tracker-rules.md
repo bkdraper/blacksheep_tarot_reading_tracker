@@ -10,6 +10,12 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 - Manage readings log with add/remove functionality
 - Session management with cloud persistence
 - Timer functionality for reading sessions
+- Multi-user support with data separation
+
+## Version Management
+- **CRITICAL**: Version number MUST be bumped on every code change
+- Version displayed in upper right corner for cache-busting
+- Current version: v3.9.0
 
 ## Technical Requirements
 - **Pure web technologies**: HTML/CSS/JS only, no frameworks
@@ -48,8 +54,13 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 - Visual dividers between reading entries (2px solid #ddd)
 - Automatic session persistence with restoration dialog
 - Bottom sheet animations for modal interactions
-- Top snackbar notifications for session loading
+- Top snackbar notifications for session loading and all system messages
 - Performance reporting in session list (total earnings display)
+- User selection sheet modal with database-driven user list
+- Loading spinners for all database operations
+- Live user fetching from database (no localStorage user management)
+- Full-width snackbars with centered text for better mobile experience
+- Color-coded snackbars (success=light green, error=light red, info=light blue)
 
 ### Input Sizing
 - Reading price: 80px width (rarely changes)
@@ -83,18 +94,20 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 4. **Tip Tracking**: Enter tips for each reading
 5. **Payment Method Selection**: Choose payment method for each reading (cash, cc, venmo, paypal, cashapp, or custom)
 6. **Real-time Totals**: Automatic calculation of all totals
-7. **Event Settings Panel**: Collapsible panel for reading price, location, and day selection
+7. **Event Settings Panel**: Collapsible panel for user selection, reading price, location, and day selection
 8. **Countdown Timer**: Comprehensive timer with audio alarms and visual warnings
+9. **Multi-User Support**: User selection with database-driven user list and data separation
 
 ### Display Elements
-- **Event Settings**: Collapsible panel with reading price, location input, and day toggle buttons (Fri/Sat/Sun)
+- **Event Settings**: Collapsible panel with user selection button, reading price, location input, and day toggle buttons (Fri/Sat/Sun)
+- **User Selection Sheet**: Bottom modal sheet with database-driven user list, loading spinner, and "+ Add New User" button
 - **Countdown Timer**: Large display (80px font, 24px header) with start/pause/reset controls and time adjustment arrows
 - **Add/Remove Buttons**: Large touch-friendly buttons with haptic feedback and confirmation dialogs
 - **Totals Table**: Compact table showing readings count, base total, tips total
 - **Grand Total**: Prominent green total with border
 - **Readings Log**: Two-row layout with timestamps, tip inputs, payment method button, and delete buttons
 - **Payment Method Sheet**: Bottom modal sheet with cash, cc, venmo, paypal, cashapp, and custom "Other" option
-- **Session Loading Sheet**: Bottom modal sheet showing existing sessions with performance data
+- **Session Loading Sheet**: Bottom modal sheet showing existing sessions with performance data (filtered by user)
 - **Snackbar Notifications**: Top sliding notifications for session loading confirmations
 - **Session Restoration**: Dialog on page load asking to restore previous session data
 
@@ -116,14 +129,15 @@ Each reading contains:
 
 Session state (SessionStore class):
 - `sessionId`: Database session ID
+- `user`: Selected user name (required for session creation)
 - `location`: Event location text
 - `selectedDay`: Currently selected day (Fri/Sat/Sun)
 - `price`: Base price per reading (default $40)
 - `readings`: Array of reading objects
 
 Computed properties:
-- `canCreateSession`: Location + day + price validation
-- `hasValidSession`: Session ID + location + day validation
+- `canCreateSession`: User + location + day + price validation
+- `hasValidSession`: Session ID + user + location + day validation
 - `sessionPhase`: SETUP | READY_TO_CREATE | ACTIVE
 
 Timer state:
@@ -136,12 +150,16 @@ Timer state:
 - Canvas context for drawing circular timer
 
 Persistence:
-- Supabase database for cloud sync
-- localStorage key: 'readingTracker' for backup
+- Supabase database for cloud sync with user_name field (NOT NULL)
+- localStorage key: 'readingTracker_{user}' for user-specific backup
 - Automatic save on every state change
+- User list fetched live from database (unique user_name values)
+- No localStorage user management (database-driven)
 
 ## File Structure
-- `index.html`: Main application file with SessionStore class
+- `index.html`: Main application file with SessionStore and Timer classes
+- `manifest.json`: PWA manifest for app installation
+- `serviceWorker.js`: Service worker with network-first caching strategy (cache version v5) for immediate updates
 - `server.js`: Node.js server for local hosting
 - `package.json`: Node.js project configuration
 - `README.md`: Project documentation
@@ -149,6 +167,7 @@ Persistence:
 - `.amazonq/rules/tarot-tracker-rules.md`: This instruction file
 
 ## Development Notes
+- **Version bumping**: MUST increment version number on every code change
 - Version timestamp in upper right corner for cache-busting during development
 - Cache-control meta tags to prevent browser caching during development
 - Server runs on port 8080, accessible at http://192.168.5.62:8080 on local network
@@ -165,6 +184,13 @@ Persistence:
 - Wake lock limitations: Screen Wake Lock API requires HTTPS, effectiveness varies by browser
 - Canvas rendering: imageSmoothingEnabled = false for crisp circle rendering
 - Canvas centering: Flex container wrapper ensures perfect centering across all browsers
+- Multi-user data separation: Each user has isolated data in database and localStorage
+- Database-driven user management: No localStorage user list, fetched live from database
+- Loading states: All database operations show loading spinners for user feedback
+- Service worker strategy: Network-first caching for immediate updates during development
+- Notification system: All system messages use snackbars instead of alerts/toasts
+- Snackbar design: Full-width notifications with color coding and centered text
+- User experience: No confirmation dialogs for user switching, seamless username changes
 
 ## Usage
 1. Set reading price (defaults to $40)
@@ -224,7 +250,14 @@ Persistence:
 - `.event-settings`: collapsible panel with smooth transitions
 - `.day-btn.active`: highlighted state for selected day
 - `.sheet`: Bottom modal sheet with slideUpSheet animation
-- `.snackbar`: Top notification with slideDown animation
+- `.snackbar`: Full-width top notification (100% width, top: 0) with slideDown animation and centered text
+- `.snackbar.success`: Light green background for success messages
+- `.snackbar.error`: Light red background for error messages
+- `.user-btn`: User selection button styled like input elements
+- `.user-btn.selected`: Blue styling when user is selected
+- `.user-item`: Individual user options in selection sheet
+- `.btn-add-user`: Green button for adding new users in sheet
+- `.spinner`: Loading spinner for database operations (40px size, larger for better visibility)
 
 ## Browser Compatibility
 Designed for modern mobile browsers with support for:
@@ -237,9 +270,21 @@ Designed for modern mobile browsers with support for:
 - Fetch API for Supabase integration
 - localStorage for offline functionality
 
+## Multi-User Support
+- **User Selection**: Sheet modal with database-driven user list
+- **Data Separation**: Each user has isolated sessions and readings
+- **No Login Required**: Simple username-based identification
+- **Live User List**: Fetched from database on sheet open
+- **Add New Users**: Prompt dialog creates new user immediately
+- **User Switching**: Can switch users anytime, loads their specific data
+- **Database Schema**: user_name field (NOT NULL) in sessions table
+- **localStorage Keys**: User-specific keys (readingTracker_{user})
+- **Session Filtering**: All database queries filtered by user_name
+
 ## Deployment
 - **AWS Amplify**: Hosted under 'reading-tracker' app
 - **Live URL**: https://tracker.blacksheep-gypsies.com
 - **Custom Domain**: Subdomain in Amplify + CNAME in Squarespace DNS
 - **Updates**: Upload zip file to Amplify console for deployment
 - **GitHub**: Repository available for version control
+- **PWA Support**: Installable as standalone app with service worker

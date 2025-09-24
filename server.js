@@ -4,21 +4,30 @@ const path = require('path');
 
 const PORT = 8080;
 
+const mimeTypes = {
+    '.html': 'text/html',
+    '.js': 'application/javascript',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.css': 'text/css'
+};
+
 const server = http.createServer((req, res) => {
-    if (req.url === '/' || req.url === '/index.html') {
-        fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
-            if (err) {
-                res.writeHead(500);
-                res.end('Error loading file');
-                return;
-            }
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(data);
-        });
-    } else {
-        res.writeHead(404);
-        res.end('Not found');
-    }
+    let filePath = req.url === '/' ? '/index.html' : req.url;
+    const fullPath = path.join(__dirname, filePath);
+    const ext = path.extname(filePath);
+    const contentType = mimeTypes[ext] || 'text/plain';
+    
+    fs.readFile(fullPath, (err, data) => {
+        if (err) {
+            res.writeHead(404);
+            res.end('Not found');
+            return;
+        }
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(data);
+    });
 });
 
 server.listen(PORT, '0.0.0.0', () => {

@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#28a745">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tarot Reading Tracker">
+    <meta name="application-name" content="Tarot Reading Tracker">
+    <meta name="msapplication-starturl" content="/">
+
     <title>Tarot Reading Tracker</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -36,7 +45,7 @@
             -webkit-appearance: none;
             appearance: none;
         }
-        input[type="text"] {
+        input[type="text"], select {
             flex: 1;
             min-width: 0;
             padding: 8px;
@@ -411,6 +420,57 @@
         .session-sheet-content {
             padding: 20px;
         }
+        .user-btn {
+            flex: 1;
+            min-width: 0;
+            padding: 8px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            text-align: left;
+            -webkit-appearance: none;
+            appearance: none;
+            box-sizing: border-box;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+        .user-btn.selected {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .user-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            text-align: center;
+            font-size: 16px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .user-item:hover {
+            background-color: #f8f9fa;
+        }
+        .btn-add-user {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            min-height: 44px;
+            margin-top: 10px;
+            touch-action: manipulation;
+        }
         .timer {
             background: white;
             border-radius: 8px;
@@ -539,19 +599,26 @@
         }
         .snackbar {
             position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #d4edda;
-            color: #000;
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: #d1ecf1;
+            color: #0c5460;
             padding: 12px 20px;
-            border-radius: 8px;
             font-size: 14px;
+            text-align: center;
             z-index: 1000;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             animation: slideDown 0.3s ease;
-            min-width: 200px;
-            max-width: 90vw;
+        }
+        .snackbar.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .snackbar.error {
+            background: #f8d7da;
+            color: #721c24;
         }
         .toast.success { background: #28a745; }
         .toast.error { background: #dc3545; }
@@ -569,8 +636,8 @@
             to { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
         @keyframes slideDown {
-            from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
-            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
         @keyframes slideUpSheet {
             from { transform: translateY(100%); }
@@ -582,13 +649,20 @@
         }
         .spinner {
             display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top-color: #007bff;
+            animation: spin 1s ease-in-out infinite;
+            margin: 20px auto;
+        }
+        .spinner.inline {
             width: 12px;
             height: 12px;
             border: 2px solid #ffffff;
-            border-radius: 50%;
             border-top-color: transparent;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 8px;
+            margin: 0 8px 0 0;
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
@@ -596,7 +670,7 @@
     </style>
 </head>
 <body>
-    <div class="version">v1:15pm</div>
+    <div class="version">v3.9.0</div>
     <div class="container">
         <div class="event-settings">
             <div class="settings-header" onclick="toggleSettings()">
@@ -604,6 +678,11 @@
                 <span class="collapse-icon">▼</span>
             </div>
             <div class="settings-content" id="settingsContent">
+                <div class="input-group">
+                    <label for="user">User:</label>
+                    <button id="userBtn" onclick="showUserSelection()" class="user-btn">Select User...</button>
+                </div>
+
                 <div class="input-group">
                     <label for="price">Reading Price ($)</label>
                     <input type="number" id="price" value="40" step="0.01" min="0">
@@ -696,6 +775,19 @@
         </div>
     </div>
 
+    <!-- User Selection Sheet -->
+    <div id="userOverlay" class="payment-overlay" onclick="hideUserSelection()"></div>
+    <div id="userSheet" class="session-sheet">
+        <div class="session-sheet-header">
+            <h3>Select User</h3>
+            <button class="modal-close" onclick="hideUserSelection()">&times;</button>
+        </div>
+        <div class="session-sheet-content">
+            <div id="userList"></div>
+            <button onclick="addNewUser()" class="btn-add-user">+ Add New User</button>
+        </div>
+    </div>
+
     <!-- Load Session Sheet -->
     <div id="sessionOverlay" class="payment-overlay" onclick="closeSessionSheet()"></div>
     <div id="sessionSheet" class="session-sheet">
@@ -715,10 +807,66 @@
         const SUPABASE_ANON_KEY = 'sb_publishable_MsdJm2VITIPWik4dBPErrw_QjfIsKe9';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // Service worker registration for PWA with message handling
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/serviceWorker.js')
+                .then(registration => {
+                    console.log('Service Worker registered:', registration);
+                    
+                    // Check for updates
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                showUpdateNotification();
+                            }
+                        });
+                    });
+                    
+                    // Register for background sync
+                    if ('sync' in window.ServiceWorkerRegistration.prototype) {
+                        console.log('Background sync supported');
+                    }
+                    
+                    // Register for periodic background sync (requires user permission)
+                    if ('periodicSync' in window.ServiceWorkerRegistration.prototype) {
+                        registration.periodicSync.register('backup-readings', {
+                            minInterval: 24 * 60 * 60 * 1000 // 24 hours
+                        }).catch(err => console.log('Periodic sync registration failed:', err));
+                    }
+                    
+                    // Request notification permission
+                    if ('Notification' in window && 'serviceWorker' in navigator) {
+                        Notification.requestPermission().then(permission => {
+                            console.log('Notification permission:', permission);
+                        });
+                    }
+                })
+                .catch(error => console.log('Service Worker registration failed:', error));
+            
+            // Listen for messages from service worker
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data.type === 'SYNC_READINGS') {
+                    handleBackgroundSync();
+                } else if (event.data.type === 'BACKUP_READINGS') {
+                    handleBackgroundBackup();
+                } else if (event.data.type === 'RESET_TIMER') {
+                    handleTimerReset();
+                }
+            });
+            
+            // Handle timer reset from notification
+            function handleTimerReset() {
+                timer.reset(true);
+            }
+        }
+
+        
         // Central Session Store
         class SessionStore {
             constructor() {
                 this._sessionId = null;
+                this._user = '';
                 this._location = '';
                 this._selectedDay = null;
                 this._price = 40;
@@ -728,6 +876,7 @@
 
             // Getters
             get sessionId() { return this._sessionId; }
+            get user() { return this._user; }
             get location() { return this._location; }
             get selectedDay() { return this._selectedDay; }
             get price() { return this._price; }
@@ -735,10 +884,10 @@
 
             // Computed properties
             get canCreateSession() {
-                return this._location.trim() && this._selectedDay && this._price;
+                return this._user.trim() && this._location.trim() && this._selectedDay && this._price;
             }
             get hasValidSession() {
-                return this._sessionId && this._location.trim() && this._selectedDay;
+                return this._sessionId && this._user.trim() && this._location.trim() && this._selectedDay;
             }
             get sessionPhase() {
                 if (this.hasValidSession) return 'ACTIVE';
@@ -751,6 +900,15 @@
                 this._sessionId = value;
                 this.updateUI();
                 this.save();
+            }
+            set user(value) {
+                this._user = value;
+                const userBtn = document.getElementById('userBtn');
+                userBtn.textContent = value || 'Select User...';
+                userBtn.classList.toggle('selected', !!value);
+                console.log('User changed to:', value, 'canCreateSession:', this.canCreateSession, 'sessionPhase:', this.sessionPhase);
+                this.updateUI();
+                this.debouncedSave();
             }
             set location(value) {
                 this._location = value;
@@ -810,7 +968,7 @@
                 document.getElementById('location').value = '';
                 document.getElementById('price').value = '40';
                 document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
-                localStorage.removeItem('readingTracker');
+                this.clearUserData();
                 this.updateUI();
             }
 
@@ -853,6 +1011,13 @@
                         icon.classList.add('open');
                     }
                     
+                    const userBtn = document.getElementById('userBtn');
+                    if (!this._user.trim()) {
+                        userBtn.classList.add('required-field');
+                    } else {
+                        userBtn.classList.remove('required-field');
+                    }
+                    
                     if (!this._location.trim()) {
                         locationInput.classList.add('required-field');
                     } else {
@@ -865,6 +1030,8 @@
                         dayToggles.classList.remove('required-group');
                     }
                 } else {
+                    const userBtn = document.getElementById('userBtn');
+                    userBtn.classList.remove('required-field');
                     locationInput.classList.remove('required-field');
                     dayToggles.classList.remove('required-group');
                 }
@@ -928,20 +1095,24 @@
             }
 
             async save() {
+                if (!this._user) return; // Don't save without user
+                
                 const state = {
                     sessionId: this._sessionId,
+                    user: this._user,
                     location: this._location,
                     selectedDay: this._selectedDay,
                     price: this._price,
                     readings: this._readings
                 };
-                localStorage.setItem('readingTracker', JSON.stringify(state));
+                localStorage.setItem(`readingTracker_${this._user}`, JSON.stringify(state));
 
                 if (this._sessionId) {
                     try {
                         await supabase
                             .from('blacksheep_reading_tracker_sessions')
                             .update({
+                                user_name: this._user,
                                 location: this._location,
                                 selected_day: this._selectedDay,
                                 reading_price: this._price,
@@ -949,7 +1120,9 @@
                             })
                             .eq('id', this._sessionId);
                     } catch (error) {
-                        // Silently fail - localStorage backup exists
+                        // Register for background sync on network failure
+                        registerBackgroundSync();
+                        console.log('Save failed, registered for background sync');
                     }
                 }
             }
@@ -960,7 +1133,9 @@
             }
 
             loadFromStorage() {
-                const saved = localStorage.getItem('readingTracker');
+                if (!this._user) return;
+                
+                const saved = localStorage.getItem(`readingTracker_${this._user}`);
                 if (saved) {
                     const state = JSON.parse(saved);
                     this._sessionId = state.sessionId || null;
@@ -970,6 +1145,9 @@
                     this._readings = state.readings || [];
                     
                     // Update DOM without triggering saves
+                    const userBtn = document.getElementById('userBtn');
+                    userBtn.textContent = this._user || 'Select User...';
+                    userBtn.classList.toggle('selected', !!this._user);
                     document.getElementById('location').value = this._location;
                     document.getElementById('price').value = this._price;
                     document.querySelectorAll('.day-btn').forEach(btn => {
@@ -982,10 +1160,728 @@
                     this.updateUI();
                 }
             }
+            
+            async loadUsers() {
+                try {
+                    const { data } = await supabase
+                        .from('blacksheep_reading_tracker_sessions')
+                        .select('user_name')
+                        .not('user_name', 'is', null);
+                    
+                    const uniqueUsers = [...new Set(data?.map(row => row.user_name) || [])];
+                    const userList = document.getElementById('userList');
+                    if (userList) {
+                        userList.innerHTML = uniqueUsers.map(user => `
+                            <div class="user-item" onclick="selectUser('${user}')">${user}</div>
+                        `).join('');
+                    }
+                    return uniqueUsers;
+                } catch (error) {
+                    console.error('Failed to load users:', error);
+                    return [];
+                }
+            }
+            
+            clearUserData() {
+                if (this._user) {
+                    localStorage.removeItem(`readingTracker_${this._user}`);
+                }
+            }
         }
 
-        // Initialize store
+        // Timer class for encapsulating timer functionality
+        class Timer {
+            constructor() {
+                this._seconds = 900; // 15 minutes default
+                this._totalSeconds = 900;
+                this._isRunning = false;
+                this._isBlinking = false;
+                this._interval = null;
+                this._alarmInterval = null;
+                this._canvasAnimationId = null;
+                this._wakeLock = null;
+                this._silentAudio = null;
+                this._canvas = null;
+                this._ctx = null;
+            }
+
+            // Getters
+            get seconds() { return this._seconds; }
+            get totalSeconds() { return this._totalSeconds; }
+            get isRunning() { return this._isRunning; }
+            get isBlinking() { return this._isBlinking; }
+            get canvas() { return this._canvas; }
+            get ctx() { return this._ctx; }
+
+            // Setters
+            set seconds(value) {
+                this._seconds = value;
+                this.updateDisplay();
+            }
+
+            // Methods
+            start() {
+                console.log('Timer.start called');
+                vibrate([80]);
+                if (!this._isRunning && this._seconds > 0) {
+                    console.log('Starting timer');
+                    this._isRunning = true;
+                    this._totalSeconds = this._seconds;
+                    this.stopBlinking();
+                    this.requestWakeLock();
+                    
+                    if (this._canvas) {
+                        this.drawTimer();
+                    }
+                    
+                    this._interval = setInterval(() => {
+                        console.log('Timer tick:', this._seconds);
+                        this._seconds--;
+                        this.updateDisplay();
+                        
+                        if (this._seconds <= 5) {
+                            console.log('Timer countdown:', this._seconds);
+                        }
+                        
+                        if (this._seconds === 10) {
+                            this.startWarningBlink();
+                        }
+                        
+                        if (this._seconds <= 0) {
+                            console.log('Timer expired');
+                            this.pause();
+                            this.stopWarningBlink();
+                            this.startBlinking();
+                            this.startAlarm();
+                            sendTimerNotification();
+                        }
+                    }, 1000);
+                }
+            }
+
+            pause() {
+                vibrate([50]);
+                this._isRunning = false;
+                this.releaseWakeLock();
+                
+                if (this._canvasAnimationId) {
+                    cancelAnimationFrame(this._canvasAnimationId);
+                    this._canvasAnimationId = null;
+                }
+                
+                if (this._interval) {
+                    clearInterval(this._interval);
+                    this._interval = null;
+                }
+            }
+
+            reset(showToast = false) {
+                vibrate([100]);
+                this.pause();
+                this.stopBlinking();
+                this.stopWarningBlink();
+                this.stopAlarm();
+                this.releaseWakeLock();
+                const minutes = parseInt(document.getElementById('timerInput').value);
+                this._seconds = minutes * 60;
+                this._totalSeconds = this._seconds;
+                this.updateDisplay();
+                
+                if (showToast) {
+                    showSnackbar(`Timer reset to ${minutes} minutes`, 'success');
+                }
+            }
+
+            adjustTime(minutes) {
+                vibrate([30]);
+                if (!this._isRunning) {
+                    const input = document.getElementById('timerInput');
+                    let newValue = parseInt(input.value) + minutes;
+                    if (newValue < 0) newValue = 0;
+                    if (newValue > 99) newValue = 99;
+                    input.value = newValue;
+                    this._seconds = newValue * 60;
+                    this.updateDisplay();
+                }
+            }
+
+            updateDisplay() {
+                const minutes = Math.floor(this._seconds / 60);
+                const seconds = this._seconds % 60;
+                document.getElementById('timerDisplay').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (this._canvas) {
+                    this.drawTimer();
+                }
+            }
+
+            startBlinking() {
+                this._isBlinking = true;
+                document.getElementById('timerDisplay').classList.add('blink');
+            }
+
+            stopBlinking() {
+                this._isBlinking = false;
+                document.getElementById('timerDisplay').classList.remove('blink');
+            }
+
+            startWarningBlink() {
+                document.getElementById('timerDisplay').classList.add('warning');
+            }
+
+            stopWarningBlink() {
+                document.getElementById('timerDisplay').classList.remove('warning');
+            }
+
+            startAlarm() {
+                playAlarmSequence();
+                this._alarmInterval = setInterval(() => {
+                    playAlarmSequence();
+                }, 1500);
+            }
+
+            stopAlarm() {
+                if (this._alarmInterval) {
+                    clearInterval(this._alarmInterval);
+                    this._alarmInterval = null;
+                }
+            }
+
+            async requestWakeLock() {
+                try {
+                    if ('wakeLock' in navigator) {
+                        this._wakeLock = await navigator.wakeLock.request('screen');
+                        console.log('Wake lock acquired');
+                    }
+                } catch (err) {
+                    console.log('Wake lock failed:', err);
+                }
+                
+                try {
+                    initAudio();
+                    const buffer = audioContext.createBuffer(1, 1, 22050);
+                    this._silentAudio = audioContext.createBufferSource();
+                    this._silentAudio.buffer = buffer;
+                    this._silentAudio.loop = true;
+                    const gainNode = audioContext.createGain();
+                    this._silentAudio.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    gainNode.gain.setValueAtTime(0.001, audioContext.currentTime);
+                    this._silentAudio.start();
+                    console.log('Silent audio started');
+                } catch (audioErr) {
+                    console.log('Silent audio failed:', audioErr);
+                }
+            }
+
+            releaseWakeLock() {
+                if (this._wakeLock) {
+                    this._wakeLock.release();
+                    this._wakeLock = null;
+                    console.log('Wake lock released');
+                }
+                if (this._silentAudio) {
+                    this._silentAudio.stop();
+                    this._silentAudio = null;
+                    console.log('Silent audio stopped');
+                }
+            }
+
+            initCanvas() {
+                this._canvas = document.getElementById('timerCanvas');
+                this._ctx = this._canvas.getContext('2d');
+                this._ctx.imageSmoothingEnabled = false;
+                this.drawTimer();
+            }
+
+            drawTimer() {
+                if (!this._ctx) return;
+                
+                const centerX = 150;
+                const centerY = 150;
+                const radius = 120;
+                
+                this._ctx.clearRect(0, 0, 300, 300);
+                
+                // Background circle
+                this._ctx.beginPath();
+                this._ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                this._ctx.strokeStyle = '#e0e0e0';
+                this._ctx.lineWidth = 12;
+                this._ctx.stroke();
+                
+                // Progress arc
+                if (this._isRunning) {
+                    const progress = this._seconds / this._totalSeconds;
+                    if (progress > 0) {
+                        this._ctx.beginPath();
+                        this._ctx.arc(centerX, centerY, radius, -Math.PI/2, -Math.PI/2 + (2 * Math.PI * progress));
+                        
+                        const red = Math.round(220 * (1 - progress) + 40 * progress);
+                        const green = Math.round(167 * progress + 53 * (1 - progress));
+                        const blue = Math.round(69 * (1 - progress));
+                        this._ctx.strokeStyle = `rgb(${red}, ${green}, ${blue})`;
+                        
+                        this._ctx.lineWidth = 12;
+                        this._ctx.lineCap = 'round';
+                        this._ctx.stroke();
+                    }
+                } else {
+                    this._ctx.beginPath();
+                    this._ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                    this._ctx.strokeStyle = '#28a745';
+                    this._ctx.lineWidth = 12;
+                    this._ctx.stroke();
+                }
+                
+                // Time text
+                const minutes = Math.floor(this._seconds / 60);
+                const seconds = this._seconds % 60;
+                const timeText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (this._isRunning) {
+                    const progress = this._seconds / this._totalSeconds;
+                    const red = Math.round(51 * (1 - progress) + 220 * (1 - progress));
+                    const green = Math.round(51 * progress + 53 * (1 - progress));
+                    const blue = Math.round(51 * (1 - progress));
+                    this._ctx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+                } else {
+                    this._ctx.fillStyle = '#333';
+                }
+                this._ctx.font = 'bold 72px monospace';
+                this._ctx.textAlign = 'center';
+                this._ctx.textBaseline = 'middle';
+                this._ctx.fillText(timeText, centerX, centerY);
+                
+                if (this._isRunning) {
+                    this._canvasAnimationId = requestAnimationFrame(() => this.drawTimer());
+                }
+            }
+        }
+
+        // Initialize stores
         const session = new SessionStore();
+        const timer = new Timer();
+        
+        // Analytics & Notification System
+        class AnalyticsNotifier {
+            constructor() {
+                this.lastNotificationCheck = localStorage.getItem('lastNotificationCheck') || null;
+            }
+            
+            async checkAndSendNotifications() {
+                const today = new Date().toDateString();
+                if (this.lastNotificationCheck === today) return;
+                
+                const sessions = await this.getRecentSessions();
+                if (!sessions.length) return;
+                
+                // Daily summary (only if activity today)
+                this.checkDailySummary(sessions, today);
+                
+                // Weekend goals (only on weekends with activity)
+                this.checkWeekendGoals(sessions);
+                
+                // Best day alert (weekly check)
+                this.checkBestDay(sessions);
+                
+                // Tip trends (weekly check)
+                this.checkTipTrends(sessions);
+                
+                // Peak time alerts (after 3+ sessions)
+                this.checkPeakTimes(sessions);
+                
+                this.lastNotificationCheck = today;
+                localStorage.setItem('lastNotificationCheck', today);
+            }
+            
+            async getRecentSessions() {
+                try {
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    
+                    const { data } = await supabase
+                        .from('blacksheep_reading_tracker_sessions')
+                        .select('*')
+                        .gte('session_date', thirtyDaysAgo.toISOString().split('T')[0])
+                        .order('session_date', { ascending: false });
+                    
+                    return data || [];
+                } catch (error) {
+                    return [];
+                }
+            }
+            
+            checkDailySummary(sessions, today) {
+                const todaySessions = sessions.filter(s => 
+                    new Date(s.session_date).toDateString() === today && 
+                    s.readings && s.readings.length > 0
+                );
+                
+                if (todaySessions.length === 0) return;
+                
+                const totalReadings = todaySessions.reduce((sum, s) => sum + (s.readings?.length || 0), 0);
+                const totalEarnings = todaySessions.reduce((sum, s) => {
+                    const baseTotal = (s.readings?.length || 0) * (s.reading_price || 40);
+                    const tipsTotal = s.readings?.reduce((tipSum, r) => tipSum + (r.tip || 0), 0) || 0;
+                    return sum + baseTotal + tipsTotal;
+                }, 0);
+                
+                if (totalReadings > 0) {
+                    this.sendNotification(
+                        'Daily Summary 📊',
+                        `Today: ${totalReadings} readings, $${totalEarnings.toFixed(2)} earned!`
+                    );
+                }
+            }
+            
+            checkWeekendGoals(sessions) {
+                const today = new Date();
+                const isWeekend = today.getDay() === 0 || today.getDay() === 6; // Sunday or Saturday
+                if (!isWeekend) return;
+                
+                const weekendSessions = sessions.filter(s => {
+                    const sessionDate = new Date(s.session_date);
+                    const dayOfWeek = sessionDate.getDay();
+                    return (dayOfWeek === 0 || dayOfWeek === 6) && s.readings && s.readings.length > 0;
+                });
+                
+                if (weekendSessions.length === 0) return;
+                
+                const currentWeekend = weekendSessions.filter(s => {
+                    const sessionDate = new Date(s.session_date);
+                    const startOfWeekend = new Date(today);
+                    startOfWeekend.setDate(today.getDate() - (today.getDay() === 0 ? 1 : today.getDay() - 6));
+                    return sessionDate >= startOfWeekend;
+                });
+                
+                const totalReadings = currentWeekend.reduce((sum, s) => sum + (s.readings?.length || 0), 0);
+                const totalEarnings = currentWeekend.reduce((sum, s) => {
+                    const baseTotal = (s.readings?.length || 0) * (s.reading_price || 40);
+                    const tipsTotal = s.readings?.reduce((tipSum, r) => tipSum + (r.tip || 0), 0) || 0;
+                    return sum + baseTotal + tipsTotal;
+                }, 0);
+                
+                // Earnings goals
+                if (totalEarnings >= 500 && totalEarnings < 1000) {
+                    this.sendNotification('Weekend Goal 🎯', `$${totalEarnings.toFixed(2)} earned! $${(1000 - totalEarnings).toFixed(2)} to reach $1000 goal!`);
+                } else if (totalEarnings >= 1000) {
+                    this.sendNotification('Weekend Goal Crushed! 🚀', `Amazing! $${totalEarnings.toFixed(2)} earned this weekend!`);
+                }
+                
+                // Reading count goals
+                if (totalReadings >= 10 && totalReadings < 15) {
+                    this.sendNotification('Reading Goal 📚', `${totalReadings} readings done! ${15 - totalReadings} more to reach 15!`);
+                } else if (totalReadings >= 15) {
+                    this.sendNotification('Reading Goal Achieved! ⭐', `Fantastic! ${totalReadings} readings this weekend!`);
+                }
+            }
+            
+            checkBestDay(sessions) {
+                const dayEarnings = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+                const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                
+                sessions.forEach(s => {
+                    if (!s.readings || s.readings.length === 0) return;
+                    const dayOfWeek = new Date(s.session_date).getDay();
+                    const baseTotal = s.readings.length * (s.reading_price || 40);
+                    const tipsTotal = s.readings.reduce((sum, r) => sum + (r.tip || 0), 0);
+                    dayEarnings[dayOfWeek].push(baseTotal + tipsTotal);
+                });
+                
+                let bestDay = null;
+                let bestAverage = 0;
+                
+                Object.keys(dayEarnings).forEach(day => {
+                    const earnings = dayEarnings[day];
+                    if (earnings.length >= 2) {
+                        const average = earnings.reduce((sum, e) => sum + e, 0) / earnings.length;
+                        if (average > bestAverage) {
+                            bestAverage = average;
+                            bestDay = parseInt(day);
+                        }
+                    }
+                });
+                
+                if (bestDay !== null) {
+                    this.sendNotification(
+                        'Best Day Alert 📈',
+                        `${dayNames[bestDay]} is your highest earning day - $${bestAverage.toFixed(2)} average!`
+                    );
+                }
+            }
+            
+            checkTipTrends(sessions) {
+                const recentSessions = sessions.slice(0, 10);
+                const olderSessions = sessions.slice(10, 20);
+                
+                if (recentSessions.length < 3 || olderSessions.length < 3) return;
+                
+                const recentAvgTip = this.calculateAverageTip(recentSessions);
+                const olderAvgTip = this.calculateAverageTip(olderSessions);
+                
+                if (olderAvgTip === 0) return;
+                
+                const change = ((recentAvgTip - olderAvgTip) / olderAvgTip) * 100;
+                
+                if (Math.abs(change) >= 15) {
+                    const trend = change > 0 ? 'increased' : 'decreased';
+                    const emoji = change > 0 ? '💸' : '📉';
+                    this.sendNotification(
+                        `Tip Trends ${emoji}`,
+                        `Your average tip ${trend} ${Math.abs(change).toFixed(1)}% recently!`
+                    );
+                }
+            }
+            
+            checkPeakTimes(sessions) {
+                const timeSlots = {};
+                let totalReadings = 0;
+                
+                sessions.forEach(s => {
+                    if (!s.readings) return;
+                    s.readings.forEach(r => {
+                        totalReadings++;
+                        const hour = this.parseTimeToHour(r.timestamp);
+                        if (hour !== null) {
+                            timeSlots[hour] = (timeSlots[hour] || 0) + 1;
+                        }
+                    });
+                });
+                
+                if (totalReadings < 20) return;
+                
+                const peakHour = Object.keys(timeSlots).reduce((peak, hour) => 
+                    timeSlots[hour] > (timeSlots[peak] || 0) ? hour : peak
+                );
+                
+                const peakCount = timeSlots[peakHour];
+                const peakPercentage = (peakCount / totalReadings) * 100;
+                
+                if (peakPercentage >= 20) {
+                    const timeRange = `${peakHour}:00-${parseInt(peakHour) + 1}:00`;
+                    this.sendNotification(
+                        'Peak Time Alert ⏰',
+                        `${timeRange} is your busiest time - ${peakPercentage.toFixed(1)}% of readings!`
+                    );
+                }
+            }
+            
+            calculateAverageTip(sessions) {
+                let totalTips = 0;
+                let totalReadings = 0;
+                
+                sessions.forEach(s => {
+                    if (!s.readings) return;
+                    s.readings.forEach(r => {
+                        totalReadings++;
+                        totalTips += r.tip || 0;
+                    });
+                });
+                
+                return totalReadings > 0 ? totalTips / totalReadings : 0;
+            }
+            
+            parseTimeToHour(timestamp) {
+                const match = timestamp.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                if (!match) return null;
+                
+                let hour = parseInt(match[1]);
+                const period = match[3].toUpperCase();
+                
+                if (period === 'PM' && hour !== 12) hour += 12;
+                if (period === 'AM' && hour === 12) hour = 0;
+                
+                return hour;
+            }
+            
+            sendNotification(title, body) {
+                if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification(title, {
+                            body: body,
+                            icon: '/logo192.png',
+                            badge: '/logo192.png',
+                            tag: 'analytics-notification',
+                            vibrate: [100, 50, 100]
+                        });
+                    });
+                }
+            }
+        }
+        
+        const analyticsNotifier = new AnalyticsNotifier();
+        
+        // Timer expiration notification
+        function sendTimerNotification() {
+            console.log('sendTimerNotification called');
+            console.log('Service worker available:', 'serviceWorker' in navigator);
+            console.log('Notification permission:', Notification.permission);
+            
+            if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+                navigator.serviceWorker.ready.then(registration => {
+                    console.log('Service worker ready, sending timer notification');
+                    registration.showNotification('Timer Finished! ⏰', {
+                        body: 'Your tarot reading timer has expired.',
+                        icon: '/logo192.png',
+                        badge: '/logo192.png',
+                        tag: 'timer-expired',
+                        requireInteraction: true,
+                        vibrate: [200, 100, 200, 100, 200],
+                        actions: [
+                            {
+                                action: 'reset-timer',
+                                title: 'Reset Timer',
+                                icon: '/logo192.png'
+                            }
+                        ]
+                    }).then(() => {
+                        console.log('Timer notification sent successfully');
+                        // Fallback for localhost - also try direct notification
+                        if (isDevelopmentMode()) {
+                            setTimeout(() => {
+                                try {
+                                    new Notification('Timer Finished! ⏰', {
+                                        body: 'Your tarot reading timer has expired.',
+                                        icon: '/logo192.png'
+                                    });
+                                    console.log('Fallback notification sent');
+                                } catch (err) {
+                                    console.log('Fallback notification failed:', err);
+                                }
+                            }, 100);
+                        }
+                    }).catch(err => {
+                        console.error('Timer notification failed:', err);
+                    });
+                }).catch(err => {
+                    console.error('Service worker not ready:', err);
+                });
+            } else {
+                console.log('Timer notification blocked - SW or permission issue');
+            }
+        }
+        
+        // Background sync handler
+        async function handleBackgroundSync() {
+            console.log('Background sync triggered');
+            try {
+                if (session.sessionId && session.readings.length > 0) {
+                    await session.save();
+                    console.log('Background sync completed');
+                }
+            } catch (error) {
+                console.error('Background sync failed:', error);
+            }
+        }
+        
+        // Background backup handler
+        async function handleBackgroundBackup() {
+            console.log('Background backup triggered');
+            try {
+                // Create backup in localStorage with timestamp
+                const backup = {
+                    timestamp: new Date().toISOString(),
+                    sessionData: {
+                        sessionId: session.sessionId,
+                        location: session.location,
+                        selectedDay: session.selectedDay,
+                        price: session.price,
+                        readings: session.readings
+                    }
+                };
+                localStorage.setItem('readingTracker_backup', JSON.stringify(backup));
+                console.log('Background backup completed');
+            } catch (error) {
+                console.error('Background backup failed:', error);
+            }
+        }
+        
+        // Register for background sync when going offline
+        function registerBackgroundSync() {
+            if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+                navigator.serviceWorker.ready.then(registration => {
+                    return registration.sync.register('background-sync-readings');
+                }).catch(err => console.log('Background sync registration failed:', err));
+            }
+        }
+        
+        // Send push notification (for testing)
+        function sendTestNotification() {
+            console.log('Test notification clicked');
+            console.log('Notification permission:', Notification.permission);
+            
+            if (!('Notification' in window)) {
+                alert('This browser does not support notifications');
+                return;
+            }
+            
+            if (Notification.permission === 'denied') {
+                alert('Notifications are blocked. Please enable them in browser settings.');
+                return;
+            }
+            
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    console.log('Permission result:', permission);
+                    if (permission === 'granted') {
+                        showTestNotification();
+                    } else {
+                        alert('Notification permission denied');
+                    }
+                });
+            } else if (Notification.permission === 'granted') {
+                showTestNotification();
+            }
+        }
+        
+        function showTestNotification() {
+            console.log('showTestNotification called');
+            
+            // Try direct notification first
+            try {
+                const notification = new Notification('Test Notification', {
+                    body: 'Direct browser notification test',
+                    icon: '/logo192.png'
+                });
+                console.log('Direct notification created:', notification);
+            } catch (err) {
+                console.error('Direct notification failed:', err);
+            }
+            
+            // Also try service worker notification
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    console.log('Showing notification via service worker');
+                    registration.showNotification('Tarot Reading Tracker', {
+                        body: 'Test notification - this should appear on desktop!',
+                        icon: '/logo192.png',
+                        badge: '/logo192.png',
+                        vibrate: [100, 50, 100],
+                        tag: 'test-notification',
+                        actions: [
+                            { action: 'open', title: 'Open App' },
+                            { action: 'close', title: 'Close' }
+                        ]
+                    }).then(() => {
+                        console.log('Service worker notification sent successfully');
+                    }).catch(err => {
+                        console.error('Service worker notification failed:', err);
+                    });
+                }).catch(err => {
+                    console.error('Service worker not ready:', err);
+                });
+            }
+        }
+        
+        function fallbackNotification() {
+            console.log('Using fallback notification');
+            new Notification('Tarot Reading Tracker', {
+                body: 'Test notification - fallback method',
+                icon: '/logo192.png'
+            });
+        }
 
         function startNewSession() {
             vibrate([100, 50, 100]);
@@ -993,45 +1889,51 @@
                 session.startOver();
                 resetTimer();
                 document.getElementById('timerInput').value = '15';
-                showToast('Ready to create new session', 'success');
+                showSnackbar('Ready to create new session', 'success');
             }
         }
 
         async function showLoadSession() {
+            if (!session.user) {
+                showSnackbar('Please select a user first', 'error');
+                return;
+            }
+            
             vibrate([50]);
             const btn = document.querySelector('.btn-load-session');
             const originalText = btn.textContent;
-            btn.innerHTML = '<span class="spinner"></span>Loading...';
+            btn.innerHTML = '<span class="spinner inline"></span>Loading...';
             btn.classList.add('loading');
             
             try {
                 const { data, error } = await supabase
                     .from('blacksheep_reading_tracker_sessions')
                     .select('*')
+                    .eq('user_name', session.user)
                     .order('session_date', { ascending: false })
                     .order('created_at', { ascending: false });
                 
                 if (data && data.length > 0) {
                     const sessionsList = document.getElementById('sessionsList');
-                    sessionsList.innerHTML = data.map(session => {
-                        const readingCount = session.readings ? session.readings.length : 0;
-                        const date = new Date(session.session_date).toLocaleDateString();
-                        const baseTotal = readingCount * (session.reading_price || 0);
-                        const tipsTotal = session.readings ? session.readings.reduce((sum, reading) => sum + (reading.tip || 0), 0) : 0;
+                    sessionsList.innerHTML = data.map(sessionData => {
+                        const readingCount = sessionData.readings ? sessionData.readings.length : 0;
+                        const date = new Date(sessionData.session_date).toLocaleDateString();
+                        const baseTotal = readingCount * (sessionData.reading_price || 0);
+                        const tipsTotal = sessionData.readings ? sessionData.readings.reduce((sum, reading) => sum + (reading.tip || 0), 0) : 0;
                         const grandTotal = baseTotal + tipsTotal;
                         return `
-                            <div class="session-item" onclick="selectSession('${session.id}')">
-                                <div class="session-info">${session.location || 'No location'} - ${session.selected_day || 'No day'}</div>
+                            <div class="session-item" onclick="selectSession('${sessionData.id}')">
+                                <div class="session-info">${sessionData.location || 'No location'} - ${sessionData.selected_day || 'No day'}</div>
                                 <div class="session-details">${date} • ${readingCount} readings • $${grandTotal.toFixed(2)}</div>
                             </div>
                         `;
                     }).join('');
                     showSheet('sessionOverlay', 'sessionSheet');
                 } else {
-                    showToast('No existing sessions found', 'error');
+                    showSnackbar('No existing sessions found', 'error');
                 }
             } catch (error) {
-                showToast('Failed to load sessions', 'error');
+                showSnackbar('Failed to load sessions', 'error');
             } finally {
                 btn.textContent = originalText;
                 btn.classList.remove('loading');
@@ -1061,10 +1963,10 @@
                     await loadExistingSession(data);
                     closeSessionSheet();
                 } else {
-                    showToast('Session not found', 'error');
+                    showSnackbar('Session not found', 'error');
                 }
             } catch (error) {
-                showToast('Failed to load session', 'error');
+                showSnackbar('Failed to load session', 'error');
             } finally {
                 sessionItem.innerHTML = originalHTML;
                 sessionItem.style.pointerEvents = 'auto';
@@ -1073,6 +1975,7 @@
 
         async function loadExistingSession(sessionData) {
             session.sessionId = sessionData.id;
+            session.user = sessionData.user_name || '';
             session.location = sessionData.location || '';
             session.selectedDay = sessionData.selected_day;
             session.price = sessionData.reading_price || 40;
@@ -1083,14 +1986,14 @@
 
         async function createSession() {
             if (!session.canCreateSession) {
-                showToast('Location and day are required', 'error');
+                showSnackbar('User, location and day are required', 'error');
                 return;
             }
             
             vibrate([50]);
             const btn = document.querySelector('.btn-create-session');
             const originalText = btn.textContent;
-            btn.innerHTML = '<span class="spinner"></span>Creating...';
+            btn.innerHTML = '<span class="spinner inline"></span>Creating...';
             btn.classList.add('loading');
             
             try {
@@ -1099,6 +2002,7 @@
                     .from('blacksheep_reading_tracker_sessions')
                     .select('*')
                     .eq('session_date', today)
+                    .eq('user_name', session.user)
                     .eq('location', session.location)
                     .eq('selected_day', session.selectedDay)
                     .limit(1);
@@ -1116,7 +2020,7 @@
                     } else {
                         session.location = '';
                         session.selectedDay = null;
-                        showToast('Location and day must be unique', 'error');
+                        showSnackbar('Location and day must be unique', 'error');
                     }
                     return;
                 }
@@ -1125,6 +2029,7 @@
                     .from('blacksheep_reading_tracker_sessions')
                     .insert([{
                         session_date: today,
+                        user_name: session.user,
                         location: session.location,
                         selected_day: session.selectedDay,
                         reading_price: session.price,
@@ -1136,10 +2041,18 @@
                     session.sessionId = newData[0].id;
                     session.readings = []; // Clear readings for new session
                     collapseSettings();
-                    showToast('Session created successfully', 'success');
+                    showSnackbar('Session created successfully!');
+                    
+                    // Schedule reminder notification for session end (optional)
+                    if ('serviceWorker' in navigator && Notification.permission === 'granted' && !isDevelopmentMode()) {
+                        setTimeout(() => {
+                            sendTestNotification();
+                        }, 4 * 60 * 60 * 1000); // 4 hours later
+                    }
                 }
             } catch (error) {
-                showToast('Database error, using offline mode', 'error');
+                showSnackbar('Database error, using offline mode', 'error');
+                registerBackgroundSync();
             } finally {
                 btn.textContent = originalText;
                 btn.classList.remove('loading');
@@ -1148,7 +2061,7 @@
 
         async function addReading() {
             if (!session.hasValidSession) {
-                showToast('Create session first', 'error');
+                showSnackbar('Create session first', 'error');
                 return;
             }
             
@@ -1156,6 +2069,12 @@
             const now = new Date();
             const timestamp = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             session.addReading({ timestamp, tip: 0 });
+            
+            // Trigger background backup after adding reading
+            handleBackgroundBackup();
+            
+            // Check for analytics notifications after adding reading
+            setTimeout(() => analyticsNotifier.checkAndSendNotifications(), 2000);
         }
 
         function removeReading() {
@@ -1312,9 +2231,9 @@
             }, 3000);
         }
 
-        function showSnackbar(message) {
+        function showSnackbar(message, type = 'info') {
             const snackbar = document.createElement('div');
-            snackbar.className = 'snackbar';
+            snackbar.className = `snackbar ${type}`;
             snackbar.textContent = message;
             document.body.appendChild(snackbar);
             
@@ -1323,6 +2242,39 @@
                     snackbar.remove();
                 }
             }, 2000);
+        }
+        
+        function showUpdateNotification() {
+            const updateBar = document.createElement('div');
+            updateBar.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: #007bff;
+                color: white;
+                padding: 12px;
+                text-align: center;
+                z-index: 10000;
+                font-size: 14px;
+            `;
+            updateBar.innerHTML = `
+                New version available! 
+                <button onclick="updateApp()" style="background: white; color: #007bff; border: none; padding: 4px 8px; margin-left: 8px; border-radius: 4px; cursor: pointer;">Update Now</button>
+                <button onclick="this.parentElement.remove()" style="background: transparent; color: white; border: 1px solid white; padding: 4px 8px; margin-left: 4px; border-radius: 4px; cursor: pointer;">Later</button>
+            `;
+            document.body.appendChild(updateBar);
+        }
+        
+        function updateApp() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration().then(registration => {
+                    if (registration && registration.waiting) {
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        window.location.reload();
+                    }
+                });
+            }
         }
 
         function startAlarm() {
@@ -1340,16 +2292,7 @@
         }
 
         function adjustTime(minutes) {
-            vibrate([30]);
-            if (!isRunning) {
-                const input = document.getElementById('timerInput');
-                let newValue = parseInt(input.value) + minutes;
-                if (newValue < 0) newValue = 0;
-                if (newValue > 99) newValue = 99;
-                input.value = newValue;
-                timerSeconds = newValue * 60;
-                updateTimerDisplay();
-            }
+            timer.adjustTime(minutes);
         }
 
         function initCanvas() {
@@ -1498,64 +2441,15 @@
         }
 
         function startTimer() {
-            vibrate([80]);
-            if (!isRunning && timerSeconds > 0) {
-                isRunning = true;
-                totalSeconds = timerSeconds; // Store initial time for progress calculation
-                stopBlinking();
-                requestWakeLock();
-                
-                // Start canvas animation
-                if (canvas) {
-                    drawTimer();
-                }
-                
-                timerInterval = setInterval(() => {
-                    timerSeconds--;
-                    updateTimerDisplay();
-                    
-                    if (timerSeconds === 10) {
-                        startWarningBlink();
-                    }
-                    
-                    if (timerSeconds <= 0) {
-                        pauseTimer();
-                        stopWarningBlink();
-                        startBlinking();
-                        startAlarm();
-                    }
-                }, 1000);
-            }
+            timer.start();
         }
 
         function pauseTimer() {
-            vibrate([50]);
-            isRunning = false;
-            releaseWakeLock();
-            
-            // Stop canvas animation
-            if (canvasAnimationId) {
-                cancelAnimationFrame(canvasAnimationId);
-                canvasAnimationId = null;
-            }
-            
-            if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-            }
+            timer.pause();
         }
 
-        function resetTimer() {
-            vibrate([100]);
-            pauseTimer();
-            stopBlinking();
-            stopWarningBlink();
-            stopAlarm();
-            releaseWakeLock();
-            const minutes = parseInt(document.getElementById('timerInput').value);
-            timerSeconds = minutes * 60;
-            totalSeconds = timerSeconds;
-            updateTimerDisplay();
+        function resetTimer(showToastMessage = false) {
+            timer.reset(showToastMessage);
         }
 
         function startBlinking() {
@@ -1580,30 +2474,60 @@
         document.addEventListener('click', initAudio, { once: true });
 
         document.getElementById('timerInput').addEventListener('input', function() {
-            if (!isRunning) {
-                timerSeconds = parseInt(this.value) * 60;
-                totalSeconds = timerSeconds;
-                updateTimerDisplay();
+            if (!timer.isRunning) {
+                timer.seconds = parseInt(this.value) * 60;
             }
         });
 
         // Initialize canvas on page load
         window.addEventListener('load', function() {
-            initCanvas();
+            timer.initCanvas();
         });
 
         document.getElementById('price').addEventListener('input', function() {
             session.price = parseFloat(this.value) || 0;
         });
 
+        async function showUserSelection() {
+            vibrate([30]);
+            showSheet('userOverlay', 'userSheet');
+            
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div></div>';
+            
+            await session.loadUsers();
+        }
+        
+        function hideUserSelection() {
+            vibrate([30]);
+            hideSheet('userOverlay', 'userSheet');
+        }
+        
+        function selectUser(userName) {
+            vibrate([50]);
+            session.user = userName;
+            session.loadFromStorage();
+            hideUserSelection();
+        }
+        
         document.getElementById('location').addEventListener('input', function() {
             session.location = this.value;
         });
+        
+        function addNewUser() {
+            vibrate([50]);
+            const userName = prompt('Enter new user name:');
+            if (userName && userName.trim()) {
+                const trimmedName = userName.trim();
+                session.user = trimmedName;
+                hideUserSelection();
+            }
+        }
 
         function handleCreateSession() {
             const createBtn = document.querySelector('.btn-create-session');
             if (createBtn.classList.contains('inactive')) {
-                showToast('Location and day are required', 'error');
+                showSnackbar('User, location and day are required', 'error');
                 vibrate([50]);
             } else {
                 createSession();
@@ -1643,6 +2567,74 @@
                 closeSessionSheet();
             }
         });
+        
+        // Network status monitoring
+        window.addEventListener('online', () => {
+            console.log('Back online - attempting sync');
+            handleBackgroundSync();
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('Gone offline - will sync when back online');
+            registerBackgroundSync();
+        });
+        
+        // Page visibility change - backup data when app goes to background (throttled)
+        let lastBackupTime = 0;
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                const now = Date.now();
+                // Only backup once per minute to prevent spam
+                if (now - lastBackupTime > 60000) {
+                    handleBackgroundBackup();
+                    lastBackupTime = now;
+                }
+            }
+        });
+        
+        // Development mode detection
+        function isDevelopmentMode() {
+            return window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1' ||
+                   window.location.hostname.startsWith('192.168.') ||
+                   window.location.hostname.startsWith('10.') ||
+                   window.location.port === '8080' ||
+                   window.location.protocol === 'file:' ||
+                   window.location.search.includes('dev=true');
+        }
+        
+        // Add test notification button (development only)
+        if (isDevelopmentMode()) {
+            const testBtn = document.createElement('button');
+            testBtn.textContent = 'Test Notification';
+            testBtn.style.cssText = 'position:fixed;bottom:10px;right:10px;z-index:9999;padding:8px;font-size:12px;background:#007bff;color:white;border:none;border-radius:4px;cursor:pointer;';
+            testBtn.onclick = sendTestNotification;
+            document.body.appendChild(testBtn);
+            
+            // Add permission status indicator
+            const permissionStatus = document.createElement('div');
+            permissionStatus.textContent = `Notifications: ${Notification.permission}`;
+            permissionStatus.style.cssText = 'position:fixed;bottom:50px;right:10px;background:#333;color:white;padding:4px 8px;font-size:10px;border-radius:3px;z-index:9999;';
+            document.body.appendChild(permissionStatus);
+            
+            // Add dev indicator
+            const devIndicator = document.createElement('div');
+            devIndicator.textContent = 'DEV';
+            devIndicator.style.cssText = 'position:fixed;top:5px;left:5px;background:#dc3545;color:white;padding:2px 6px;font-size:10px;border-radius:3px;z-index:9999;';
+            document.body.appendChild(devIndicator);
+            
+            // Add 30-second timer button
+            const timer30Btn = document.createElement('button');
+            timer30Btn.textContent = '30s Timer';
+            timer30Btn.style.cssText = 'position:fixed;bottom:80px;right:10px;z-index:9999;padding:8px;font-size:12px;background:#ffc107;color:black;border:none;border-radius:4px;cursor:pointer;';
+            timer30Btn.onclick = () => {
+                document.getElementById('timerInput').value = '0.5';
+                timerSeconds = 30;
+                totalSeconds = timerSeconds;
+                updateTimerDisplay();
+            };
+            document.body.appendChild(timer30Btn);
+        }
     </script>
 </body>
 </html>
