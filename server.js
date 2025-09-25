@@ -15,6 +15,12 @@ const mimeTypes = {
 
 const server = http.createServer((req, res) => {
     let filePath = req.url === '/' ? '/index.html' : req.url;
+    
+    // In development, serve manifest-dev.json when manifest.json is requested
+    if (filePath === '/manifest.json') {
+        filePath = '/manifest-dev.json';
+    }
+    
     const fullPath = path.join(__dirname, filePath);
     const ext = path.extname(filePath);
     const contentType = mimeTypes[ext] || 'text/plain';

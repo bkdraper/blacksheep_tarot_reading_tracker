@@ -15,7 +15,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 ## Version Management
 - **CRITICAL**: Version number MUST be bumped on every code change
 - Version displayed in upper right corner for cache-busting
-- Current version: v3.9.0
+- Current version: v3.33.0
 
 ## Technical Requirements
 - **Pure web technologies**: HTML/CSS/JS only, no frameworks
@@ -39,6 +39,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 - Inline layouts for infrequently changed inputs (reading price)
 - Table layouts for data that needs alignment (totals)
 - Prominent display of most important information (grand total)
+- Desktop layout: 600px max-width container for better readability on large screens
 
 ### User Experience
 - Confirmation dialogs for destructive actions (delete readings and remove last reading)
@@ -201,6 +202,14 @@ Persistence:
 6. Use the "-" button to remove the most recent reading
 
 ## Technical Implementation
+
+### Dynamic Logo and Favicon System
+- **Global Variables**: APP_TITLE and APP_LOGO automatically detect development mode
+- **Development Detection**: localhost, 127.0.0.1, 192.168.x.x, port 8080, or dev=true parameter
+- **Favicon**: Dynamic favicon updates based on environment (logo192.png vs logo192-dev.png)
+- **Manifest Routing**: Server redirects manifest.json to manifest-dev.json in development
+- **Production Manifest**: manifest.json uses regular logos for production deployment
+- **Development Manifest**: manifest-dev.json uses dev logos with [DEV] branding
 
 ### Audio System
 - **Web Audio API**: Square wave oscillators at 1000Hz frequency
