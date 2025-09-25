@@ -12,8 +12,25 @@
     <meta name="apple-mobile-web-app-title" content="Tarot Reading Tracker">
     <meta name="application-name" content="Tarot Reading Tracker">
     <meta name="msapplication-starturl" content="/">
+    <link rel="icon" type="image/png" id="favicon" href="/logo192.png">
 
     <title>Tarot Reading Tracker</title>
+    <script>
+        // Global app title variable
+        function isDevelopmentMode() {
+            return window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1' ||
+                   window.location.hostname.startsWith('192.168.') ||
+                   window.location.hostname.startsWith('10.') ||
+                   window.location.port === '8080' ||
+                   window.location.protocol === 'file:' ||
+                   window.location.search.includes('dev=true');
+        }
+        window.APP_TITLE = isDevelopmentMode() ? '[DEV] Tarot Reading Tracker' : 'Tarot Reading Tracker';
+        window.APP_LOGO = isDevelopmentMode() ? '/logo192-dev.png' : '/logo192.png';
+        document.title = window.APP_TITLE;
+        document.getElementById('favicon').href = window.APP_LOGO;
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -24,7 +41,7 @@
             -webkit-text-size-adjust: 100%;
             touch-action: manipulation;
         }
-        .container { max-width: 100%; margin: 0 auto; padding: 0 5px; }
+        .container { max-width: 600px; margin: 0 auto; padding: 0 5px; }
         .input-group { 
             display: flex; 
             align-items: center; 
@@ -34,9 +51,11 @@
         label { 
             font-weight: bold; 
             white-space: nowrap;
+            min-width: 70px;
+            text-align: right;
         }
         input[type="number"] { 
-            width: 80px; 
+            width: 100px; 
             padding: 8px; 
             font-size: 16px; 
             border: 2px solid #ccc; 
@@ -44,6 +63,26 @@
             text-align: center;
             -webkit-appearance: none;
             appearance: none;
+        }
+        .price-input-container {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+        }
+        .price-input-container input {
+            padding-left: 30px;
+        }
+        .dollar-sign {
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 14px;
+            color: #666;
+            z-index: 1;
         }
         input[type="text"], select {
             flex: 1;
@@ -59,7 +98,7 @@
         .day-toggles {
             display: flex;
             gap: 8px;
-            margin-bottom: 15px;
+            flex: 1;
         }
         .day-btn {
             flex: 1;
@@ -86,20 +125,25 @@
             border-radius: 6px;
             cursor: pointer;
             min-height: 44px;
-            width: 100%;
+            flex: 1;
             touch-action: manipulation;
         }
         .btn-load-session {
             background: #007bff;
             color: white;
             border: none;
-            padding: 12px 20px;
+            padding: 12px 8px;
             font-size: 16px;
             border-radius: 6px;
             cursor: pointer;
             min-height: 44px;
-            width: 100%;
+            flex: 1;
             touch-action: manipulation;
+        }
+        .btn-load-session.disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
         .modal {
             display: none;
@@ -199,7 +243,7 @@
             border-radius: 6px;
             cursor: pointer;
             min-height: 44px;
-            width: 100%;
+            flex: 1;
             touch-action: manipulation;
         }
         .btn-create-session.inactive {
@@ -421,7 +465,7 @@
             padding: 20px;
         }
         .user-btn {
-            flex: 1;
+            flex: 2;
             min-width: 0;
             padding: 8px;
             font-size: 16px;
@@ -670,7 +714,7 @@
     </style>
 </head>
 <body>
-    <div class="version">v3.9.0</div>
+    <div class="version">v3.33.0</div>
     <div class="container">
         <div class="event-settings">
             <div class="settings-header" onclick="toggleSettings()">
@@ -681,32 +725,40 @@
                 <div class="input-group">
                     <label for="user">User:</label>
                     <button id="userBtn" onclick="showUserSelection()" class="user-btn">Select User...</button>
+                    <button class="btn-load-session" onclick="showLoadSession()">Load Session</button>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
+
+                <div class="input-group">
+                    <label for="price">Reading<br>Price:</label>
+                    <div class="price-input-container">
+                        <span class="dollar-sign">$</span>
+                        <input type="number" id="price" value="40" step="0.01" min="0">
+                    </div>
                 </div>
 
                 <div class="input-group">
-                    <label for="price">Reading Price ($)</label>
-                    <input type="number" id="price" value="40" step="0.01" min="0">
-                </div>
-
-                <div class="input-group">
-                    <label for="location">Location:</label>
+                    <label for="location">Event<br>Name:</label>
                     <input type="text" id="location" placeholder="(City, Season, Year, etc.)">
                 </div>
 
-                <div class="day-toggles">
-                    <button class="day-btn" onclick="toggleDay('fri')">Fri</button>
-                    <button class="day-btn" onclick="toggleDay('sat')">Sat</button>
-                    <button class="day-btn" onclick="toggleDay('sun')">Sun</button>
+                <div class="input-group">
+                    <label>Day:</label>
+                    <div class="day-toggles">
+                        <button class="day-btn" onclick="toggleDay('fri')">Fri</button>
+                        <button class="day-btn" onclick="toggleDay('sat')">Sat</button>
+                        <button class="day-btn" onclick="toggleDay('sun')">Sun</button>
+                    </div>
                 </div>
+
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
+
+                <div id="requiredFieldsNote" style="font-size: 11px; color: #dc3545; text-align: center; margin-bottom: 10px;">* Fill in the red-outlined fields to create a new session</div>
 
                 <div class="input-group">
                     <button class="btn-create-session inactive" onclick="handleCreateSession()">Create Session</button>
-                </div>
-                <div class="input-group">
                     <button class="btn-new-session" onclick="startNewSession()" style="display: none;">New Session</button>
-                </div>
-                <div class="input-group">
-                    <button class="btn-load-session" onclick="showLoadSession()">Load Existing Session</button>
                 </div>
             </div>
         </div>
@@ -984,8 +1036,21 @@
             updateButtons() {
                 const createBtn = document.querySelector('.btn-create-session');
                 const newBtn = document.querySelector('.btn-new-session');
+                const loadBtn = document.querySelector('.btn-load-session');
                 const locationInput = document.getElementById('location');
                 const dayToggles = document.querySelector('.day-toggles');
+                const requiredNote = document.getElementById('requiredFieldsNote');
+                
+                // Load Session button - disabled if no user
+                if (loadBtn) {
+                    if (!this._user.trim()) {
+                        loadBtn.classList.add('disabled');
+                        loadBtn.disabled = true;
+                    } else {
+                        loadBtn.classList.remove('disabled');
+                        loadBtn.disabled = false;
+                    }
+                }
                 
                 // Create Session button - only visible in setup phase
                 if (this.sessionPhase === 'SETUP' || this.sessionPhase === 'READY_TO_CREATE') {
@@ -999,6 +1064,11 @@
                     }
                 } else {
                     createBtn.style.display = 'none';
+                }
+                
+                // Show/hide required fields note
+                if (requiredNote) {
+                    requiredNote.style.display = this.sessionPhase === 'SETUP' ? 'block' : 'none';
                 }
                 
                 // Highlight required fields and auto-expand when in setup mode
@@ -1701,8 +1771,8 @@
                     navigator.serviceWorker.ready.then(registration => {
                         registration.showNotification(title, {
                             body: body,
-                            icon: '/logo192.png',
-                            badge: '/logo192.png',
+                            icon: window.APP_LOGO,
+                            badge: window.APP_LOGO,
                             tag: 'analytics-notification',
                             vibrate: [100, 50, 100]
                         });
@@ -1724,8 +1794,8 @@
                     console.log('Service worker ready, sending timer notification');
                     registration.showNotification('Timer Finished! ⏰', {
                         body: 'Your tarot reading timer has expired.',
-                        icon: '/logo192.png',
-                        badge: '/logo192.png',
+                        icon: window.APP_LOGO,
+                        badge: window.APP_LOGO,
                         tag: 'timer-expired',
                         requireInteraction: true,
                         vibrate: [200, 100, 200, 100, 200],
@@ -1733,7 +1803,7 @@
                             {
                                 action: 'reset-timer',
                                 title: 'Reset Timer',
-                                icon: '/logo192.png'
+                                icon: window.APP_LOGO
                             }
                         ]
                     }).then(() => {
@@ -1744,7 +1814,7 @@
                                 try {
                                     new Notification('Timer Finished! ⏰', {
                                         body: 'Your tarot reading timer has expired.',
-                                        icon: '/logo192.png'
+                                        icon: window.APP_LOGO
                                     });
                                     console.log('Fallback notification sent');
                                 } catch (err) {
@@ -1854,7 +1924,7 @@
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.ready.then(registration => {
                     console.log('Showing notification via service worker');
-                    registration.showNotification('Tarot Reading Tracker', {
+                    registration.showNotification(window.APP_TITLE, {
                         body: 'Test notification - this should appear on desktop!',
                         icon: '/logo192.png',
                         badge: '/logo192.png',
@@ -1877,7 +1947,7 @@
         
         function fallbackNotification() {
             console.log('Using fallback notification');
-            new Notification('Tarot Reading Tracker', {
+            new Notification(window.APP_TITLE, {
                 body: 'Test notification - fallback method',
                 icon: '/logo192.png'
             });
@@ -1895,7 +1965,6 @@
 
         async function showLoadSession() {
             if (!session.user) {
-                showSnackbar('Please select a user first', 'error');
                 return;
             }
             
