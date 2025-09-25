@@ -9,8 +9,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Tarot Reading Tracker">
-    <meta name="application-name" content="Tarot Reading Tracker">
+    <meta name="apple-mobile-web-app-title" content="Tarot Reading Tracker" id="appleTitle">
+    <meta name="application-name" content="Tarot Reading Tracker" id="appName">
     <meta name="msapplication-starturl" content="/">
     <link rel="icon" type="image/png" id="favicon" href="/logo192.png">
 
@@ -27,21 +27,78 @@
                    window.location.search.includes('dev=true');
         }
         window.APP_TITLE = isDevelopmentMode() ? '[DEV] Tarot Reading Tracker' : 'Tarot Reading Tracker';
-        window.APP_LOGO = isDevelopmentMode() ? '/logo192-dev.png' : '/logo192.png';
+        window.APP_LOGO = '/logo192.png'; // Use regular logo for now
         document.title = window.APP_TITLE;
         document.getElementById('favicon').href = window.APP_LOGO;
+        document.getElementById('appleTitle').content = window.APP_TITLE;
+        document.getElementById('appName').content = window.APP_TITLE;
+        // Set header title after DOM loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const headerTitle = document.getElementById('headerTitle');
+            if (headerTitle) headerTitle.textContent = window.APP_TITLE;
+        });
     </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; 
-            padding: 15px; 
             background: #f5f5f5;
             font-size: 16px;
             -webkit-text-size-adjust: 100%;
             touch-action: manipulation;
+            margin: 0;
         }
-        .container { max-width: 600px; margin: 0 auto; padding: 0 5px; }
+        .header {
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .version-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+        .settings-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 6px;
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: background 0.2s;
+        }
+        .settings-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px 15px;
+        }
         .input-group { 
             display: flex; 
             align-items: center; 
@@ -396,7 +453,7 @@
             background: white;
             border-radius: 16px 16px 0 0;
             box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
-            z-index: 1001;
+            z-index: 2001;
             animation: slideUpSheet 0.3s ease;
         }
         .payment-sheet-header {
@@ -437,7 +494,7 @@
             right: 0;
             bottom: 0;
             background: rgba(0,0,0,0.5);
-            z-index: 1000;
+            z-index: 2000;
         }
         .session-sheet {
             display: none;
@@ -449,7 +506,7 @@
             background: white;
             border-radius: 16px 16px 0 0;
             box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
-            z-index: 1001;
+            z-index: 2001;
             animation: slideUpSheet 0.3s ease;
             max-height: 70vh;
             overflow-y: auto;
@@ -612,15 +669,121 @@
         }
         .pause-btn { background: #ffc107; color: black; }
         .reset-btn { background: #dc3545; color: white; }
-        .version { 
-            position: fixed; 
-            top: 5px; 
-            right: 5px; 
-            font-size: 10px; 
-            color: #999; 
-            background: rgba(255,255,255,0.8); 
-            padding: 2px 4px; 
-            border-radius: 3px;
+
+        .settings-drawer {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 350px;
+            height: 100vh;
+            background: white;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.3);
+            z-index: 2000;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+        }
+        .settings-drawer.open {
+            right: 0;
+        }
+        .settings-drawer-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+        .settings-drawer-content {
+            padding: 20px;
+        }
+        .settings-section {
+            margin-bottom: 30px;
+        }
+        .settings-section h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+        .setting-label {
+            font-size: 14px;
+            color: #333;
+        }
+        .setting-description {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .toggle-switch.active {
+            background: #28a745;
+        }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: left 0.3s;
+        }
+        .toggle-switch.active::after {
+            left: 28px;
+        }
+        .settings-select {
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 150px;
+            flex: none;
+        }
+        .settings-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            min-height: 36px;
+        }
+        .settings-button.danger {
+            background: #dc3545;
+        }
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1999;
+            display: none;
+        }
+        .settings-overlay.open {
+            display: block;
         }
         .toast {
             position: fixed;
@@ -652,7 +815,7 @@
             padding: 12px 20px;
             font-size: 14px;
             text-align: center;
-            z-index: 1000;
+            z-index: 3000;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             animation: slideDown 0.3s ease;
         }
@@ -711,10 +874,154 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        /* Payment Methods Customization Sheet */
+        .payment-methods-sheet {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+            z-index: 2001;
+            animation: slideUpSheet 0.3s ease;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .payment-method-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            gap: 10px;
+        }
+        .payment-method-item:last-child {
+            border-bottom: none;
+        }
+        .payment-method-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .payment-method-delete {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            min-height: 36px;
+        }
+        .add-payment-method {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            min-height: 44px;
+        }
+        
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background: #1a1a1a;
+            color: #ffffff;
+        }
+        body.dark-mode .container {
+            background: #1a1a1a;
+        }
+        body.dark-mode .event-settings,
+        body.dark-mode .totals,
+        body.dark-mode .readings-list,
+        body.dark-mode .timer {
+            background: #2d2d2d;
+            color: #ffffff;
+        }
+        body.dark-mode .settings-header,
+        body.dark-mode h3,
+        body.dark-mode label {
+            color: #ffffff;
+        }
+        body.dark-mode .timestamp,
+        body.dark-mode .session-details {
+            color: #cccccc;
+        }
+        body.dark-mode input,
+        body.dark-mode select,
+        body.dark-mode .user-btn {
+            background: #3d3d3d;
+            color: #ffffff;
+            border-color: #555;
+        }
+        body.dark-mode .day-btn {
+            background: #3d3d3d;
+            color: #ffffff;
+            border-color: #555;
+        }
+        body.dark-mode .settings-drawer {
+            background: #2d2d2d;
+            color: #ffffff;
+        }
+        body.dark-mode .settings-drawer-header {
+            background: #1a1a1a;
+            border-color: #555;
+        }
+        body.dark-mode .setting-item {
+            border-color: #555;
+        }
+        body.dark-mode .setting-label {
+            color: #ffffff;
+        }
+        body.dark-mode .setting-description {
+            color: #cccccc;
+        }
+        body.dark-mode .modal-content,
+        body.dark-mode .payment-methods-sheet {
+            background: #2d2d2d;
+            color: #ffffff;
+        }
+        body.dark-mode .payment-method-input {
+            background: #3d3d3d;
+            color: #ffffff;
+            border-color: #555;
+        }
+        body.dark-mode .session-sheet,
+        body.dark-mode .payment-sheet {
+            background: #2d2d2d;
+            color: #ffffff;
+        }
+        body.dark-mode .session-info {
+            color: #ffffff;
+        }
+        body.dark-mode .header {
+            background: #1a4d2e;
+        }
+        body.dark-mode .dollar-sign {
+            background: #555;
+            color: #cccccc;
+        }
+        body.dark-mode .timer-display {
+            color: #f4e4a6 !important;
+        }
     </style>
 </head>
 <body>
-    <div class="version">v3.33.0</div>
+    <header class="header">
+        <h1 id="headerTitle">Tarot Reading Tracker</h1>
+        <div class="header-actions">
+            <span class="version-badge">v3.37.0</span>
+            <button class="settings-btn" onclick="openSettingsDrawer()" title="Settings">⚙️</button>
+        </div>
+    </header>
     <div class="container">
         <div class="event-settings">
             <div class="settings-header" onclick="toggleSettings()">
@@ -817,13 +1124,8 @@
             <h3>Select Payment Method</h3>
             <button class="modal-close" onclick="closePaymentSheet()">×</button>
         </div>
-        <div class="payment-sheet-options">
-            <button class="payment-option" onclick="selectPaymentMethod('Cash')">Cash</button>
-            <button class="payment-option" onclick="selectPaymentMethod('CC')">Credit Card</button>
-            <button class="payment-option" onclick="selectPaymentMethod('Venmo')">Venmo</button>
-            <button class="payment-option" onclick="selectPaymentMethod('PayPal')">PayPal</button>
-            <button class="payment-option" onclick="selectPaymentMethod('Cash App')">Cash App</button>
-            <button class="payment-option" onclick="selectCustomPayment()">Other</button>
+        <div class="payment-sheet-options" id="paymentOptions">
+            <!-- Payment options populated dynamically -->
         </div>
     </div>
 
@@ -852,6 +1154,140 @@
         </div>
     </div>
 
+    <!-- Payment Methods Customization Sheet -->
+    <div id="paymentMethodsOverlay" class="payment-overlay" onclick="closePaymentMethodsSheet()"></div>
+    <div id="paymentMethodsSheet" class="payment-methods-sheet">
+        <div class="session-sheet-header">
+            <h3>Customize Payment Methods</h3>
+            <button class="modal-close" onclick="closePaymentMethodsSheet()">×</button>
+        </div>
+        <div class="session-sheet-content">
+            <div id="paymentMethodsList"></div>
+            <button onclick="addPaymentMethod()" class="add-payment-method">+ Add Payment Method</button>
+        </div>
+    </div>
+
+    <!-- Settings Drawer -->
+    <div id="settingsOverlay" class="settings-overlay" onclick="closeSettingsDrawer()"></div>
+    <div id="settingsDrawer" class="settings-drawer">
+        <div class="settings-drawer-header">
+            <h2>Settings</h2>
+            <button class="modal-close" onclick="closeSettingsDrawer()">×</button>
+        </div>
+        <div class="settings-drawer-content">
+            <!-- App Preferences -->
+            <div class="settings-section">
+                <h3>App Preferences</h3>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Sound Alerts</div>
+                        <div class="setting-description">Timer alarm sounds</div>
+                    </div>
+                    <div class="toggle-switch" id="soundToggle" onclick="toggleSetting('sound')"></div>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Haptic Feedback</div>
+                        <div class="setting-description">Vibration on button presses</div>
+                    </div>
+                    <div class="toggle-switch" id="hapticToggle" onclick="toggleSetting('haptic')"></div>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Timer Notifications</div>
+                        <div class="setting-description">Push notifications when timer expires</div>
+                    </div>
+                    <div class="toggle-switch" id="timerNotificationsToggle" onclick="toggleSetting('timerNotifications')"></div>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Dark Mode</div>
+                        <div class="setting-description">Dark theme for evening events</div>
+                    </div>
+                    <div class="toggle-switch" id="darkModeToggle" onclick="toggleSetting('darkMode')"></div>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Default Timer</div>
+                        <div class="setting-description">Default timer duration</div>
+                    </div>
+                    <select class="settings-select" id="defaultTimer" onchange="updateSetting('defaultTimer', this.value)">
+                        <option value="5">5 minutes</option>
+                        <option value="10">10 minutes</option>
+                        <option value="15" selected>15 minutes</option>
+                        <option value="20">20 minutes</option>
+                        <option value="30">30 minutes</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Payment Methods -->
+            <div class="settings-section">
+                <h3>Payment Methods</h3>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Available Methods</div>
+                        <div class="setting-description">Customize payment options</div>
+                    </div>
+                    <button class="settings-button" onclick="customizePaymentMethods()">Customize</button>
+                </div>
+            </div>
+
+            <!-- Data & Export -->
+            <div class="settings-section">
+                <h3>Data & Export</h3>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Export Data</div>
+                        <div class="setting-description">Download session data as CSV</div>
+                    </div>
+                    <button class="settings-button" onclick="exportData()">Export</button>
+                </div>
+
+            </div>
+
+            <!-- Analytics -->
+            <div class="settings-section">
+                <h3>Analytics & Notifications</h3>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Daily Summary</div>
+                        <div class="setting-description">End of day notifications</div>
+                    </div>
+                    <div class="toggle-switch" id="dailySummaryToggle" onclick="toggleSetting('dailySummary')"></div>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Weekend Goals</div>
+                        <div class="setting-description">Earnings milestone alerts</div>
+                    </div>
+                    <div class="toggle-switch" id="weekendGoalsToggle" onclick="toggleSetting('weekendGoals')"></div>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Best Day Alerts</div>
+                        <div class="setting-description">Peak performance notifications</div>
+                    </div>
+                    <div class="toggle-switch" id="bestDayToggle" onclick="toggleSetting('bestDay')"></div>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Tip Trends</div>
+                        <div class="setting-description">Tip analysis notifications</div>
+                    </div>
+                    <div class="toggle-switch" id="tipTrendsToggle" onclick="toggleSetting('tipTrends')"></div>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Peak Time Alerts</div>
+                        <div class="setting-description">Busy time notifications</div>
+                    </div>
+                    <div class="toggle-switch" id="peakTimeToggle" onclick="toggleSetting('peakTime')"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
         // Supabase configuration
@@ -863,8 +1299,6 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/serviceWorker.js')
                 .then(registration => {
-                    console.log('Service Worker registered:', registration);
-                    
                     // Check for updates
                     registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
@@ -875,26 +1309,19 @@
                         });
                     });
                     
-                    // Register for background sync
-                    if ('sync' in window.ServiceWorkerRegistration.prototype) {
-                        console.log('Background sync supported');
-                    }
-                    
                     // Register for periodic background sync (requires user permission)
                     if ('periodicSync' in window.ServiceWorkerRegistration.prototype) {
                         registration.periodicSync.register('backup-readings', {
                             minInterval: 24 * 60 * 60 * 1000 // 24 hours
-                        }).catch(err => console.log('Periodic sync registration failed:', err));
+                        }).catch(() => {});
                     }
                     
                     // Request notification permission
                     if ('Notification' in window && 'serviceWorker' in navigator) {
-                        Notification.requestPermission().then(permission => {
-                            console.log('Notification permission:', permission);
-                        });
+                        Notification.requestPermission();
                     }
                 })
-                .catch(error => console.log('Service Worker registration failed:', error));
+                .catch(() => {});
             
             // Listen for messages from service worker
             navigator.serviceWorker.addEventListener('message', event => {
@@ -958,14 +1385,12 @@
                 const userBtn = document.getElementById('userBtn');
                 userBtn.textContent = value || 'Select User...';
                 userBtn.classList.toggle('selected', !!value);
-                console.log('User changed to:', value, 'canCreateSession:', this.canCreateSession, 'sessionPhase:', this.sessionPhase);
                 this.updateUI();
                 this.debouncedSave();
             }
             set location(value) {
                 this._location = value;
                 document.getElementById('location').value = value;
-                console.log('Location changed to:', value, 'canCreateSession:', this.canCreateSession, 'sessionPhase:', this.sessionPhase);
                 this.updateUI();
                 this.debouncedSave();
             }
@@ -974,7 +1399,6 @@
                 document.querySelectorAll('.day-btn').forEach(btn => {
                     btn.classList.toggle('active', btn.textContent.toLowerCase() === value);
                 });
-                console.log('SelectedDay changed to:', value, 'canCreateSession:', this.canCreateSession, 'sessionPhase:', this.sessionPhase);
                 this.updateUI();
                 this.debouncedSave();
             }
@@ -1192,7 +1616,6 @@
                     } catch (error) {
                         // Register for background sync on network failure
                         registerBackgroundSync();
-                        console.log('Save failed, registered for background sync');
                     }
                 }
             }
@@ -1247,7 +1670,6 @@
                     }
                     return uniqueUsers;
                 } catch (error) {
-                    console.error('Failed to load users:', error);
                     return [];
                 }
             }
@@ -1291,10 +1713,8 @@
 
             // Methods
             start() {
-                console.log('Timer.start called');
                 vibrate([80]);
                 if (!this._isRunning && this._seconds > 0) {
-                    console.log('Starting timer');
                     this._isRunning = true;
                     this._totalSeconds = this._seconds;
                     this.stopBlinking();
@@ -1305,20 +1725,14 @@
                     }
                     
                     this._interval = setInterval(() => {
-                        console.log('Timer tick:', this._seconds);
                         this._seconds--;
                         this.updateDisplay();
-                        
-                        if (this._seconds <= 5) {
-                            console.log('Timer countdown:', this._seconds);
-                        }
                         
                         if (this._seconds === 10) {
                             this.startWarningBlink();
                         }
                         
                         if (this._seconds <= 0) {
-                            console.log('Timer expired');
                             this.pause();
                             this.stopWarningBlink();
                             this.startBlinking();
@@ -1422,11 +1836,8 @@
                 try {
                     if ('wakeLock' in navigator) {
                         this._wakeLock = await navigator.wakeLock.request('screen');
-                        console.log('Wake lock acquired');
                     }
-                } catch (err) {
-                    console.log('Wake lock failed:', err);
-                }
+                } catch (err) {}
                 
                 try {
                     initAudio();
@@ -1439,22 +1850,17 @@
                     gainNode.connect(audioContext.destination);
                     gainNode.gain.setValueAtTime(0.001, audioContext.currentTime);
                     this._silentAudio.start();
-                    console.log('Silent audio started');
-                } catch (audioErr) {
-                    console.log('Silent audio failed:', audioErr);
-                }
+                } catch (audioErr) {}
             }
 
             releaseWakeLock() {
                 if (this._wakeLock) {
                     this._wakeLock.release();
                     this._wakeLock = null;
-                    console.log('Wake lock released');
                 }
                 if (this._silentAudio) {
                     this._silentAudio.stop();
                     this._silentAudio = null;
-                    console.log('Silent audio stopped');
                 }
             }
 
@@ -1517,7 +1923,7 @@
                     const blue = Math.round(51 * (1 - progress));
                     this._ctx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
                 } else {
-                    this._ctx.fillStyle = '#333';
+                    this._ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#f4e4a6' : '#333';
                 }
                 this._ctx.font = 'bold 72px monospace';
                 this._ctx.textAlign = 'center';
@@ -1530,7 +1936,96 @@
             }
         }
 
+        // Settings Store
+        class SettingsStore {
+            constructor() {
+                this.defaults = {
+                    sound: true,
+                    haptic: true,
+                    darkMode: false,
+                    defaultTimer: 15,
+                    timerNotifications: true,
+                    dailySummary: true,
+                    weekendGoals: true,
+                    bestDay: true,
+                    tipTrends: true,
+                    peakTime: true,
+                    paymentMethods: ['Cash', 'CC', 'Venmo', 'PayPal', 'Cash App']
+                };
+                this.settings = this.loadSettings();
+                this.applySettings();
+            }
+
+            loadSettings() {
+                const saved = localStorage.getItem('tarotTrackerSettings');
+                return saved ? { ...this.defaults, ...JSON.parse(saved) } : { ...this.defaults };
+            }
+
+            saveSettings() {
+                localStorage.setItem('tarotTrackerSettings', JSON.stringify(this.settings));
+            }
+
+            get(key) {
+                return this.settings[key];
+            }
+
+            set(key, value) {
+                this.settings[key] = value;
+                this.saveSettings();
+                this.applySettings();
+            }
+
+            toggle(key) {
+                this.set(key, !this.get(key));
+            }
+
+            applySettings() {
+                // Apply dark mode
+                if (this.get('darkMode')) {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+
+                // Redraw timer canvas for color changes
+                if (timer && timer.canvas) {
+                    timer.drawTimer();
+                }
+
+                // Update UI toggles
+                this.updateToggleUI();
+            }
+
+            updateToggleUI() {
+                const toggles = {
+                    'soundToggle': 'sound',
+                    'hapticToggle': 'haptic',
+                    'darkModeToggle': 'darkMode',
+                    'timerNotificationsToggle': 'timerNotifications',
+                    'dailySummaryToggle': 'dailySummary',
+                    'weekendGoalsToggle': 'weekendGoals',
+                    'bestDayToggle': 'bestDay',
+                    'tipTrendsToggle': 'tipTrends',
+                    'peakTimeToggle': 'peakTime'
+                };
+
+                Object.entries(toggles).forEach(([elementId, settingKey]) => {
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.classList.toggle('active', this.get(settingKey));
+                    }
+                });
+
+                // Update default timer select
+                const timerSelect = document.getElementById('defaultTimer');
+                if (timerSelect) {
+                    timerSelect.value = this.get('defaultTimer');
+                }
+            }
+        }
+
         // Initialize stores
+        const settings = new SettingsStore();
         const session = new SessionStore();
         const timer = new Timer();
         
@@ -1584,6 +2079,8 @@
             }
             
             checkDailySummary(sessions, today) {
+                if (!settings.get('dailySummary')) return;
+                
                 const todaySessions = sessions.filter(s => 
                     new Date(s.session_date).toDateString() === today && 
                     s.readings && s.readings.length > 0
@@ -1607,6 +2104,8 @@
             }
             
             checkWeekendGoals(sessions) {
+                if (!settings.get('weekendGoals')) return;
+                
                 const today = new Date();
                 const isWeekend = today.getDay() === 0 || today.getDay() === 6; // Sunday or Saturday
                 if (!isWeekend) return;
@@ -1649,6 +2148,8 @@
             }
             
             checkBestDay(sessions) {
+                if (!settings.get('bestDay')) return;
+                
                 const dayEarnings = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
                 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
                 
@@ -1683,6 +2184,8 @@
             }
             
             checkTipTrends(sessions) {
+                if (!settings.get('tipTrends')) return;
+                
                 const recentSessions = sessions.slice(0, 10);
                 const olderSessions = sessions.slice(10, 20);
                 
@@ -1706,6 +2209,8 @@
             }
             
             checkPeakTimes(sessions) {
+                if (!settings.get('peakTime')) return;
+                
                 const timeSlots = {};
                 let totalReadings = 0;
                 
@@ -1785,13 +2290,10 @@
         
         // Timer expiration notification
         function sendTimerNotification() {
-            console.log('sendTimerNotification called');
-            console.log('Service worker available:', 'serviceWorker' in navigator);
-            console.log('Notification permission:', Notification.permission);
+            if (!settings.get('timerNotifications')) return;
             
             if ('serviceWorker' in navigator && Notification.permission === 'granted') {
                 navigator.serviceWorker.ready.then(registration => {
-                    console.log('Service worker ready, sending timer notification');
                     registration.showNotification('Timer Finished! ⏰', {
                         body: 'Your tarot reading timer has expired.',
                         icon: window.APP_LOGO,
@@ -1807,7 +2309,6 @@
                             }
                         ]
                     }).then(() => {
-                        console.log('Timer notification sent successfully');
                         // Fallback for localhost - also try direct notification
                         if (isDevelopmentMode()) {
                             setTimeout(() => {
@@ -1816,39 +2317,25 @@
                                         body: 'Your tarot reading timer has expired.',
                                         icon: window.APP_LOGO
                                     });
-                                    console.log('Fallback notification sent');
-                                } catch (err) {
-                                    console.log('Fallback notification failed:', err);
-                                }
+                                } catch (err) {}
                             }, 100);
                         }
-                    }).catch(err => {
-                        console.error('Timer notification failed:', err);
-                    });
-                }).catch(err => {
-                    console.error('Service worker not ready:', err);
-                });
-            } else {
-                console.log('Timer notification blocked - SW or permission issue');
+                    }).catch(() => {});
+                }).catch(() => {});
             }
         }
         
         // Background sync handler
         async function handleBackgroundSync() {
-            console.log('Background sync triggered');
             try {
                 if (session.sessionId && session.readings.length > 0) {
                     await session.save();
-                    console.log('Background sync completed');
                 }
-            } catch (error) {
-                console.error('Background sync failed:', error);
-            }
+            } catch (error) {}
         }
         
         // Background backup handler
         async function handleBackgroundBackup() {
-            console.log('Background backup triggered');
             try {
                 // Create backup in localStorage with timestamp
                 const backup = {
@@ -1862,10 +2349,7 @@
                     }
                 };
                 localStorage.setItem('readingTracker_backup', JSON.stringify(backup));
-                console.log('Background backup completed');
-            } catch (error) {
-                console.error('Background backup failed:', error);
-            }
+            } catch (error) {}
         }
         
         // Register for background sync when going offline
@@ -1873,14 +2357,12 @@
             if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
                 navigator.serviceWorker.ready.then(registration => {
                     return registration.sync.register('background-sync-readings');
-                }).catch(err => console.log('Background sync registration failed:', err));
+                }).catch(() => {});
             }
         }
         
         // Send push notification (for testing)
         function sendTestNotification() {
-            console.log('Test notification clicked');
-            console.log('Notification permission:', Notification.permission);
             
             if (!('Notification' in window)) {
                 alert('This browser does not support notifications');
@@ -1894,7 +2376,6 @@
             
             if (Notification.permission === 'default') {
                 Notification.requestPermission().then(permission => {
-                    console.log('Permission result:', permission);
                     if (permission === 'granted') {
                         showTestNotification();
                     } else {
@@ -1907,23 +2388,17 @@
         }
         
         function showTestNotification() {
-            console.log('showTestNotification called');
-            
             // Try direct notification first
             try {
-                const notification = new Notification('Test Notification', {
+                new Notification('Test Notification', {
                     body: 'Direct browser notification test',
                     icon: '/logo192.png'
                 });
-                console.log('Direct notification created:', notification);
-            } catch (err) {
-                console.error('Direct notification failed:', err);
-            }
+            } catch (err) {}
             
             // Also try service worker notification
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.ready.then(registration => {
-                    console.log('Showing notification via service worker');
                     registration.showNotification(window.APP_TITLE, {
                         body: 'Test notification - this should appear on desktop!',
                         icon: '/logo192.png',
@@ -1934,19 +2409,12 @@
                             { action: 'open', title: 'Open App' },
                             { action: 'close', title: 'Close' }
                         ]
-                    }).then(() => {
-                        console.log('Service worker notification sent successfully');
-                    }).catch(err => {
-                        console.error('Service worker notification failed:', err);
-                    });
-                }).catch(err => {
-                    console.error('Service worker not ready:', err);
-                });
+                    }).catch(() => {});
+                }).catch(() => {});
             }
         }
         
         function fallbackNotification() {
-            console.log('Using fallback notification');
             new Notification(window.APP_TITLE, {
                 body: 'Test notification - fallback method',
                 icon: '/logo192.png'
@@ -2177,6 +2645,14 @@
         function openPaymentSheet(index) {
             vibrate([30]);
             currentPaymentIndex = index;
+            
+            // Populate payment options from settings
+            const paymentOptions = document.getElementById('paymentOptions');
+            const methods = settings.get('paymentMethods');
+            paymentOptions.innerHTML = methods.map(method => 
+                `<button class="payment-option" onclick="selectPaymentMethod('${method}')">${method}</button>`
+            ).join('') + '<button class="payment-option" onclick="selectCustomPayment()">Other</button>';
+            
             showSheet('paymentOverlay', 'paymentSheet');
         }
 
@@ -2252,12 +2728,15 @@
         }
 
         function playBeep(frequency = 1000, duration = 0.15) {
+            if (!settings.get('sound')) return;
+            
             initAudio();
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
             
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
+            
             
             oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
             oscillator.type = 'square';
@@ -2270,6 +2749,8 @@
         }
 
         function playAlarmSequence() {
+            if (!settings.get('sound')) return;
+            
             // Three rapid beeps
             playBeep(1000, 0.1);
             setTimeout(() => playBeep(1000, 0.1), 150);
@@ -2279,7 +2760,7 @@
         }
 
         function vibrate(pattern) {
-            if (navigator.vibrate) {
+            if (navigator.vibrate && settings.get('haptic')) {
                 navigator.vibrate(pattern);
             }
         }
@@ -2341,8 +2822,16 @@
                     if (registration && registration.waiting) {
                         registration.waiting.postMessage({ type: 'SKIP_WAITING' });
                         window.location.reload();
+                    } else {
+                        // Force reload if no waiting worker
+                        window.location.reload(true);
                     }
+                }).catch(() => {
+                    // Fallback to hard reload
+                    window.location.reload(true);
                 });
+            } else {
+                window.location.reload(true);
             }
         }
 
@@ -2551,6 +3040,11 @@
         // Initialize canvas on page load
         window.addEventListener('load', function() {
             timer.initCanvas();
+            
+            // Set default timer from settings
+            const defaultMinutes = settings.get('defaultTimer');
+            document.getElementById('timerInput').value = defaultMinutes;
+            timer.seconds = defaultMinutes * 60;
         });
 
         document.getElementById('price').addEventListener('input', function() {
@@ -2603,16 +3097,152 @@
             }
         }
 
+        // Settings Drawer Functions
+        function openSettingsDrawer() {
+            vibrate([50]);
+            document.getElementById('settingsOverlay').classList.add('open');
+            document.getElementById('settingsDrawer').classList.add('open');
+            settings.updateToggleUI();
+        }
+
+        function closeSettingsDrawer() {
+            vibrate([30]);
+            document.getElementById('settingsOverlay').classList.remove('open');
+            document.getElementById('settingsDrawer').classList.remove('open');
+            // Also close any open payment methods sheet
+            closePaymentMethodsSheet();
+        }
+
+        function toggleSetting(key) {
+            if (settings.get('haptic')) vibrate([30]);
+            settings.toggle(key);
+            
+            // Special handling for certain settings
+            if (key === 'defaultTimer') {
+                const minutes = settings.get('defaultTimer');
+                document.getElementById('timerInput').value = minutes;
+                timer.seconds = minutes * 60;
+            }
+        }
+
+        function updateSetting(key, value) {
+            if (settings.get('haptic')) vibrate([30]);
+            if (key === 'defaultTimer') {
+                settings.set(key, parseInt(value));
+                document.getElementById('timerInput').value = value;
+                timer.seconds = parseInt(value) * 60;
+            } else {
+                settings.set(key, value);
+            }
+        }
+
+        function customizePaymentMethods() {
+            if (settings.get('haptic')) vibrate([50]);
+            showPaymentMethodsSheet();
+        }
+        
+        function showPaymentMethodsSheet() {
+            const methods = settings.get('paymentMethods');
+            const list = document.getElementById('paymentMethodsList');
+            if (!list) return;
+            
+            list.innerHTML = methods.map((method, index) => `
+                <div class="payment-method-item">
+                    <input type="text" class="payment-method-input" value="${method}" 
+                           onchange="updatePaymentMethod(${index}, this.value)">
+                    <button class="payment-method-delete" onclick="deletePaymentMethod(${index})">Delete</button>
+                </div>
+            `).join('');
+            showSheet('paymentMethodsOverlay', 'paymentMethodsSheet');
+        }
+        
+        function closePaymentMethodsSheet() {
+            if (settings.get('haptic')) vibrate([30]);
+            hideSheet('paymentMethodsOverlay', 'paymentMethodsSheet');
+        }
+        
+        function updatePaymentMethod(index, value) {
+            if (settings.get('haptic')) vibrate([30]);
+            const methods = [...settings.get('paymentMethods')];
+            methods[index] = value.trim();
+            settings.set('paymentMethods', methods.filter(m => m));
+            showSnackbar('Setting saved', 'success');
+        }
+        
+        function deletePaymentMethod(index) {
+            if (settings.get('haptic')) vibrate([50]);
+            const methods = [...settings.get('paymentMethods')];
+            methods.splice(index, 1);
+            settings.set('paymentMethods', methods);
+            showPaymentMethodsSheet(); // Refresh the list
+        }
+        
+        function addPaymentMethod() {
+            if (settings.get('haptic')) vibrate([50]);
+            const methods = [...settings.get('paymentMethods')];
+            methods.push('New Method');
+            settings.set('paymentMethods', methods);
+            showPaymentMethodsSheet(); // Refresh the list
+        }
+
+        async function exportData() {
+            if (settings.get('haptic')) vibrate([50]);
+            
+            try {
+                const { data } = await supabase
+                    .from('blacksheep_reading_tracker_sessions')
+                    .select('*')
+                    .eq('user_name', session.user || 'all')
+                    .order('session_date', { ascending: false });
+                
+                if (!data || data.length === 0) {
+                    showSnackbar('No data to export', 'error');
+                    return;
+                }
+                
+                // Convert to CSV
+                const csvData = [];
+                csvData.push(['Date', 'User', 'Location', 'Day', 'Reading Price', 'Readings Count', 'Base Total', 'Tips Total', 'Grand Total']);
+                
+                data.forEach(sessionData => {
+                    const readingCount = sessionData.readings ? sessionData.readings.length : 0;
+                    const baseTotal = readingCount * (sessionData.reading_price || 0);
+                    const tipsTotal = sessionData.readings ? sessionData.readings.reduce((sum, r) => sum + (r.tip || 0), 0) : 0;
+                    const grandTotal = baseTotal + tipsTotal;
+                    
+                    csvData.push([
+                        sessionData.session_date,
+                        sessionData.user_name,
+                        sessionData.location,
+                        sessionData.selected_day,
+                        sessionData.reading_price,
+                        readingCount,
+                        baseTotal.toFixed(2),
+                        tipsTotal.toFixed(2),
+                        grandTotal.toFixed(2)
+                    ]);
+                });
+                
+                const csvContent = csvData.map(row => row.join(',')).join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tarot-sessions-${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                
+                URL.revokeObjectURL(url);
+                showSnackbar('Data exported successfully', 'success');
+            } catch (error) {
+                showSnackbar('Export failed', 'error');
+            }
+        }
+
+
+
         // Check for saved session on page load
         window.addEventListener('load', async function() {
-            console.log('Page loaded. Session state:', {
-                sessionId: session.sessionId,
-                location: session.location,
-                selectedDay: session.selectedDay,
-                sessionPhase: session.sessionPhase,
-                hasValidSession: session.hasValidSession
-            });
-            
             const saved = localStorage.getItem('readingTracker');
             if (saved) {
                 const state = JSON.parse(saved);
@@ -2639,12 +3269,10 @@
         
         // Network status monitoring
         window.addEventListener('online', () => {
-            console.log('Back online - attempting sync');
             handleBackgroundSync();
         });
         
         window.addEventListener('offline', () => {
-            console.log('Gone offline - will sync when back online');
             registerBackgroundSync();
         });
         

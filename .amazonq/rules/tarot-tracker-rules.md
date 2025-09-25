@@ -14,8 +14,8 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 
 ## Version Management
 - **CRITICAL**: Version number MUST be bumped on every code change
-- Version displayed in upper right corner for cache-busting
-- Current version: v3.33.0
+- Version displayed in header bar for cache-busting
+- Current version: v3.37.0
 
 ## Technical Requirements
 - **Pure web technologies**: HTML/CSS/JS only, no frameworks
@@ -62,6 +62,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 - Live user fetching from database (no localStorage user management)
 - Full-width snackbars with centered text for better mobile experience
 - Color-coded snackbars (success=light green, error=light red, info=light blue)
+- Timer notifications toggle for push notifications when timer expires
 
 ### Input Sizing
 - Reading price: 80px width (rarely changes)
@@ -100,6 +101,8 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 9. **Multi-User Support**: User selection with database-driven user list and data separation
 
 ### Display Elements
+- **Header Bar**: Professional header with app title, version badge, and settings button
+- **Settings Drawer**: Comprehensive settings panel with app preferences, payment methods, data export, and notification toggles (removed dangerous "Clear All Data" setting)
 - **Event Settings**: Collapsible panel with user selection button, reading price, location input, and day toggle buttons (Fri/Sat/Sun)
 - **User Selection Sheet**: Bottom modal sheet with database-driven user list, loading spinner, and "+ Add New User" button
 - **Countdown Timer**: Large display (80px font, 24px header) with start/pause/reset controls and time adjustment arrows
@@ -108,6 +111,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 - **Grand Total**: Prominent green total with border
 - **Readings Log**: Two-row layout with timestamps, tip inputs, payment method button, and delete buttons
 - **Payment Method Sheet**: Bottom modal sheet with cash, cc, venmo, paypal, cashapp, and custom "Other" option
+- **Payment Methods Customization Sheet**: Bottom modal sheet for editing available payment methods
 - **Session Loading Sheet**: Bottom modal sheet showing existing sessions with performance data (filtered by user)
 - **Snackbar Notifications**: Top sliding notifications for session loading confirmations
 - **Session Restoration**: Dialog on page load asking to restore previous session data
@@ -192,6 +196,9 @@ Persistence:
 - Notification system: All system messages use snackbars instead of alerts/toasts
 - Snackbar design: Full-width notifications with color coding and centered text
 - User experience: No confirmation dialogs for user switching, seamless username changes
+- Z-index hierarchy: Snackbars (3000) > Sheets (2001) > Drawers (2000) > Overlays (1999)
+- Performance optimization: All console.log statements removed for production performance
+- Timer notifications: Configurable push notifications when timer expires (default: enabled)
 
 ## Usage
 1. Set reading price (defaults to $40)
@@ -248,25 +255,24 @@ Persistence:
 - **Graceful Degradation**: Falls back to localStorage if database unavailable
 
 ### CSS Classes
-- `.timer-canvas-container`: Flex container for canvas centering (justify-content: center, align-items: center)
+- `.header`: Professional header bar with sticky positioning and shadow
+- `.header-actions`: Container for version badge and settings button
+- `.version-badge`: Version display in header with rounded styling
+- `.settings-btn`: Header settings button with hover effects
+- `.settings-drawer`: Comprehensive settings panel with sections
+- `.settings-select`: Dropdown inputs in settings (80px min-width for narrow screens)
+- `.timer-canvas-container`: Flex container for canvas centering
 - `.timer-canvas`: 300x300px canvas, border: none, padding: 0, margin: 0
-- `.timer h3`: 24px font size for larger header
 - `.start-btn`: flex:3, 70px height, prominent green styling
 - `.tip-input`: 70px width with !important for mobile override
 - `.payment-method-btn`: Single button for payment method selection
-- `.payment-method-btn.selected`: Blue styling when payment method chosen
 - `.reading-item`: 2px solid #ddd border-bottom for visual separation
 - `.event-settings`: collapsible panel with smooth transitions
 - `.day-btn.active`: highlighted state for selected day
 - `.sheet`: Bottom modal sheet with slideUpSheet animation
-- `.snackbar`: Full-width top notification (100% width, top: 0) with slideDown animation and centered text
-- `.snackbar.success`: Light green background for success messages
-- `.snackbar.error`: Light red background for error messages
+- `.snackbar`: Full-width top notification with slideDown animation and centered text
 - `.user-btn`: User selection button styled like input elements
-- `.user-btn.selected`: Blue styling when user is selected
-- `.user-item`: Individual user options in selection sheet
-- `.btn-add-user`: Green button for adding new users in sheet
-- `.spinner`: Loading spinner for database operations (40px size, larger for better visibility)
+- `.spinner`: Loading spinner for database operations (40px size)
 
 ## Browser Compatibility
 Designed for modern mobile browsers with support for:
