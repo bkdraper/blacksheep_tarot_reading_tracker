@@ -79,6 +79,8 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 - Arrow buttons: 40px width for time adjustment
 - Visual warnings: Circle color transitions from green to red as time decreases
 - Canvas styling: border: none, padding: 0, crisp rendering enabled
+- Dark mode timer text: Soft yellow (#f4e4a6) for better visibility
+- Canvas redraws automatically when dark mode toggles
 
 ## Features
 
@@ -189,16 +191,21 @@ Persistence:
 - Wake lock limitations: Screen Wake Lock API requires HTTPS, effectiveness varies by browser
 - Canvas rendering: imageSmoothingEnabled = false for crisp circle rendering
 - Canvas centering: Flex container wrapper ensures perfect centering across all browsers
+- Timer text color: Dynamic color switching based on dark mode state
+- Canvas redraw: Automatic redraw when settings change (dark mode toggle)
 - Multi-user data separation: Each user has isolated data in database and localStorage
 - Database-driven user management: No localStorage user list, fetched live from database
 - Loading states: All database operations show loading spinners for user feedback
 - Service worker strategy: Network-first caching for immediate updates during development
+- Service worker error handling: Proper Response object handling to prevent conversion errors
+- Update notification system: Working "Update Now" button with fallback to hard reload
 - Notification system: All system messages use snackbars instead of alerts/toasts
 - Snackbar design: Full-width notifications with color coding and centered text
 - User experience: No confirmation dialogs for user switching, seamless username changes
 - Z-index hierarchy: Snackbars (3000) > Sheets (2001) > Drawers (2000) > Overlays (1999)
 - Performance optimization: All console.log statements removed for production performance
 - Timer notifications: Configurable push notifications when timer expires (default: enabled)
+- Global timer access: Timer object available on window for settings integration
 
 ## Usage
 1. Set reading price (defaults to $40)

@@ -1988,8 +1988,8 @@
                 }
 
                 // Redraw timer canvas for color changes
-                if (timer && timer.canvas) {
-                    timer.drawTimer();
+                if (window.timer && window.timer.canvas) {
+                    window.timer.drawTimer();
                 }
 
                 // Update UI toggles
@@ -2028,6 +2028,9 @@
         const settings = new SettingsStore();
         const session = new SessionStore();
         const timer = new Timer();
+        
+        // Make timer globally accessible for settings
+        window.timer = timer;
         
         // Analytics & Notification System
         class AnalyticsNotifier {
