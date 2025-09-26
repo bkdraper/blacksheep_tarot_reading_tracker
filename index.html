@@ -27,7 +27,7 @@
                    window.location.search.includes('dev=true');
         }
         window.APP_TITLE = isDevelopmentMode() ? '[DEV] Tarot Reading Tracker' : 'Tarot Reading Tracker';
-        window.APP_LOGO = '/logo192.png'; // Use regular logo for now
+        window.APP_LOGO = isDevelopmentMode() ? '/logo192-dev.png' : '/logo192.png';
         document.title = window.APP_TITLE;
         document.getElementById('favicon').href = window.APP_LOGO;
         document.getElementById('appleTitle').content = window.APP_TITLE;
@@ -285,6 +285,21 @@
         }
         .collapse-icon.open {
             transform: rotate(180deg);
+        }
+        .user-section {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .user-section label::before {
+            content: '👤 ';
+            font-size: 14px;
+        }
+        .user-section .btn-load-session {
+            width: 100%;
+            margin-top: 10px;
         }
         .buttons { 
             display: flex; 
@@ -1018,7 +1033,7 @@
     <header class="header">
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
-            <span class="version-badge">v3.37.0</span>
+            <span class="version-badge">v3.44.0</span>
             <button class="settings-btn" onclick="openSettingsDrawer()" title="Settings">⚙️</button>
         </div>
     </header>
@@ -1029,9 +1044,11 @@
                 <span class="collapse-icon">▼</span>
             </div>
             <div class="settings-content" id="settingsContent">
-                <div class="input-group">
-                    <label for="user">User:</label>
-                    <button id="userBtn" onclick="showUserSelection()" class="user-btn">Select User...</button>
+                <div class="user-section">
+                    <div class="input-group">
+                        <label for="user">User:</label>
+                        <button id="userBtn" onclick="showUserSelection()" class="user-btn">Select User...</button>
+                    </div>
                     <button class="btn-load-session" onclick="showLoadSession()">Load Session</button>
                 </div>
 
@@ -1381,10 +1398,29 @@
                 this.save();
             }
             set user(value) {
+                const wasActiveSession = this.hasValidSession;
+                const previousUser = this._user;
+                
                 this._user = value;
                 const userBtn = document.getElementById('userBtn');
                 userBtn.textContent = value || 'Select User...';
                 userBtn.classList.toggle('selected', !!value);
+                
+                // If switching users during active session, clear session
+                if (wasActiveSession && previousUser && previousUser !== value) {
+                    this._sessionId = null;
+                    this._location = '';
+                    this._selectedDay = null;
+                    this._price = 40;
+                    this._readings = [];
+                    document.getElementById('location').value = '';
+                    document.getElementById('price').value = '40';
+                    document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
+                    this.updateReadingsList();
+                    this.updateTotals();
+                    showSnackbar(`Switched to ${value}. Ready to create new session or load existing.`, 'success');
+                }
+                
                 this.updateUI();
                 this.debouncedSave();
             }
@@ -2426,7 +2462,7 @@
 
         function startNewSession() {
             vibrate([100, 50, 100]);
-            if (confirm('Start a new session? This will clear all current data and start over.')) {
+            if (confirm('Start a new session? This will unload all current data and start over.')) {
                 session.startOver();
                 resetTimer();
                 document.getElementById('timerInput').value = '15';
@@ -3071,6 +3107,25 @@
         
         function selectUser(userName) {
             vibrate([50]);
+            
+            // Check if switching users during active session
+            if (session.hasValidSession && session.user && session.user !== userName) {
+                const message = `Switching users will unload the current session (${session.location} - ${session.selectedDay}). Continue?`;
+                if (!confirm(message)) {
+                    return;
+                }
+            }
+            
+            // Overwrite localStorage with clean user object
+            localStorage.setItem(`readingTracker_${userName}`, JSON.stringify({
+                user: userName,
+                sessionId: null,
+                location: '',
+                selectedDay: null,
+                price: 40,
+                readings: []
+            }));
+            
             session.user = userName;
             session.loadFromStorage();
             hideUserSelection();
