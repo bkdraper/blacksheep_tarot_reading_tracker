@@ -15,7 +15,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 ## Version Management
 - **CRITICAL**: Version number MUST be bumped on every code change
 - Version displayed in header bar for cache-busting
-- Current version: v3.37.0
+- Current version: v3.58.0
 
 ## Technical Requirements
 - **Pure web technologies**: HTML/CSS/JS only, no frameworks
@@ -110,7 +110,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 - **Countdown Timer**: Large display (80px font, 24px header) with start/pause/reset controls and time adjustment arrows
 - **Add/Remove Buttons**: Large touch-friendly buttons with haptic feedback and confirmation dialogs
 - **Totals Table**: Compact table showing readings count, base total, tips total
-- **Grand Total**: Prominent green total with border
+- **Grand Total**: Prominent green total with border, two-line layout
 - **Readings Log**: Two-row layout with timestamps, tip inputs, payment method button, and delete buttons
 - **Payment Method Sheet**: Bottom modal sheet with cash, cc, venmo, paypal, cashapp, and custom "Other" option
 - **Payment Methods Customization Sheet**: Bottom modal sheet for editing available payment methods
@@ -130,7 +130,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 
 ### Data Structure
 Each reading contains:
-- `timestamp`: Time in HH:MM AM/PM format
+- `timestamp`: Full ISO datetime format (migrated from legacy HH:MM AM/PM)
 - `tip`: Numeric tip amount (default 0)
 - `payment`: Payment method (cash, cc, venmo, paypal, cashapp, or custom text)
 
@@ -214,6 +214,13 @@ Persistence:
 4. View real-time totals in the summary table
 5. Delete individual readings using the red × button if needed
 6. Use the "-" button to remove the most recent reading
+
+### Report Features
+- **Date Range Presets**: Today, This Weekend, This Month, YTD, 1 Year, Last Year, All Time, Custom
+- **Custom Date Inputs**: Only visible when "Custom" preset is selected
+- **Weekend Logic**: Shows current weekend or most recent past weekend
+- **Timestamp Filtering**: Uses actual reading timestamps, not session creation dates
+- **Migration Fix**: Uses actual session date from database, not today's date
 
 ## Technical Implementation
 

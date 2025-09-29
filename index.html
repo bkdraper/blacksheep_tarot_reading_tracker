@@ -205,7 +205,7 @@
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 2500;
             left: 0;
             top: 0;
             width: 100%;
@@ -448,12 +448,26 @@
             background: white;
             cursor: pointer;
             min-height: 44px;
-            margin-top: 8px;
             touch-action: manipulation;
-            width: 120px;
-            align-self: flex-end;
+            flex: 1;
         }
         .payment-method-btn.selected {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .source-btn {
+            padding: 8px 12px;
+            font-size: 12px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            min-height: 44px;
+            touch-action: manipulation;
+            flex: 1;
+        }
+        .source-btn.selected {
             background: #007bff;
             color: white;
             border-color: #007bff;
@@ -1027,13 +1041,135 @@
         body.dark-mode .timer-display {
             color: #f4e4a6 !important;
         }
+        
+        /* Report Maker Styles */
+        .report-preset-btn {
+            background: #f8f9fa;
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .report-preset-btn:hover {
+            background: #e9ecef;
+        }
+        .report-preset-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .report-group {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .report-group-header {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .report-totals {
+            background: #e8f5e8;
+            border: 2px solid #28a745;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .report-totals h3 {
+            margin: 0 0 10px 0;
+            color: #28a745;
+        }
+        .report-session {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        .report-session-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .report-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .report-stat {
+            display: flex;
+            justify-content: space-between;
+        }
+        .report-totals-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .report-total-item {
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        body.dark-mode .report-preset-btn {
+            background: #3d3d3d;
+            color: #ffffff;
+            border-color: #555;
+        }
+        body.dark-mode .report-preset-btn:hover {
+            background: #4d4d4d;
+        }
+        body.dark-mode .report-group {
+            background: #2d2d2d;
+            border-color: #555;
+        }
+        body.dark-mode .report-group-header {
+            color: #ffffff;
+        }
+        body.dark-mode .report-totals {
+            background: #1a4d2e;
+            border-color: #28a745;
+        }
+        body.dark-mode .report-table th {
+            background: #1a1a1a;
+            color: #ffffff;
+        }
+        body.dark-mode .report-table td {
+            color: #ffffff;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+        .btn-secondary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-secondary:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body>
     <header class="header">
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
-            <span class="version-badge">v3.44.0</span>
+            <span class="version-badge">v3.58.0</span>
             <button class="settings-btn" onclick="openSettingsDrawer()" title="Settings">⚙️</button>
         </div>
     </header>
@@ -1146,6 +1282,18 @@
         </div>
     </div>
 
+    <!-- Source Sheet -->
+    <div id="sourceOverlay" class="payment-overlay" onclick="closeSourceSheet()"></div>
+    <div id="sourceSheet" class="payment-sheet">
+        <div class="payment-sheet-header">
+            <h3>Select Source</h3>
+            <button class="modal-close" onclick="closeSourceSheet()">×</button>
+        </div>
+        <div class="payment-sheet-options" id="sourceOptions">
+            <!-- Source options populated dynamically -->
+        </div>
+    </div>
+
     <!-- User Selection Sheet -->
     <div id="userOverlay" class="payment-overlay" onclick="hideUserSelection()"></div>
     <div id="userSheet" class="session-sheet">
@@ -1181,6 +1329,77 @@
         <div class="session-sheet-content">
             <div id="paymentMethodsList"></div>
             <button onclick="addPaymentMethod()" class="add-payment-method">+ Add Payment Method</button>
+        </div>
+    </div>
+
+    <!-- Sources Customization Sheet -->
+    <div id="sourcesOverlay" class="payment-overlay" onclick="closeSourcesSheet()"></div>
+    <div id="sourcesSheet" class="payment-methods-sheet">
+        <div class="session-sheet-header">
+            <h3>Customize Sources</h3>
+            <button class="modal-close" onclick="closeSourcesSheet()">×</button>
+        </div>
+        <div class="session-sheet-content">
+            <div id="sourcesList"></div>
+            <button onclick="addSource()" class="add-payment-method">+ Add Source</button>
+        </div>
+    </div>
+
+    <!-- Report Maker Modal -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Generate Report</h2>
+                <button class="modal-close" onclick="closeReportMaker()">×</button>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: bold;">Date Range:</label>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                    <button class="report-preset-btn active" onclick="setDateRange('today')">Today</button>
+                    <button class="report-preset-btn" onclick="setDateRange('weekend')">This Weekend</button>
+                    <button class="report-preset-btn" onclick="setDateRange('month')">This Month</button>
+                    <button class="report-preset-btn" onclick="setDateRange('ytd')">YTD</button>
+                    <button class="report-preset-btn" onclick="setDateRange('year')">1 Year</button>
+                    <button class="report-preset-btn" onclick="setDateRange('lastYear')">Last Year</button>
+                    <button class="report-preset-btn" onclick="setDateRange('all')">All Time</button>
+                    <button class="report-preset-btn" onclick="setDateRange('custom')">Custom</button>
+                </div>
+                <div id="customDateInputs" style="display: none;">
+                    <div style="margin-bottom: 8px;">
+                        <label style="display: block; font-size: 12px; margin-bottom: 4px; color: #666;">From:</label>
+                        <input type="date" id="startDate" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 12px; margin-bottom: 4px; color: #666;">To:</label>
+                        <input type="date" id="endDate" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+                </div>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: bold;">Group By:</label>
+                <select id="groupBy" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="location">Location</option>
+                    <option value="date">Date</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="generateReport()" style="flex: 1;" id="generateBtn">Generate Report</button>
+                <button class="btn btn-secondary" onclick="exportReportData()" style="flex: 1;" id="exportBtn" disabled>Export CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Results Modal -->
+    <div id="reportResultsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>Report Results</h2>
+                <button class="modal-close" onclick="closeReportResults()">×</button>
+            </div>
+            <div id="reportContent"></div>
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="btn btn-secondary" onclick="exportReportData()">Export CSV</button>
+            </div>
         </div>
     </div>
 
@@ -1250,9 +1469,28 @@
                 </div>
             </div>
 
+            <!-- Sources -->
+            <div class="settings-section">
+                <h3>Sources</h3>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Available Sources</div>
+                        <div class="setting-description">Customize source options</div>
+                    </div>
+                    <button class="settings-button" onclick="customizeSources()">Customize</button>
+                </div>
+            </div>
+
             <!-- Data & Export -->
             <div class="settings-section">
                 <h3>Data & Export</h3>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Generate Report</div>
+                        <div class="setting-description">Create summary reports with grouping and totals</div>
+                    </div>
+                    <button class="settings-button" onclick="showReportMaker()">Report</button>
+                </div>
                 <div class="setting-item">
                     <div>
                         <div class="setting-label">Export Data</div>
@@ -1446,6 +1684,7 @@
             }
             set readings(value) {
                 this._readings = value;
+                this.migrateTimestamps();
                 this.updateReadingsList();
                 this.updateTotals();
                 this.save();
@@ -1593,23 +1832,85 @@
 
             updateReadingsList() {
                 const list = document.getElementById('readingsList');
-                list.innerHTML = this._readings.map((reading, index) => `
+                list.innerHTML = this._readings.map((reading, index) => {
+                    const displayTime = this.formatTimestamp(reading.timestamp);
+                    return `
                     <div class="reading-item" data-index="${index}">
                         <div class="reading-row">
                             <span class="index">${index + 1}.</span>
-                            <span class="timestamp">${reading.timestamp}</span>
+                            <span class="timestamp">${displayTime}</span>
+                            <div style="border-left: 2px solid #ddd; padding-left: 10px; margin-left: 10px;">
+                                <button class="delete-btn" onclick="deleteReading(${index})">×</button>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
                             <input type="number" class="tip-input" placeholder="Tip" 
                                    value="${reading.tip || ''}" step="0.01" min="0" inputmode="decimal"
                                    onchange="session.updateReading(${index}, 'tip', parseFloat(this.value) || 0)"
                                    onkeydown="if(event.key==='Enter') this.blur()">
-                            <button class="delete-btn" onclick="deleteReading(${index})">×</button>
+                            <button class="payment-method-btn ${reading.payment ? 'selected' : ''}" 
+                                    onclick="openPaymentSheet(${index})">
+                                ${reading.payment || 'Payment Method'}
+                            </button>
+                            <button class="source-btn ${reading.source ? 'selected' : ''}" 
+                                    onclick="openSourceSheet(${index})">
+                                ${reading.source || 'Source'}
+                            </button>
                         </div>
-                        <button class="payment-method-btn ${reading.payment ? 'selected' : ''}" 
-                                onclick="openPaymentSheet(${index})">
-                            ${reading.payment || 'Payment Method'}
-                        </button>
                     </div>
-                `).join('');
+                `}).join('');
+            }
+
+            formatTimestamp(timestamp) {
+                if (!timestamp) return '';
+                if (timestamp.includes('T')) {
+                    return new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                }
+                return timestamp; // Legacy format
+            }
+
+            async migrateTimestamps() {
+                if (!this._sessionId || !this._readings.length) return;
+                
+                let needsMigration = false;
+                let sessionDate = new Date().toISOString().split('T')[0]; // Fallback to today
+                
+                // Try to get actual session date from database
+                try {
+                    const { data } = await supabase
+                        .from('blacksheep_reading_tracker_sessions')
+                        .select('session_date')
+                        .eq('id', this._sessionId)
+                        .single();
+                    if (data && data.session_date) {
+                        sessionDate = data.session_date;
+                    }
+                } catch (error) {
+                    // Use fallback date
+                }
+                
+                this._readings.forEach(reading => {
+                    if (!reading.timestamp.includes('T')) {
+                        needsMigration = true;
+                        const timeMatch = reading.timestamp.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                        if (timeMatch) {
+                            let hour = parseInt(timeMatch[1]);
+                            const minute = parseInt(timeMatch[2]);
+                            const period = timeMatch[3].toUpperCase();
+                            
+                            if (period === 'PM' && hour !== 12) hour += 12;
+                            if (period === 'AM' && hour === 12) hour = 0;
+                            
+                            const fullDate = new Date(sessionDate);
+                            fullDate.setHours(hour, minute, 0, 0);
+                            reading.timestamp = fullDate.toISOString();
+                        }
+                    }
+                });
+                
+                if (needsMigration) {
+                    this.save();
+                }
             }
 
             updateTotals() {
@@ -1986,7 +2287,8 @@
                     bestDay: true,
                     tipTrends: true,
                     peakTime: true,
-                    paymentMethods: ['Cash', 'CC', 'Venmo', 'PayPal', 'Cash App']
+                    paymentMethods: ['Cash', 'CC', 'Venmo', 'PayPal', 'Cash App'],
+                    sources: ['Referral', 'Renu', 'POG', 'Repeat']
                 };
                 this.settings = this.loadSettings();
                 this.applySettings();
@@ -2643,7 +2945,7 @@
             
             vibrate([50]);
             const now = new Date();
-            const timestamp = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const timestamp = now.toISOString();
             session.addReading({ timestamp, tip: 0 });
             
             // Trigger background backup after adding reading
@@ -2670,6 +2972,7 @@
         }
 
         let currentPaymentIndex = null;
+        let currentSourceIndex = null;
 
         function showSheet(overlayId, sheetId) {
             document.getElementById(overlayId).style.display = 'block';
@@ -2716,6 +3019,43 @@
             if (newValue !== null && newValue.trim()) {
                 session.updateReading(currentPaymentIndex, 'payment', newValue.trim());
                 closePaymentSheet();
+            }
+        }
+
+        function openSourceSheet(index) {
+            vibrate([30]);
+            currentSourceIndex = index;
+            
+            const sourceOptions = document.getElementById('sourceOptions');
+            const sources = settings.get('sources');
+            sourceOptions.innerHTML = sources.map(source => 
+                `<button class="payment-option" onclick="selectSource('${source}')">${source}</button>`
+            ).join('') + '<button class="payment-option" onclick="selectCustomSource()">Other</button>';
+            
+            showSheet('sourceOverlay', 'sourceSheet');
+        }
+
+        function closeSourceSheet() {
+            vibrate([30]);
+            hideSheet('sourceOverlay', 'sourceSheet');
+            currentSourceIndex = null;
+        }
+
+        function selectSource(source) {
+            vibrate([30]);
+            if (currentSourceIndex !== null) {
+                session.updateReading(currentSourceIndex, 'source', source);
+                closeSourceSheet();
+            }
+        }
+
+        function selectCustomSource() {
+            vibrate([30]);
+            const currentValue = currentSourceIndex !== null && session.readings[currentSourceIndex].source ? session.readings[currentSourceIndex].source : '';
+            const newValue = prompt('Enter source:', currentValue);
+            if (newValue !== null && newValue.trim()) {
+                session.updateReading(currentSourceIndex, 'source', newValue.trim());
+                closeSourceSheet();
             }
         }
 
@@ -3243,14 +3583,394 @@
             showPaymentMethodsSheet(); // Refresh the list
         }
 
+        function customizeSources() {
+            if (settings.get('haptic')) vibrate([50]);
+            showSourcesSheet();
+        }
+        
+        function showSourcesSheet() {
+            const sources = settings.get('sources');
+            const list = document.getElementById('sourcesList');
+            if (!list) return;
+            
+            list.innerHTML = sources.map((source, index) => `
+                <div class="payment-method-item">
+                    <input type="text" class="payment-method-input" value="${source}" 
+                           onchange="updateSource(${index}, this.value)">
+                    <button class="payment-method-delete" onclick="deleteSource(${index})">Delete</button>
+                </div>
+            `).join('');
+            showSheet('sourcesOverlay', 'sourcesSheet');
+        }
+        
+        function closeSourcesSheet() {
+            if (settings.get('haptic')) vibrate([30]);
+            hideSheet('sourcesOverlay', 'sourcesSheet');
+        }
+        
+        function updateSource(index, value) {
+            if (settings.get('haptic')) vibrate([30]);
+            const sources = [...settings.get('sources')];
+            sources[index] = value.trim();
+            settings.set('sources', sources.filter(s => s));
+            showSnackbar('Setting saved', 'success');
+        }
+        
+        function deleteSource(index) {
+            if (settings.get('haptic')) vibrate([50]);
+            const sources = [...settings.get('sources')];
+            sources.splice(index, 1);
+            settings.set('sources', sources);
+            showSourcesSheet(); // Refresh the list
+        }
+        
+        function addSource() {
+            if (settings.get('haptic')) vibrate([50]);
+            const sources = [...settings.get('sources')];
+            sources.push('New Source');
+            settings.set('sources', sources);
+            showSourcesSheet(); // Refresh the list
+        }
+
+        // Report Maker Functions
+        let reportData = [];
+        
+        function showReportMaker() {
+            if (!session.user) {
+                showSnackbar('Select a user first', 'error');
+                return;
+            }
+            
+            if (settings.get('haptic')) vibrate([50]);
+            
+            // Set default date range to last 30 days
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            
+            document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            
+            document.getElementById('reportModal').style.display = 'block';
+        }
+        
+        function closeReportMaker() {
+            if (settings.get('haptic')) vibrate([30]);
+            document.getElementById('reportModal').style.display = 'none';
+        }
+        
+        function closeReportResults() {
+            if (settings.get('haptic')) vibrate([30]);
+            document.getElementById('reportResultsModal').style.display = 'none';
+        }
+        
+        function setDateRange(preset) {
+            if (settings.get('haptic')) vibrate([30]);
+            
+            // Update active button
+            document.querySelectorAll('.report-preset-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const customInputs = document.getElementById('customDateInputs');
+            
+            // Always hide/show custom inputs based on selection
+            if (preset === 'custom') {
+                customInputs.style.display = 'block';
+                return; // Don't set dates for custom
+            } else {
+                customInputs.style.display = 'none';
+            }
+            
+            const today = new Date();
+            let startDate, endDate;
+            
+            switch (preset) {
+                case 'today':
+                    startDate = endDate = today;
+                    break;
+                case 'weekend':
+                    // Find most recent weekend (Friday to Sunday)
+                    const dayOfWeek = today.getDay();
+                    const friday = new Date(today);
+                    if (dayOfWeek === 0) { // Sunday - current weekend
+                        friday.setDate(today.getDate() - 2); // Go back to Friday
+                    } else if (dayOfWeek === 6) { // Saturday - current weekend
+                        friday.setDate(today.getDate() - 1); // Go back to Friday
+                    } else if (dayOfWeek === 5) { // Friday - current weekend
+                        // Friday stays as is
+                    } else { // Mon-Thu, get previous weekend
+                        friday.setDate(today.getDate() - (dayOfWeek + 2)); // Go back to previous Friday
+                    }
+                    const sunday = new Date(friday);
+                    sunday.setDate(friday.getDate() + 2);
+                    startDate = friday;
+                    endDate = sunday;
+                    break;
+                case 'month':
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = today;
+                    break;
+                case 'ytd':
+                    startDate = new Date(today.getFullYear(), 0, 1);
+                    endDate = today;
+                    break;
+                case 'year':
+                    startDate = new Date(today);
+                    startDate.setFullYear(today.getFullYear() - 1);
+                    endDate = today;
+                    break;
+                case 'lastYear':
+                    startDate = new Date(today.getFullYear() - 1, 0, 1);
+                    endDate = new Date(today.getFullYear() - 1, 11, 31);
+                    break;
+                case 'all':
+                    startDate = new Date('2020-01-01');
+                    endDate = today;
+                    break;
+                case 'custom':
+                default:
+                    return;
+            }
+            
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+        }
+        
+        async function generateReport() {
+            if (settings.get('haptic')) vibrate([50]);
+            
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const groupBy = document.getElementById('groupBy').value;
+            
+            if (!startDate || !endDate) {
+                showSnackbar('Please select start and end dates', 'error');
+                return;
+            }
+            
+            try {
+                // Get all sessions, then filter by reading dates
+                const { data } = await supabase
+                    .from('blacksheep_reading_tracker_sessions')
+                    .select('*')
+                    .eq('user_name', session.user)
+                    .order('session_date', { ascending: false });
+                
+                if (!data || data.length === 0) {
+                    showSnackbar('No data found', 'error');
+                    return;
+                }
+                
+                // Filter by reading dates (sessions with no readings are excluded)
+                const startDateTime = new Date(startDate);
+                const endDateTime = new Date(endDate);
+                endDateTime.setHours(23, 59, 59, 999);
+                
+                const filteredData = data.filter(sessionData => {
+                    const readings = sessionData.readings || [];
+                    if (readings.length === 0) return false; // Exclude empty sessions
+                    
+                    return readings.some(reading => {
+                        const readingDate = new Date(reading.timestamp);
+                        return readingDate >= startDateTime && readingDate <= endDateTime;
+                    });
+                });
+                
+                if (filteredData.length === 0) {
+                    showSnackbar('No data found for selected date range', 'error');
+                    return;
+                }
+                
+                reportData = filteredData;
+
+                const reportHtml = generateReportHtml(filteredData, groupBy, startDate, endDate);
+                document.getElementById('reportContent').innerHTML = reportHtml;
+                
+                // Enable export button
+                document.getElementById('exportBtn').disabled = false;
+                
+                closeReportMaker();
+                document.getElementById('reportResultsModal').style.display = 'block';
+                
+            } catch (error) {
+                showSnackbar('Failed to generate report', 'error');
+            }
+        }
+        
+        function generateReportHtml(data, groupBy, startDate, endDate) {
+            const groups = {};
+            let totalReadings = 0;
+            let totalBase = 0;
+            let totalTips = 0;
+            
+            // Group data
+            data.forEach(sessionData => {
+                const readings = sessionData.readings || [];
+                const readingCount = readings.length;
+                
+                const baseTotal = readingCount * (sessionData.reading_price || 0);
+                const tipsTotal = readings.reduce((sum, r) => sum + (r.tip || 0), 0);
+                
+                let groupKey;
+                if (groupBy === 'location') {
+                    groupKey = sessionData.location;
+                } else {
+                    // Use first reading date as event date
+                    groupKey = new Date(readings[0].timestamp).toLocaleDateString();
+                }
+                
+                if (!groups[groupKey]) {
+                    groups[groupKey] = {
+                        sessions: [],
+                        totalReadings: 0,
+                        totalBase: 0,
+                        totalTips: 0
+                    };
+                }
+                
+                groups[groupKey].sessions.push(sessionData);
+                groups[groupKey].totalReadings += readingCount;
+                groups[groupKey].totalBase += baseTotal;
+                groups[groupKey].totalTips += tipsTotal;
+                
+                totalReadings += readingCount;
+                totalBase += baseTotal;
+                totalTips += tipsTotal;
+            });
+            
+            // Generate HTML
+            let html = `<div style="margin-bottom: 20px;">`;
+            html += `<h3>Report: ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}</h3>`;
+            html += `<p>Grouped by: ${groupBy === 'location' ? 'Location' : 'Date'}</p>`;
+            html += `</div>`;
+            
+            Object.keys(groups).forEach(groupKey => {
+                const group = groups[groupKey];
+                html += `<div class="report-group">`;
+                html += `<div class="report-group-header">${groupKey}</div>`;
+                
+                // Show individual sessions
+                group.sessions.forEach(sessionData => {
+                    const readings = sessionData.readings || [];
+                    const readingCount = readings.length;
+                    const baseTotal = readingCount * (sessionData.reading_price || 0);
+                    const tipsTotal = readings.reduce((sum, r) => sum + (r.tip || 0), 0);
+                    const sessionTotal = baseTotal + tipsTotal;
+                    
+                    const eventDate = new Date(readings[0].timestamp).toLocaleDateString();
+                    
+                    html += `<div class="report-session">`;
+                    html += `<div class="report-session-header">${eventDate} - ${sessionData.selected_day}</div>`;
+                    html += `<div class="report-stats">`;
+                    html += `<div class="report-stat"><span>Readings:</span><span>${readingCount}</span></div>`;
+                    html += `<div class="report-stat"><span>Base:</span><span>$${baseTotal.toFixed(2)}</span></div>`;
+                    html += `<div class="report-stat"><span>Tips:</span><span>$${tipsTotal.toFixed(2)}</span></div>`;
+                    html += `<div class="report-stat"><span><strong>Total:</strong></span><span><strong>$${sessionTotal.toFixed(2)}</strong></span></div>`;
+                    html += `</div></div>`;
+                });
+                
+                // Group totals
+                if (group.sessions.length > 1) {
+                    html += `<div style="margin-top: 12px; padding: 12px; background: #e8f5e8; border-radius: 4px; text-align: center;">`;
+                    html += `<div style="font-weight: bold; margin-bottom: 4px;">${groupKey} Total</div>`;
+                    html += `<div style="font-weight: bold; font-size: 18px;">$${(group.totalBase + group.totalTips).toFixed(2)}</div>`;
+                    html += `</div>`;
+                }
+                html += `</div>`;
+            });
+            
+            html += `<div class="report-totals">`;
+            html += `<h3>Grand Totals</h3>`;
+            html += `<div class="report-totals-grid">`;
+            html += `<div class="report-total-item"><strong>${data.length}</strong><br>Sessions</div>`;
+            html += `<div class="report-total-item"><strong>${totalReadings}</strong><br>Readings</div>`;
+            html += `<div class="report-total-item"><strong>$${totalBase.toFixed(2)}</strong><br>Base Total</div>`;
+            html += `<div class="report-total-item"><strong>$${totalTips.toFixed(2)}</strong><br>Tips Total</div>`;
+            html += `</div>`;
+            html += `<div class="grand-total">`;
+            html += `<div>Grand Total</div>`;
+            html += `<div>$${(totalBase + totalTips).toFixed(2)}</div>`;
+            html += `</div></div>`;
+            
+            return html;
+        }
+        
+        function exportReportData() {
+            if (settings.get('haptic')) vibrate([50]);
+            
+            if (!reportData || reportData.length === 0) {
+                showSnackbar('No report data to export', 'error');
+                return;
+            }
+            
+            // Create detailed CSV with individual readings
+            const csvData = [];
+            csvData.push(['Date', 'Location', 'Day', 'Reading Time', 'Reading Price', 'Tip', 'Payment Method', 'Source', 'Total']);
+            
+            reportData.forEach(sessionData => {
+                const readings = sessionData.readings || [];
+                if (readings.length === 0) {
+                    // Session with no readings
+                    csvData.push([
+                        sessionData.session_date,
+                        sessionData.location,
+                        sessionData.selected_day,
+                        '',
+                        sessionData.reading_price || 0,
+                        0,
+                        '',
+                        '',
+                        0
+                    ]);
+                } else {
+                    readings.forEach(reading => {
+                        const readingTotal = (sessionData.reading_price || 0) + (reading.tip || 0);
+                        const readingDate = new Date(reading.timestamp).toLocaleDateString();
+                        const readingTime = new Date(reading.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        
+                        csvData.push([
+                            readingDate,
+                            sessionData.location,
+                            sessionData.selected_day,
+                            readingTime,
+                            sessionData.reading_price || 0,
+                            reading.tip || 0,
+                            reading.payment || '',
+                            reading.source || '',
+                            readingTotal.toFixed(2)
+                        ]);
+                    });
+                }
+            });
+            
+            const csvContent = csvData.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            const startDate = document.getElementById('startDate').value || 'report';
+            const endDate = document.getElementById('endDate').value || 'data';
+            a.download = `tarot-report-${startDate}-to-${endDate}.csv`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            showSnackbar('Report exported successfully', 'success');
+        }
+
         async function exportData() {
+            if (!session.user) {
+                showSnackbar('Select a user first', 'error');
+                return;
+            }
+            
             if (settings.get('haptic')) vibrate([50]);
             
             try {
                 const { data } = await supabase
                     .from('blacksheep_reading_tracker_sessions')
                     .select('*')
-                    .eq('user_name', session.user || 'all')
+                    .eq('user_name', session.user)
                     .order('session_date', { ascending: false });
                 
                 if (!data || data.length === 0) {
@@ -3358,38 +4078,7 @@
                    window.location.search.includes('dev=true');
         }
         
-        // Add test notification button (development only)
-        if (isDevelopmentMode()) {
-            const testBtn = document.createElement('button');
-            testBtn.textContent = 'Test Notification';
-            testBtn.style.cssText = 'position:fixed;bottom:10px;right:10px;z-index:9999;padding:8px;font-size:12px;background:#007bff;color:white;border:none;border-radius:4px;cursor:pointer;';
-            testBtn.onclick = sendTestNotification;
-            document.body.appendChild(testBtn);
-            
-            // Add permission status indicator
-            const permissionStatus = document.createElement('div');
-            permissionStatus.textContent = `Notifications: ${Notification.permission}`;
-            permissionStatus.style.cssText = 'position:fixed;bottom:50px;right:10px;background:#333;color:white;padding:4px 8px;font-size:10px;border-radius:3px;z-index:9999;';
-            document.body.appendChild(permissionStatus);
-            
-            // Add dev indicator
-            const devIndicator = document.createElement('div');
-            devIndicator.textContent = 'DEV';
-            devIndicator.style.cssText = 'position:fixed;top:5px;left:5px;background:#dc3545;color:white;padding:2px 6px;font-size:10px;border-radius:3px;z-index:9999;';
-            document.body.appendChild(devIndicator);
-            
-            // Add 30-second timer button
-            const timer30Btn = document.createElement('button');
-            timer30Btn.textContent = '30s Timer';
-            timer30Btn.style.cssText = 'position:fixed;bottom:80px;right:10px;z-index:9999;padding:8px;font-size:12px;background:#ffc107;color:black;border:none;border-radius:4px;cursor:pointer;';
-            timer30Btn.onclick = () => {
-                document.getElementById('timerInput').value = '0.5';
-                timerSeconds = 30;
-                totalSeconds = timerSeconds;
-                updateTimerDisplay();
-            };
-            document.body.appendChild(timer30Btn);
-        }
+
     </script>
 </body>
 </html>
