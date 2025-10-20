@@ -15,7 +15,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 ## Version Management
 - **CRITICAL**: Version number MUST be bumped on every code change
 - Version displayed in header bar for cache-busting
-- Current version: v3.58.0
+- Current version: v3.79.0
 
 ## Technical Requirements
 - **Pure web technologies**: HTML/CSS/JS only, no frameworks
@@ -206,6 +206,11 @@ Persistence:
 - Performance optimization: All console.log statements removed for production performance
 - Timer notifications: Configurable push notifications when timer expires (default: enabled)
 - Global timer access: Timer object available on window for settings integration
+- **Timezone Handling**: Avoid Date object conversion for display to prevent timezone shifts
+- **Report Date Ranges**: Use raw date strings directly instead of converting through Date objects
+- **Weekend Range Logic**: Proper Friday-Sunday calculation with correct day boundaries
+- **Date Normalization**: All YYYY-MM-DD dates converted to MM/DD/YYYY before Date object creation to avoid UTC/local timezone issues
+- **JavaScript Date Parsing**: YYYY-MM-DD format creates UTC dates, MM/DD/YYYY creates local dates - normalize to avoid timezone shifts
 
 ## Usage
 1. Set reading price (defaults to $40)
@@ -218,9 +223,13 @@ Persistence:
 ### Report Features
 - **Date Range Presets**: Today, This Weekend, This Month, YTD, 1 Year, Last Year, All Time, Custom
 - **Custom Date Inputs**: Only visible when "Custom" preset is selected
-- **Weekend Logic**: Shows current weekend or most recent past weekend
+- **Weekend Logic**: Shows current weekend or most recent past weekend (Friday-Sunday)
 - **Timestamp Filtering**: Uses actual reading timestamps, not session creation dates
 - **Migration Fix**: Uses actual session date from database, not today's date
+- **Date Range Fixes**: All presets set endDate to 23:59:59.999 to include full day's events
+- **Weekend Calculation**: Friday start of day (00:00:00) to Sunday end of day (23:59:59.999)
+- **Report Sorting**: Data displays in chronological ascending order
+- **Date Display**: Report headers use raw YYYY-MM-DD format to avoid timezone conversion issues
 
 ## Technical Implementation
 

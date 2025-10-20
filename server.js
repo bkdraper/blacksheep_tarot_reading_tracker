@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
 
 const PORT = 8080;
 
@@ -37,6 +38,8 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    const url = `http://localhost:${PORT}`;
+    console.log(`Server running at ${url}`);
     console.log(`Access from your phone using your computer's IP address: http://[YOUR_IP]:${PORT}`);
+    exec(`start ${url}`);
 });

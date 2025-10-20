@@ -4,6 +4,6 @@
   "description": "Simple server for tarot reading tracker",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "nodemon server.js"
   }
 }

@@ -141,7 +141,7 @@
             color: #666;
             z-index: 1;
         }
-        input[type="text"], select {
+        input[type="text"], input[type="date"], select {
             flex: 1;
             min-width: 0;
             padding: 8px;
@@ -1169,7 +1169,7 @@
     <header class="header">
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
-            <span class="version-badge">v3.58.0</span>
+            <span class="version-badge">v3.79.0</span>
             <button class="settings-btn" onclick="openSettingsDrawer()" title="Settings">⚙️</button>
         </div>
     </header>
@@ -1204,12 +1204,8 @@
                 </div>
 
                 <div class="input-group">
-                    <label>Day:</label>
-                    <div class="day-toggles">
-                        <button class="day-btn" onclick="toggleDay('fri')">Fri</button>
-                        <button class="day-btn" onclick="toggleDay('sat')">Sat</button>
-                        <button class="day-btn" onclick="toggleDay('sun')">Sun</button>
-                    </div>
+                    <label for="sessionDate">Event<br>Date:</label>
+                    <input type="date" id="sessionDate" placeholder="Select event date" onclick="this.showPicker()">
                 </div>
 
                 <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
@@ -1380,6 +1376,8 @@
                 <select id="groupBy" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                     <option value="location">Location</option>
                     <option value="date">Date</option>
+                    <option value="payment">Payment Method</option>
+                    <option value="source">Referral Source</option>
                 </select>
             </div>
             <div style="display: flex; gap: 10px;">
@@ -1540,6 +1538,18 @@
                     <div class="toggle-switch" id="peakTimeToggle" onclick="toggleSetting('peakTime')"></div>
                 </div>
             </div>
+
+            <!-- App Updates -->
+            <div class="settings-section">
+                <h3>App Updates</h3>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Check for Updates</div>
+                        <div class="setting-description">Manually check for new app versions</div>
+                    </div>
+                    <button class="settings-button" onclick="checkForUpdates()">Check</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1602,7 +1612,7 @@
                 this._sessionId = null;
                 this._user = '';
                 this._location = '';
-                this._selectedDay = null;
+                this._sessionDate = '';
                 this._price = 40;
                 this._readings = [];
                 this.saveTimeout = null;
@@ -1612,16 +1622,16 @@
             get sessionId() { return this._sessionId; }
             get user() { return this._user; }
             get location() { return this._location; }
-            get selectedDay() { return this._selectedDay; }
+            get sessionDate() { return this._sessionDate; }
             get price() { return this._price; }
             get readings() { return this._readings; }
 
             // Computed properties
             get canCreateSession() {
-                return this._user.trim() && this._location.trim() && this._selectedDay && this._price;
+                return this._user.trim() && this._location.trim() && this._sessionDate && this._price;
             }
             get hasValidSession() {
-                return this._sessionId && this._user.trim() && this._location.trim() && this._selectedDay;
+                return this._sessionId && this._user.trim() && this._location.trim() && this._sessionDate;
             }
             get sessionPhase() {
                 if (this.hasValidSession) return 'ACTIVE';
@@ -1648,12 +1658,12 @@
                 if (wasActiveSession && previousUser && previousUser !== value) {
                     this._sessionId = null;
                     this._location = '';
-                    this._selectedDay = null;
+                    this._sessionDate = '';
                     this._price = 40;
                     this._readings = [];
                     document.getElementById('location').value = '';
                     document.getElementById('price').value = '40';
-                    document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
+                    document.getElementById('sessionDate').value = '';
                     this.updateReadingsList();
                     this.updateTotals();
                     showSnackbar(`Switched to ${value}. Ready to create new session or load existing.`, 'success');
@@ -1668,11 +1678,9 @@
                 this.updateUI();
                 this.debouncedSave();
             }
-            set selectedDay(value) {
-                this._selectedDay = value;
-                document.querySelectorAll('.day-btn').forEach(btn => {
-                    btn.classList.toggle('active', btn.textContent.toLowerCase() === value);
-                });
+            set sessionDate(value) {
+                this._sessionDate = value;
+                document.getElementById('sessionDate').value = value;
                 this.updateUI();
                 this.debouncedSave();
             }
@@ -1713,12 +1721,12 @@
             startOver() {
                 this._sessionId = null;
                 this._location = '';
-                this._selectedDay = null;
+                this._sessionDate = '';
                 this._price = 40;
                 this._readings = [];
                 document.getElementById('location').value = '';
                 document.getElementById('price').value = '40';
-                document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
+                document.getElementById('sessionDate').value = '';
                 this.clearUserData();
                 this.updateUI();
             }
@@ -1737,7 +1745,7 @@
                 const newBtn = document.querySelector('.btn-new-session');
                 const loadBtn = document.querySelector('.btn-load-session');
                 const locationInput = document.getElementById('location');
-                const dayToggles = document.querySelector('.day-toggles');
+                const sessionDateInput = document.getElementById('sessionDate');
                 const requiredNote = document.getElementById('requiredFieldsNote');
                 
                 // Load Session button - disabled if no user
@@ -1793,16 +1801,16 @@
                         locationInput.classList.remove('required-field');
                     }
                     
-                    if (!this._selectedDay) {
-                        dayToggles.classList.add('required-group');
+                    if (!this._sessionDate) {
+                        sessionDateInput.classList.add('required-field');
                     } else {
-                        dayToggles.classList.remove('required-group');
+                        sessionDateInput.classList.remove('required-field');
                     }
                 } else {
                     const userBtn = document.getElementById('userBtn');
                     userBtn.classList.remove('required-field');
                     locationInput.classList.remove('required-field');
-                    dayToggles.classList.remove('required-group');
+                    sessionDateInput.classList.remove('required-field');
                 }
                 
                 // New Session button - only show when session is active
@@ -1932,7 +1940,7 @@
                     sessionId: this._sessionId,
                     user: this._user,
                     location: this._location,
-                    selectedDay: this._selectedDay,
+                    sessionDate: this._sessionDate,
                     price: this._price,
                     readings: this._readings
                 };
@@ -1945,7 +1953,7 @@
                             .update({
                                 user_name: this._user,
                                 location: this._location,
-                                selected_day: this._selectedDay,
+                                session_date: this._sessionDate,
                                 reading_price: this._price,
                                 readings: this._readings
                             })
@@ -1970,7 +1978,7 @@
                     const state = JSON.parse(saved);
                     this._sessionId = state.sessionId || null;
                     this._location = state.location || '';
-                    this._selectedDay = state.selectedDay || null;
+                    this._sessionDate = state.sessionDate || state.selectedDay || '';
                     this._price = state.price || 40;
                     this._readings = state.readings || [];
                     
@@ -1980,9 +1988,7 @@
                     userBtn.classList.toggle('selected', !!this._user);
                     document.getElementById('location').value = this._location;
                     document.getElementById('price').value = this._price;
-                    document.querySelectorAll('.day-btn').forEach(btn => {
-                        btn.classList.toggle('active', btn.textContent.toLowerCase() === this._selectedDay);
-                    });
+                    document.getElementById('sessionDate').value = this._sessionDate;
                     
                     // Update readings display and totals
                     this.updateReadingsList();
@@ -2360,6 +2366,18 @@
                     timerSelect.value = this.get('defaultTimer');
                 }
             }
+        }
+
+        // Date normalization utility
+        function normalizeDate(dateStr) {
+            if (!dateStr) return null;
+            // Convert YYYY-MM-DD or YY-MM-DD to MM/DD/YYYY
+            if (dateStr.match(/^\d{2,4}-\d{2}-\d{2}$/)) {
+                let [year, month, day] = dateStr.split('-');
+                if (year.length === 2) year = '20' + year;
+                return `${parseInt(month)}/${parseInt(day)}/${year}`;
+            }
+            return dateStr; // Already in MM/DD/YYYY or other format
         }
 
         // Initialize stores
@@ -2796,13 +2814,14 @@
                     sessionsList.innerHTML = data.map(sessionData => {
                         const readingCount = sessionData.readings ? sessionData.readings.length : 0;
                         const date = new Date(sessionData.session_date).toLocaleDateString();
+                        const dayOfWeek = new Date(sessionData.session_date).toLocaleDateString('en-US', { weekday: 'short' });
                         const baseTotal = readingCount * (sessionData.reading_price || 0);
                         const tipsTotal = sessionData.readings ? sessionData.readings.reduce((sum, reading) => sum + (reading.tip || 0), 0) : 0;
                         const grandTotal = baseTotal + tipsTotal;
                         return `
                             <div class="session-item" onclick="selectSession('${sessionData.id}')">
-                                <div class="session-info">${sessionData.location || 'No location'} - ${sessionData.selected_day || 'No day'}</div>
-                                <div class="session-details">${date} • ${readingCount} readings • $${grandTotal.toFixed(2)}</div>
+                                <div class="session-info">${sessionData.location || 'No location'} - ${dayOfWeek} ${date}</div>
+                                <div class="session-details">${readingCount} readings • $${grandTotal.toFixed(2)}</div>
                             </div>
                         `;
                     }).join('');
@@ -2855,16 +2874,16 @@
             session.sessionId = sessionData.id;
             session.user = sessionData.user_name || '';
             session.location = sessionData.location || '';
-            session.selectedDay = sessionData.selected_day;
+            session.sessionDate = sessionData.session_date || '';
             session.price = sessionData.reading_price || 40;
             session.readings = sessionData.readings || [];
             collapseSettings();
-            showSnackbar(`Loaded session: ${sessionData.location} - ${sessionData.selected_day}`);
+            showSnackbar(`Loaded session: ${sessionData.location} on ${sessionData.session_date}`);
         }
 
         async function createSession() {
             if (!session.canCreateSession) {
-                showSnackbar('User, location and day are required', 'error');
+                showSnackbar('User, location and date are required', 'error');
                 return;
             }
             
@@ -2879,26 +2898,25 @@
                 const { data } = await supabase
                     .from('blacksheep_reading_tracker_sessions')
                     .select('*')
-                    .eq('session_date', today)
+                    .eq('session_date', session.sessionDate)
                     .eq('user_name', session.user)
                     .eq('location', session.location)
-                    .eq('selected_day', session.selectedDay)
                     .limit(1);
                 
                 if (data && data[0]) {
                     btn.textContent = originalText;
                     btn.classList.remove('loading');
-                    const message = `${session.location} - ${session.selectedDay} already exists. Load existing session?`;
+                    const message = `${session.location} on ${session.sessionDate} already exists. Load existing session?`;
                     if (confirm(message)) {
                         session.sessionId = data[0].id;
                         session.readings = data[0].readings || [];
                         if (data[0].reading_price) session.price = data[0].reading_price;
                         collapseSettings();
-                        showSnackbar(`Loaded existing session: ${session.location} - ${session.selectedDay}`);
+                        showSnackbar(`Loaded existing session: ${session.location} on ${session.sessionDate}`);
                     } else {
                         session.location = '';
-                        session.selectedDay = null;
-                        showSnackbar('Location and day must be unique', 'error');
+                        session.sessionDate = '';
+                        showSnackbar('Location and date must be unique', 'error');
                     }
                     return;
                 }
@@ -2906,10 +2924,9 @@
                 const { data: newData } = await supabase
                     .from('blacksheep_reading_tracker_sessions')
                     .insert([{
-                        session_date: today,
+                        session_date: session.sessionDate,
                         user_name: session.user,
                         location: session.location,
-                        selected_day: session.selectedDay,
                         reading_price: session.price,
                         readings: session.readings
                     }])
@@ -3071,10 +3088,7 @@
         }
 
 
-        function toggleDay(day) {
-            vibrate([50]);
-            session.selectedDay = day;
-        }
+
 
         function collapseSettings() {
             const content = document.getElementById('settingsContent');
@@ -3214,6 +3228,31 @@
             }
         }
 
+        function checkForUpdates() {
+            if (settings.get('haptic')) vibrate([50]);
+            
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration().then(registration => {
+                    if (registration) {
+                        showSnackbar('Checking for updates...', 'info');
+                        registration.update().then(() => {
+                            setTimeout(() => {
+                                showSnackbar('No updates available', 'success');
+                            }, 1000);
+                        }).catch(() => {
+                            showSnackbar('Update check failed', 'error');
+                        });
+                    } else {
+                        showSnackbar('Service worker not available', 'error');
+                    }
+                }).catch(() => {
+                    showSnackbar('Update check failed', 'error');
+                });
+            } else {
+                showSnackbar('Updates not supported', 'error');
+            }
+        }
+
         function startAlarm() {
             playAlarmSequence();
             alarmInterval = setInterval(() => {
@@ -3332,12 +3371,8 @@
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake lock acquired');
-                } else {
-                    console.log('Wake lock not supported');
                 }
             } catch (err) {
-                console.log('Wake lock failed:', err);
             }
             
             // Always use audio fallback as additional insurance
@@ -3353,9 +3388,7 @@
                 gainNode.connect(audioContext.destination);
                 gainNode.gain.setValueAtTime(0.001, audioContext.currentTime); // Very quiet but not silent
                 silentAudio.start();
-                console.log('Silent audio started');
             } catch (audioErr) {
-                console.log('Silent audio failed:', audioErr);
             }
         }
 
@@ -3363,12 +3396,10 @@
             if (wakeLock) {
                 wakeLock.release();
                 wakeLock = null;
-                console.log('Wake lock released');
             }
             if (silentAudio) {
                 silentAudio.stop();
                 silentAudio = null;
-                console.log('Silent audio stopped');
             }
             if (keepAwakeInterval) {
                 clearInterval(keepAwakeInterval);
@@ -3450,7 +3481,7 @@
             
             // Check if switching users during active session
             if (session.hasValidSession && session.user && session.user !== userName) {
-                const message = `Switching users will unload the current session (${session.location} - ${session.selectedDay}). Continue?`;
+                const message = `Switching users will unload the current session (${session.location} on ${session.sessionDate}). Continue?`;
                 if (!confirm(message)) {
                     return;
                 }
@@ -3475,6 +3506,10 @@
             session.location = this.value;
         });
         
+        document.getElementById('sessionDate').addEventListener('input', function() {
+            session.sessionDate = this.value;
+        });
+        
         function addNewUser() {
             vibrate([50]);
             const userName = prompt('Enter new user name:');
@@ -3488,7 +3523,7 @@
         function handleCreateSession() {
             const createBtn = document.querySelector('.btn-create-session');
             if (createBtn.classList.contains('inactive')) {
-                showSnackbar('User, location and day are required', 'error');
+                showSnackbar('User, location and date are required', 'error');
                 vibrate([50]);
             } else {
                 createSession();
@@ -3686,12 +3721,15 @@
             
             switch (preset) {
                 case 'today':
-                    startDate = endDate = today;
+                    startDate = new Date(today);
+                    endDate = new Date(today);
+                    endDate.setHours(23, 59, 59, 999);
                     break;
                 case 'weekend':
                     // Find most recent weekend (Friday to Sunday)
                     const dayOfWeek = today.getDay();
-                    const friday = new Date(today);
+                    console.log('Today:', today, 'Day of week:', dayOfWeek);
+                    let friday = new Date(today);
                     if (dayOfWeek === 0) { // Sunday - current weekend
                         friday.setDate(today.getDate() - 2); // Go back to Friday
                     } else if (dayOfWeek === 6) { // Saturday - current weekend
@@ -3699,33 +3737,46 @@
                     } else if (dayOfWeek === 5) { // Friday - current weekend
                         // Friday stays as is
                     } else { // Mon-Thu, get previous weekend
-                        friday.setDate(today.getDate() - (dayOfWeek + 2)); // Go back to previous Friday
+                        const daysToSubtract = dayOfWeek + 2; // Mon=3, Tue=4, Wed=5, Thu=6
+                        friday.setDate(today.getDate() - daysToSubtract);
                     }
+                    friday.setHours(0, 0, 0, 0); // Set to start of Friday
+                    console.log('Friday:', friday);
                     const sunday = new Date(friday);
-                    sunday.setDate(friday.getDate() + 2);
+                    sunday.setDate(friday.getDate() + 2); // Friday + 2 = Sunday
+                    sunday.setHours(23, 59, 59, 999);
+                    console.log('Sunday:', sunday);
+                    // Subtract 1 day to account for timezone shift when converting to YYYY-MM-DD
+                    const endDateAdjusted = new Date(sunday);
+                    endDateAdjusted.setDate(sunday.getDate() - 1);
                     startDate = friday;
-                    endDate = sunday;
+                    endDate = endDateAdjusted;
                     break;
                 case 'month':
                     startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                    endDate = today;
+                    endDate = new Date(today);
+                    endDate.setHours(23, 59, 59, 999);
                     break;
                 case 'ytd':
                     startDate = new Date(today.getFullYear(), 0, 1);
-                    endDate = today;
+                    endDate = new Date(today);
+                    endDate.setHours(23, 59, 59, 999);
                     break;
                 case 'year':
                     startDate = new Date(today);
                     startDate.setFullYear(today.getFullYear() - 1);
-                    endDate = today;
+                    endDate = new Date(today);
+                    endDate.setHours(23, 59, 59, 999);
                     break;
                 case 'lastYear':
                     startDate = new Date(today.getFullYear() - 1, 0, 1);
                     endDate = new Date(today.getFullYear() - 1, 11, 31);
+                    endDate.setHours(23, 59, 59, 999);
                     break;
                 case 'all':
                     startDate = new Date('2020-01-01');
-                    endDate = today;
+                    endDate = new Date(today);
+                    endDate.setHours(23, 59, 59, 999);
                     break;
                 case 'custom':
                 default:
@@ -3734,6 +3785,7 @@
             
             document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
             document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+            console.log('setDateRange endDate:', endDate.toISOString().split('T')[0]);
         }
         
         async function generateReport() {
@@ -3741,7 +3793,9 @@
             
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
+            console.log('generateReport endDate:', endDate);
             const groupBy = document.getElementById('groupBy').value;
+            const activePreset = document.querySelector('.report-preset-btn.active')?.textContent?.toLowerCase() || 'custom';
             
             if (!startDate || !endDate) {
                 showSnackbar('Please select start and end dates', 'error');
@@ -3749,7 +3803,7 @@
             }
             
             try {
-                // Get all sessions, then filter by reading dates
+                // Get all sessions, then filter by session_date
                 const { data } = await supabase
                     .from('blacksheep_reading_tracker_sessions')
                     .select('*')
@@ -3761,19 +3815,17 @@
                     return;
                 }
                 
-                // Filter by reading dates (sessions with no readings are excluded)
-                const startDateTime = new Date(startDate);
-                const endDateTime = new Date(endDate);
+                // Filter by session_date (sessions with no readings are excluded)
+                const startDateTime = new Date(normalizeDate(startDate));
+                const endDateTime = new Date(normalizeDate(endDate));
                 endDateTime.setHours(23, 59, 59, 999);
                 
                 const filteredData = data.filter(sessionData => {
                     const readings = sessionData.readings || [];
                     if (readings.length === 0) return false; // Exclude empty sessions
                     
-                    return readings.some(reading => {
-                        const readingDate = new Date(reading.timestamp);
-                        return readingDate >= startDateTime && readingDate <= endDateTime;
-                    });
+                    const sessionDateTime = new Date(normalizeDate(sessionData.session_date));
+                    return sessionDateTime >= startDateTime && sessionDateTime <= endDateTime;
                 });
                 
                 if (filteredData.length === 0) {
@@ -3806,75 +3858,134 @@
             // Group data
             data.forEach(sessionData => {
                 const readings = sessionData.readings || [];
-                const readingCount = readings.length;
                 
-                const baseTotal = readingCount * (sessionData.reading_price || 0);
-                const tipsTotal = readings.reduce((sum, r) => sum + (r.tip || 0), 0);
-                
-                let groupKey;
-                if (groupBy === 'location') {
-                    groupKey = sessionData.location;
+                if (groupBy === 'payment' || groupBy === 'source') {
+                    // Group by individual readings
+                    readings.forEach(reading => {
+                        const baseTotal = sessionData.reading_price || 0;
+                        const tipsTotal = reading.tip || 0;
+                        
+                        let groupKey;
+                        if (groupBy === 'payment') {
+                            groupKey = reading.payment || 'No Payment Method';
+                        } else {
+                            groupKey = reading.source || 'No Source';
+                        }
+                        
+                        if (!groups[groupKey]) {
+                            groups[groupKey] = {
+                                totalReadings: 0,
+                                totalBase: 0,
+                                totalTips: 0
+                            };
+                        }
+                        
+                        groups[groupKey].totalReadings += 1;
+                        groups[groupKey].totalBase += baseTotal;
+                        groups[groupKey].totalTips += tipsTotal;
+                        
+                        totalReadings += 1;
+                        totalBase += baseTotal;
+                        totalTips += tipsTotal;
+                    });
                 } else {
-                    // Use first reading date as event date
-                    groupKey = new Date(readings[0].timestamp).toLocaleDateString();
+                    // Group by sessions
+                    const readingCount = readings.length;
+                    const baseTotal = readingCount * (sessionData.reading_price || 0);
+                    const tipsTotal = readings.reduce((sum, r) => sum + (r.tip || 0), 0);
+                    
+                    let groupKey;
+                    if (groupBy === 'location') {
+                        groupKey = sessionData.location;
+                    } else {
+                        // Use session date as event date
+                        groupKey = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString();
+                    }
+                    
+                    if (!groups[groupKey]) {
+                        groups[groupKey] = {
+                            sessions: [],
+                            totalReadings: 0,
+                            totalBase: 0,
+                            totalTips: 0
+                        };
+                    }
+                    
+                    groups[groupKey].sessions.push(sessionData);
+                    groups[groupKey].totalReadings += readingCount;
+                    groups[groupKey].totalBase += baseTotal;
+                    groups[groupKey].totalTips += tipsTotal;
+                    
+                    totalReadings += readingCount;
+                    totalBase += baseTotal;
+                    totalTips += tipsTotal;
                 }
-                
-                if (!groups[groupKey]) {
-                    groups[groupKey] = {
-                        sessions: [],
-                        totalReadings: 0,
-                        totalBase: 0,
-                        totalTips: 0
-                    };
-                }
-                
-                groups[groupKey].sessions.push(sessionData);
-                groups[groupKey].totalReadings += readingCount;
-                groups[groupKey].totalBase += baseTotal;
-                groups[groupKey].totalTips += tipsTotal;
-                
-                totalReadings += readingCount;
-                totalBase += baseTotal;
-                totalTips += tipsTotal;
             });
             
             // Generate HTML
             let html = `<div style="margin-bottom: 20px;">`;
-            html += `<h3>Report: ${new Date(startDate).toLocaleDateString()} to ${new Date(endDate).toLocaleDateString()}</h3>`;
-            html += `<p>Grouped by: ${groupBy === 'location' ? 'Location' : 'Date'}</p>`;
+            const [startYear, startMonth, startDay] = startDate.split('-');
+            const [endYear, endMonth, endDay] = endDate.split('-');
+            const formattedStartDate = `${parseInt(startMonth)}/${parseInt(startDay)}/${startYear}`;
+            const formattedEndDate = `${parseInt(endMonth)}/${parseInt(endDay)}/${endYear}`;
+            html += `<h3>Report: ${formattedStartDate} to ${formattedEndDate}</h3>`;
+            const groupLabels = { location: 'Location', date: 'Date', payment: 'Payment Method', source: 'Referral Source' };
+            html += `<p>Grouped by: ${groupLabels[groupBy]}</p>`;
             html += `</div>`;
             
-            Object.keys(groups).forEach(groupKey => {
+            // Sort group keys by date for date grouping
+            const sortedGroupKeys = groupBy === 'date' 
+                ? Object.keys(groups).sort((a, b) => new Date(a) - new Date(b))
+                : Object.keys(groups);
+            
+            sortedGroupKeys.forEach(groupKey => {
                 const group = groups[groupKey];
                 html += `<div class="report-group">`;
                 html += `<div class="report-group-header">${groupKey}</div>`;
                 
-                // Show individual sessions
-                group.sessions.forEach(sessionData => {
-                    const readings = sessionData.readings || [];
-                    const readingCount = readings.length;
-                    const baseTotal = readingCount * (sessionData.reading_price || 0);
-                    const tipsTotal = readings.reduce((sum, r) => sum + (r.tip || 0), 0);
-                    const sessionTotal = baseTotal + tipsTotal;
-                    
-                    const eventDate = new Date(readings[0].timestamp).toLocaleDateString();
-                    
+                if (groupBy === 'payment' || groupBy === 'source') {
+                    // Show summary for payment/source grouping
                     html += `<div class="report-session">`;
-                    html += `<div class="report-session-header">${eventDate} - ${sessionData.selected_day}</div>`;
                     html += `<div class="report-stats">`;
-                    html += `<div class="report-stat"><span>Readings:</span><span>${readingCount}</span></div>`;
-                    html += `<div class="report-stat"><span>Base:</span><span>$${baseTotal.toFixed(2)}</span></div>`;
-                    html += `<div class="report-stat"><span>Tips:</span><span>$${tipsTotal.toFixed(2)}</span></div>`;
-                    html += `<div class="report-stat"><span><strong>Total:</strong></span><span><strong>$${sessionTotal.toFixed(2)}</strong></span></div>`;
+                    html += `<div class="report-stat"><span>Readings:</span><span>${group.totalReadings}</span></div>`;
+                    html += `<div class="report-stat"><span>Base:</span><span>$${group.totalBase.toFixed(2)}</span></div>`;
+                    html += `<div class="report-stat"><span>Tips:</span><span>$${group.totalTips.toFixed(2)}</span></div>`;
+                    html += `<div class="report-stat"><span><strong>Total:</strong></span><span><strong>$${(group.totalBase + group.totalTips).toFixed(2)}</strong></span></div>`;
                     html += `</div></div>`;
-                });
-                
-                // Group totals
-                if (group.sessions.length > 1) {
-                    html += `<div style="margin-top: 12px; padding: 12px; background: #e8f5e8; border-radius: 4px; text-align: center;">`;
-                    html += `<div style="font-weight: bold; margin-bottom: 4px;">${groupKey} Total</div>`;
-                    html += `<div style="font-weight: bold; font-size: 18px;">$${(group.totalBase + group.totalTips).toFixed(2)}</div>`;
-                    html += `</div>`;
+                } else {
+                    // Show individual sessions for location/date grouping (sorted by date)
+                    const sortedSessions = group.sessions.sort((a, b) => {
+                        const dateA = new Date(normalizeDate(a.session_date));
+                        const dateB = new Date(normalizeDate(b.session_date));
+                        return dateA - dateB;
+                    });
+                    
+                    sortedSessions.forEach(sessionData => {
+                        const readings = sessionData.readings || [];
+                        const readingCount = readings.length;
+                        const baseTotal = readingCount * (sessionData.reading_price || 0);
+                        const tipsTotal = readings.reduce((sum, r) => sum + (r.tip || 0), 0);
+                        const sessionTotal = baseTotal + tipsTotal;
+                        
+                        const eventDate = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString();
+                        
+                        html += `<div class="report-session">`;
+                        html += `<div class="report-session-header">${eventDate}</div>`;
+                        html += `<div class="report-stats">`;
+                        html += `<div class="report-stat"><span>Readings:</span><span>${readingCount}</span></div>`;
+                        html += `<div class="report-stat"><span>Base:</span><span>$${baseTotal.toFixed(2)}</span></div>`;
+                        html += `<div class="report-stat"><span>Tips:</span><span>$${tipsTotal.toFixed(2)}</span></div>`;
+                        html += `<div class="report-stat"><span><strong>Total:</strong></span><span><strong>$${sessionTotal.toFixed(2)}</strong></span></div>`;
+                        html += `</div></div>`;
+                    });
+                    
+                    // Group totals for location/date grouping
+                    if (group.sessions && group.sessions.length > 1) {
+                        html += `<div style="margin-top: 12px; padding: 12px; background: #e8f5e8; border-radius: 4px; text-align: center;">`;
+                        html += `<div style="font-weight: bold; margin-bottom: 4px;">${groupKey} Total</div>`;
+                        html += `<div style="font-weight: bold; font-size: 18px;">$${(group.totalBase + group.totalTips).toFixed(2)}</div>`;
+                        html += `</div>`;
+                    }
                 }
                 html += `</div>`;
             });
@@ -3882,7 +3993,11 @@
             html += `<div class="report-totals">`;
             html += `<h3>Grand Totals</h3>`;
             html += `<div class="report-totals-grid">`;
-            html += `<div class="report-total-item"><strong>${data.length}</strong><br>Sessions</div>`;
+            if (groupBy === 'payment' || groupBy === 'source') {
+                html += `<div class="report-total-item"><strong>${Object.keys(groups).length}</strong><br>${groupBy === 'payment' ? 'Payment Methods' : 'Sources'}</div>`;
+            } else {
+                html += `<div class="report-total-item"><strong>${data.length}</strong><br>Sessions</div>`;
+            }
             html += `<div class="report-total-item"><strong>${totalReadings}</strong><br>Readings</div>`;
             html += `<div class="report-total-item"><strong>$${totalBase.toFixed(2)}</strong><br>Base Total</div>`;
             html += `<div class="report-total-item"><strong>$${totalTips.toFixed(2)}</strong><br>Tips Total</div>`;
@@ -3914,7 +4029,7 @@
                     csvData.push([
                         sessionData.session_date,
                         sessionData.location,
-                        sessionData.selected_day,
+                        sessionData.session_date,
                         '',
                         sessionData.reading_price || 0,
                         0,
@@ -3931,7 +4046,7 @@
                         csvData.push([
                             readingDate,
                             sessionData.location,
-                            sessionData.selected_day,
+                            sessionData.session_date,
                             readingTime,
                             sessionData.reading_price || 0,
                             reading.tip || 0,
@@ -3992,7 +4107,7 @@
                         sessionData.session_date,
                         sessionData.user_name,
                         sessionData.location,
-                        sessionData.selected_day,
+                        sessionData.session_date,
                         sessionData.reading_price,
                         readingCount,
                         baseTotal.toFixed(2),
@@ -4025,8 +4140,8 @@
             if (saved) {
                 const state = JSON.parse(saved);
                 const location = state.location || 'Unknown location';
-                const day = state.selectedDay || 'Unknown day';
-                const message = `I have saved data from ${location} - ${day}. Would you like to load that data? (OK) or start a new session? (Cancel)`;
+                const date = state.sessionDate || state.selectedDay || 'Unknown date';
+                const message = `I have saved data from ${location} on ${date}. Would you like to load that data? (OK) or start a new session? (Cancel)`;
                 if (confirm(message)) {
                     session.loadFromStorage();
                 } else {
