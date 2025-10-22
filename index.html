@@ -396,29 +396,42 @@
         .reading-item { 
             display: flex; 
             align-items: flex-start; 
-            gap: 10px;
+            gap: 15px;
             padding: 15px 0; 
             border-bottom: 2px solid #ddd; 
             min-height: 50px;
-            flex-direction: column;
         }
         .reading-item:last-child { 
             border-bottom: none; 
         }
-        .reading-row {
+        .reading-left {
             display: flex;
             align-items: center;
             gap: 10px;
-            width: 100%;
+            min-width: 120px;
         }
-        .reading-item:last-child { border-bottom: none; }
-        .index { font-size: 14px; color: #999; font-weight: bold; min-width: 25px; }
-        .timestamp { font-size: 15px; color: #666; flex: 1; }
+        .reading-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .reading-field {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .field-label {
+            font-size: 12px;
+            color: #666;
+            min-width: 45px;
+            font-weight: 500;
+        }
+        .index { font-size: 14px; color: #999; font-weight: bold; }
+        .timestamp { font-size: 15px; color: #666; }
         .tip-input { 
-            width: 70px !important; 
-            max-width: 70px !important;
-            min-width: 70px !important;
-            padding: 12px 6px !important; 
+            width: 80px !important; 
+            padding: 8px 6px 8px 25px !important; 
             font-size: 14px !important; 
             border: 2px solid #ccc !important; 
             background-color: white !important;
@@ -427,7 +440,49 @@
             -webkit-appearance: none !important;
             appearance: none !important;
             box-sizing: border-box !important;
-            min-height: 44px !important;
+            min-height: 36px !important;
+        }
+        .price-input {
+            width: 80px !important;
+            padding: 8px 6px 8px 25px !important;
+            font-size: 14px !important;
+            border: 2px solid #ccc !important;
+            background-color: white !important;
+            border-radius: 6px !important;
+            text-align: center !important;
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            box-sizing: border-box !important;
+            min-height: 36px !important;
+        }
+        .field-input-container {
+            position: relative;
+            flex: 1;
+        }
+        .field-input-container .dollar-sign {
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: #999;
+            z-index: 1;
+        }
+        .field-button {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 12px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            min-height: 36px;
+            touch-action: manipulation;
+        }
+        .field-button.selected {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
         }
         .delete-btn {
             background: #dc3545 !important;
@@ -1169,7 +1224,7 @@
     <header class="header">
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
-            <span class="version-badge">v3.79.0</span>
+            <span class="version-badge">v3.93.0</span>
             <button class="settings-btn" onclick="openSettingsDrawer()" title="Settings">⚙️</button>
         </div>
     </header>
@@ -1616,6 +1671,7 @@
                 this._price = 40;
                 this._readings = [];
                 this.saveTimeout = null;
+                this._loading = false;
             }
 
             // Getters
@@ -1844,26 +1900,48 @@
                     const displayTime = this.formatTimestamp(reading.timestamp);
                     return `
                     <div class="reading-item" data-index="${index}">
-                        <div class="reading-row">
-                            <span class="index">${index + 1}.</span>
-                            <span class="timestamp">${displayTime}</span>
-                            <div style="border-left: 2px solid #ddd; padding-left: 10px; margin-left: 10px;">
-                                <button class="delete-btn" onclick="deleteReading(${index})">×</button>
+                        <div class="reading-left">
+                            <button class="delete-btn" onclick="deleteReading(${index})">×</button>
+                            <div style="border-left: 2px solid #ddd; padding-left: 10px;">
+                                <span class="index">${index + 1}.</span>
+                                <span class="timestamp">${displayTime}</span>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 8px; margin-top: 8px;">
-                            <input type="number" class="tip-input" placeholder="Tip" 
-                                   value="${reading.tip || ''}" step="0.01" min="0" inputmode="decimal"
-                                   onchange="session.updateReading(${index}, 'tip', parseFloat(this.value) || 0)"
-                                   onkeydown="if(event.key==='Enter') this.blur()">
-                            <button class="payment-method-btn ${reading.payment ? 'selected' : ''}" 
-                                    onclick="openPaymentSheet(${index})">
-                                ${reading.payment || 'Payment Method'}
-                            </button>
-                            <button class="source-btn ${reading.source ? 'selected' : ''}" 
-                                    onclick="openSourceSheet(${index})">
-                                ${reading.source || 'Source'}
-                            </button>
+                        <div class="reading-right">
+                            <div class="reading-field">
+                                <span class="field-label">Price:</span>
+                                <div class="field-input-container">
+                                    <span class="dollar-sign">$</span>
+                                    <input type="number" class="price-input" placeholder="${this._price}" 
+                                           value="${reading.price || ''}" step="0.01" min="0" inputmode="decimal"
+                                           onchange="session.updateReading(${index}, 'price', parseFloat(this.value) || null)"
+                                           onkeydown="if(event.key==='Enter') this.blur()">
+                                </div>
+                            </div>
+                            <div class="reading-field">
+                                <span class="field-label">Tip:</span>
+                                <div class="field-input-container">
+                                    <span class="dollar-sign">$</span>
+                                    <input type="number" class="tip-input" placeholder="0" 
+                                           value="${reading.tip || ''}" step="0.01" min="0" inputmode="decimal"
+                                           onchange="session.updateReading(${index}, 'tip', parseFloat(this.value) || 0)"
+                                           onkeydown="if(event.key==='Enter') this.blur()">
+                                </div>
+                            </div>
+                            <div class="reading-field">
+                                <span class="field-label">Pay:</span>
+                                <button class="field-button ${reading.payment ? 'selected' : ''}" 
+                                        onclick="openPaymentSheet(${index})">
+                                    ${reading.payment || 'Method'}
+                                </button>
+                            </div>
+                            <div class="reading-field">
+                                <span class="field-label">From:</span>
+                                <button class="field-button ${reading.source ? 'selected' : ''}" 
+                                        onclick="openSourceSheet(${index})">
+                                    ${reading.source || 'Source'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `}).join('');
@@ -1923,7 +2001,7 @@
 
             updateTotals() {
                 const count = this._readings.length;
-                const baseTotal = count * this._price;
+                const baseTotal = this._readings.reduce((sum, reading) => sum + (reading.price || this._price), 0);
                 const tipsTotal = this._readings.reduce((sum, reading) => sum + (reading.tip || 0), 0);
                 const grandTotal = baseTotal + tipsTotal;
 
@@ -1934,7 +2012,7 @@
             }
 
             async save() {
-                if (!this._user) return; // Don't save without user
+                if (!this._user || this._loading) return; // Don't save without user or during loading
                 
                 const state = {
                     sessionId: this._sessionId,
@@ -1948,17 +2026,32 @@
 
                 if (this._sessionId) {
                     try {
+                        const updateData = {
+                            user_name: this._user,
+                            location: this._location,
+                            reading_price: this._price,
+                            readings: this._readings
+                        };
+                        
+                        // Only include session_date if it's not empty
+                        if (this._sessionDate && this._sessionDate.trim()) {
+                            updateData.session_date = this._sessionDate;
+                        }
+                        
                         await supabase
                             .from('blacksheep_reading_tracker_sessions')
-                            .update({
-                                user_name: this._user,
-                                location: this._location,
-                                session_date: this._sessionDate,
-                                reading_price: this._price,
-                                readings: this._readings
-                            })
+                            .update(updateData)
                             .eq('id', this._sessionId);
                     } catch (error) {
+                        console.error('Supabase update error:', error);
+                        console.error('Error details:', error.details, error.hint, error.code);
+                        console.error('Data being sent:', {
+                            user_name: this._user,
+                            location: this._location,
+                            session_date: this._sessionDate,
+                            reading_price: this._price,
+                            readings: this._readings
+                        });
                         // Register for background sync on network failure
                         registerBackgroundSync();
                     }
@@ -2586,7 +2679,10 @@
                 
                 if (totalReadings < 20) return;
                 
-                const peakHour = Object.keys(timeSlots).reduce((peak, hour) => 
+                const timeSlotKeys = Object.keys(timeSlots);
+                if (timeSlotKeys.length === 0) return;
+                
+                const peakHour = timeSlotKeys.reduce((peak, hour) => 
                     timeSlots[hour] > (timeSlots[peak] || 0) ? hour : peak
                 );
                 
@@ -2815,7 +2911,7 @@
                         const readingCount = sessionData.readings ? sessionData.readings.length : 0;
                         const date = new Date(sessionData.session_date).toLocaleDateString();
                         const dayOfWeek = new Date(sessionData.session_date).toLocaleDateString('en-US', { weekday: 'short' });
-                        const baseTotal = readingCount * (sessionData.reading_price || 0);
+                        const baseTotal = sessionData.readings ? sessionData.readings.reduce((sum, r) => sum + (r.price || sessionData.reading_price || 0), 0) : 0;
                         const tipsTotal = sessionData.readings ? sessionData.readings.reduce((sum, reading) => sum + (reading.tip || 0), 0) : 0;
                         const grandTotal = baseTotal + tipsTotal;
                         return `
@@ -2871,12 +2967,15 @@
         }
 
         async function loadExistingSession(sessionData) {
+            console.log('Loading session data:', sessionData);
+            session._loading = true;
             session.sessionId = sessionData.id;
             session.user = sessionData.user_name || '';
             session.location = sessionData.location || '';
             session.sessionDate = sessionData.session_date || '';
             session.price = sessionData.reading_price || 40;
             session.readings = sessionData.readings || [];
+            session._loading = false;
             collapseSettings();
             showSnackbar(`Loaded session: ${sessionData.location} on ${sessionData.session_date}`);
         }
@@ -2963,13 +3062,12 @@
             vibrate([50]);
             const now = new Date();
             const timestamp = now.toISOString();
-            session.addReading({ timestamp, tip: 0 });
+            session.addReading({ timestamp, tip: 0, price: session.price });
             
             // Trigger background backup after adding reading
             handleBackgroundBackup();
             
-            // Check for analytics notifications after adding reading
-            setTimeout(() => analyticsNotifier.checkAndSendNotifications(), 2000);
+            // Skip analytics notifications during active session
         }
 
         function removeReading() {
@@ -3081,7 +3179,8 @@
         function deleteReading(index) {
             vibrate([50]);
             const reading = session.readings[index];
-            if (confirm(`Delete the ${reading.timestamp} reading?`)) {
+            const displayTime = session.formatTimestamp(reading.timestamp);
+            if (confirm(`Delete the ${displayTime} reading?`)) {
                 vibrate([100, 50, 100]);
                 session.removeReading(index);
             }
@@ -3862,7 +3961,7 @@
                 if (groupBy === 'payment' || groupBy === 'source') {
                     // Group by individual readings
                     readings.forEach(reading => {
-                        const baseTotal = sessionData.reading_price || 0;
+                        const baseTotal = reading.price || sessionData.reading_price || 0;
                         const tipsTotal = reading.tip || 0;
                         
                         let groupKey;
@@ -3891,7 +3990,7 @@
                 } else {
                     // Group by sessions
                     const readingCount = readings.length;
-                    const baseTotal = readingCount * (sessionData.reading_price || 0);
+                    const baseTotal = readings.reduce((sum, r) => sum + (r.price || sessionData.reading_price || 0), 0);
                     const tipsTotal = readings.reduce((sum, r) => sum + (r.tip || 0), 0);
                     
                     let groupKey;
@@ -3963,7 +4062,7 @@
                     sortedSessions.forEach(sessionData => {
                         const readings = sessionData.readings || [];
                         const readingCount = readings.length;
-                        const baseTotal = readingCount * (sessionData.reading_price || 0);
+                        const baseTotal = readings.reduce((sum, r) => sum + (r.price || sessionData.reading_price || 0), 0);
                         const tipsTotal = readings.reduce((sum, r) => sum + (r.tip || 0), 0);
                         const sessionTotal = baseTotal + tipsTotal;
                         
@@ -4039,7 +4138,7 @@
                     ]);
                 } else {
                     readings.forEach(reading => {
-                        const readingTotal = (sessionData.reading_price || 0) + (reading.tip || 0);
+                        const readingTotal = (reading.price || sessionData.reading_price || 0) + (reading.tip || 0);
                         const readingDate = new Date(reading.timestamp).toLocaleDateString();
                         const readingTime = new Date(reading.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                         

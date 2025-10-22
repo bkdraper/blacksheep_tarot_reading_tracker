@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tarot-tracker-v5';
+const CACHE_NAME = 'tarot-tracker-v6';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -31,6 +31,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - network first, fallback to cache
 self.addEventListener('fetch', (event) => {
+  // Skip service worker for Supabase API calls
+  if (event.request.url.includes('supabase.co')) {
+    return;
+  }
+  
   event.respondWith(
     fetch(event.request)
       .catch(() => {

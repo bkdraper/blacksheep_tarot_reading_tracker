@@ -15,7 +15,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 ## Version Management
 - **CRITICAL**: Version number MUST be bumped on every code change
 - Version displayed in header bar for cache-busting
-- Current version: v3.79.0
+- Current version: v3.93.0
 
 ## Technical Requirements
 - **Pure web technologies**: HTML/CSS/JS only, no frameworks
@@ -92,15 +92,17 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 5. **Start Over**: Atomic macro-action to reset all state
 
 ### Core Functionality
-1. **Add Reading**: Creates new reading entry with current time (no default payment method)
+1. **Add Reading**: Creates new reading entry with current time and session price as default
 2. **Remove Reading**: Removes last reading from list with confirmation dialog
 3. **Individual Delete**: Delete any specific reading with confirmation
 4. **Tip Tracking**: Enter tips for each reading
 5. **Payment Method Selection**: Choose payment method for each reading (cash, cc, venmo, paypal, cashapp, or custom)
-6. **Real-time Totals**: Automatic calculation of all totals
-7. **Event Settings Panel**: Collapsible panel for user selection, reading price, location, and day selection
-8. **Countdown Timer**: Comprehensive timer with audio alarms and visual warnings
-9. **Multi-User Support**: User selection with database-driven user list and data separation
+6. **Source Tracking**: Track referral sources for each reading with customizable options
+7. **Real-time Totals**: Automatic calculation of all totals with fallback pricing
+8. **Event Settings Panel**: Collapsible panel with user selection, reading price, location, and date selection
+9. **Countdown Timer**: Comprehensive timer with audio alarms and visual warnings
+10. **Multi-User Support**: User selection with database-driven user list and data separation
+11. **Session Loading**: Load existing sessions without triggering unwanted database saves
 
 ### Display Elements
 - **Header Bar**: Professional header with app title, version badge, and settings button
@@ -132,15 +134,18 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 Each reading contains:
 - `timestamp`: Full ISO datetime format (migrated from legacy HH:MM AM/PM)
 - `tip`: Numeric tip amount (default 0)
+- `price`: Individual reading price (null uses session price as fallback)
 - `payment`: Payment method (cash, cc, venmo, paypal, cashapp, or custom text)
+- `source`: Referral source (referral, renu, pog, repeat, or custom text)
 
 Session state (SessionStore class):
 - `sessionId`: Database session ID
 - `user`: Selected user name (required for session creation)
 - `location`: Event location text
-- `selectedDay`: Currently selected day (Fri/Sat/Sun)
+- `sessionDate`: Event date (YYYY-MM-DD format)
 - `price`: Base price per reading (default $40)
 - `readings`: Array of reading objects
+- `_loading`: Internal flag to prevent saves during session loading
 
 Computed properties:
 - `canCreateSession`: User + location + day + price validation
@@ -166,7 +171,7 @@ Persistence:
 ## File Structure
 - `index.html`: Main application file with SessionStore and Timer classes
 - `manifest.json`: PWA manifest for app installation
-- `serviceWorker.js`: Service worker with network-first caching strategy (cache version v5) for immediate updates
+- `serviceWorker.js`: Service worker with network-first caching strategy (cache version v6) excluding Supabase API calls
 - `server.js`: Node.js server for local hosting
 - `package.json`: Node.js project configuration
 - `README.md`: Project documentation
@@ -197,6 +202,7 @@ Persistence:
 - Database-driven user management: No localStorage user list, fetched live from database
 - Loading states: All database operations show loading spinners for user feedback
 - Service worker strategy: Network-first caching for immediate updates during development
+- Service worker exclusions: Supabase API calls excluded from service worker interception to prevent duplicate requests
 - Service worker error handling: Proper Response object handling to prevent conversion errors
 - Update notification system: Working "Update Now" button with fallback to hard reload
 - Notification system: All system messages use snackbars instead of alerts/toasts
@@ -206,6 +212,10 @@ Persistence:
 - Performance optimization: All console.log statements removed for production performance
 - Timer notifications: Configurable push notifications when timer expires (default: enabled)
 - Global timer access: Timer object available on window for settings integration
+- **Session Loading Architecture**: Loading flag prevents database saves during session restoration
+- **Price Fallback System**: Readings with null price use session price for calculations
+- **Database Error Handling**: Proper validation prevents empty date strings causing 400 errors
+- **State Management Integrity**: SessionStore maintains clean architecture during loading operations
 - **Timezone Handling**: Avoid Date object conversion for display to prevent timezone shifts
 - **Report Date Ranges**: Use raw date strings directly instead of converting through Date objects
 - **Weekend Range Logic**: Proper Friday-Sunday calculation with correct day boundaries
