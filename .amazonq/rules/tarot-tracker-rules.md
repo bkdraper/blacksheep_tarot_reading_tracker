@@ -15,7 +15,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 ## Version Management
 - **CRITICAL**: Version number MUST be bumped on every code change
 - Version displayed in header bar for cache-busting
-- Current version: v3.93.0
+- Current version: v3.93.2
 
 ## Technical Requirements
 - **Pure web technologies**: HTML/CSS/JS only, no frameworks
@@ -221,6 +221,8 @@ Persistence:
 - **Weekend Range Logic**: Proper Friday-Sunday calculation with correct day boundaries
 - **Date Normalization**: All YYYY-MM-DD dates converted to MM/DD/YYYY before Date object creation to avoid UTC/local timezone issues
 - **JavaScript Date Parsing**: YYYY-MM-DD format creates UTC dates, MM/DD/YYYY creates local dates - normalize to avoid timezone shifts
+- **Variable Naming Conflicts**: Avoid conflicts with global CDN variables (e.g., rename `const supabase` to `const supabaseClient`)
+- **Documentation Maintenance**: README.md contains complete deployment architecture with Mermaid diagrams
 
 ## Usage
 1. Set reading price (defaults to $40)
@@ -336,3 +338,5 @@ Designed for modern mobile browsers with support for:
 - **Updates**: Upload zip file to Amplify console for deployment
 - **GitHub**: Repository available for version control
 - **PWA Support**: Installable as standalone app with service worker
+- **DNS Integration**: Squarespace DNS → CloudFront → Amplify hosting
+- **SSL Management**: Amplify managed certificates with automatic renewal

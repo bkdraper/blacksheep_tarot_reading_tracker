@@ -1224,7 +1224,7 @@
     <header class="header">
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
-            <span class="version-badge">v3.93.0</span>
+            <span class="version-badge">v3.93.2</span>
             <button class="settings-btn" onclick="openSettingsDrawer()" title="Settings">⚙️</button>
         </div>
     </header>
@@ -1608,12 +1608,12 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2?v=2"></script>
     <script>
         // Supabase configuration
         const SUPABASE_URL = 'https://uuindvqgdblkjzvjsyrz.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_MsdJm2VITIPWik4dBPErrw_QjfIsKe9';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // Service worker registration for PWA with message handling
         if ('serviceWorker' in navigator) {
@@ -1963,7 +1963,7 @@
                 
                 // Try to get actual session date from database
                 try {
-                    const { data } = await supabase
+                    const { data } = await supabaseClient
                         .from('blacksheep_reading_tracker_sessions')
                         .select('session_date')
                         .eq('id', this._sessionId)
@@ -2038,7 +2038,7 @@
                             updateData.session_date = this._sessionDate;
                         }
                         
-                        await supabase
+                        await supabaseClient
                             .from('blacksheep_reading_tracker_sessions')
                             .update(updateData)
                             .eq('id', this._sessionId);
@@ -2092,7 +2092,7 @@
             
             async loadUsers() {
                 try {
-                    const { data } = await supabase
+                    const { data } = await supabaseClient
                         .from('blacksheep_reading_tracker_sessions')
                         .select('user_name')
                         .not('user_name', 'is', null);
@@ -2518,7 +2518,7 @@
                     const thirtyDaysAgo = new Date();
                     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
                     
-                    const { data } = await supabase
+                    const { data } = await supabaseClient
                         .from('blacksheep_reading_tracker_sessions')
                         .select('*')
                         .gte('session_date', thirtyDaysAgo.toISOString().split('T')[0])
@@ -2898,7 +2898,7 @@
             btn.classList.add('loading');
             
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('blacksheep_reading_tracker_sessions')
                     .select('*')
                     .eq('user_name', session.user)
@@ -2946,7 +2946,7 @@
             sessionItem.style.pointerEvents = 'none';
             
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('blacksheep_reading_tracker_sessions')
                     .select('*')
                     .eq('id', sessionId)
@@ -2994,7 +2994,7 @@
             
             try {
                 const today = new Date().toISOString().split('T')[0];
-                const { data } = await supabase
+                const { data } = await supabaseClient
                     .from('blacksheep_reading_tracker_sessions')
                     .select('*')
                     .eq('session_date', session.sessionDate)
@@ -3020,7 +3020,7 @@
                     return;
                 }
                 
-                const { data: newData } = await supabase
+                const { data: newData } = await supabaseClient
                     .from('blacksheep_reading_tracker_sessions')
                     .insert([{
                         session_date: session.sessionDate,
@@ -3903,7 +3903,7 @@
             
             try {
                 // Get all sessions, then filter by session_date
-                const { data } = await supabase
+                const { data } = await supabaseClient
                     .from('blacksheep_reading_tracker_sessions')
                     .select('*')
                     .eq('user_name', session.user)
@@ -4181,7 +4181,7 @@
             if (settings.get('haptic')) vibrate([50]);
             
             try {
-                const { data } = await supabase
+                const { data } = await supabaseClient
                     .from('blacksheep_reading_tracker_sessions')
                     .select('*')
                     .eq('user_name', session.user)
