@@ -1,11 +1,12 @@
-const CACHE_NAME = 'tarot-tracker-v6';
+const SERVICE_WORKER_VERSION = 'v7.0';
+const CACHE_NAME = 'app:v3.93.0-service:v7.0'; // Updated by pre-commit hook
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/logo192.png',
+  '/logo192-dev.png'
 ];
 
-// Install event - cache resources
+// Install event - cache static resources only
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -29,13 +30,19 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - network first, fallback to cache
+// Fetch event - network first for everything, cache fallback for static assets only
 self.addEventListener('fetch', (event) => {
   // Skip service worker for Supabase API calls
   if (event.request.url.includes('supabase.co')) {
     return;
   }
   
+  // Never cache HTML - always fetch from network
+  if (event.request.url.endsWith('/') || event.request.url.endsWith('.html')) {
+    return; // Let browser handle normally
+  }
+  
+  // For static assets, use network first with cache fallback
   event.respondWith(
     fetch(event.request)
       .catch(() => {
