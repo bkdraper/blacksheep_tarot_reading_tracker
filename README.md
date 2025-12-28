@@ -144,6 +144,212 @@ Session state:
 - `.gitignore`: Git ignore file
 - `.amazonq/rules/tarot-tracker-rules.md`: Development rules and guidelines
 - `logo192.png` / `logo192-dev.png`: App icons for production/development
+- `mcp-server/`: MCP server for programmatic data access
+
+## MCP Server
+
+### Overview
+The Model Context Protocol (MCP) server provides programmatic access to tarot tracker data for AI assistants, chatbots, and other applications. Built with Node.js and deployed to AWS Lambda with HTTP REST API support.
+
+### Architecture
+```mermaid
+graph TB
+    A[MCP Client] --> B[AWS Lambda Function]
+    B --> C[TarotTrackerMCPServer Class]
+    C --> D[Supabase Database]
+    
+    subgraph "Access Methods"
+        E[AWS Lambda Invoke] --> B
+        F[HTTP REST API] --> B
+        G[Local Testing] --> H[test-lambda.js]
+        H --> C
+    end
+    
+    subgraph "MCP Tools"
+        I[get_session_summary]
+        J[get_top_locations]
+        K[get_recent_sessions]
+    end
+    
+    C --> I
+    C --> J
+    C --> K
+```
+
+### Available Tools
+
+#### 1. get_session_summary
+**Description**: Get earnings summary for a user and date range
+
+**Parameters**:
+- `user_name` (required): User name to query
+- `start_date` (optional): Start date (YYYY-MM-DD)
+- `end_date` (optional): End date (YYYY-MM-DD)
+
+**Returns**:
+```json
+{
+  "user_name": "Amanda",
+  "sessions_count": 16,
+  "total_readings": 121,
+  "total_earnings": 5709.96,
+  "average_per_session": "356.87",
+  "date_range": {}
+}
+```
+
+#### 2. get_top_locations
+**Description**: Get best performing locations by earnings
+
+**Parameters**:
+- `user_name` (required): User name to query
+- `limit` (optional): Number of locations to return (default: 5)
+
+**Returns**:
+```json
+{
+  "top_locations": [
+    {
+      "location": "Va Beach BMSE Fall 25",
+      "earnings": 1148.71,
+      "sessions": 2,
+      "readings": 19
+    }
+  ]
+}
+```
+
+#### 3. get_recent_sessions
+**Description**: Get recent sessions for a user
+
+**Parameters**:
+- `user_name` (required): User name to query
+- `limit` (optional): Number of sessions to return (default: 10)
+
+**Returns**:
+```json
+{
+  "recent_sessions": [
+    {
+      "date": "2025-11-23",
+      "location": "Cincinnati Fall 25",
+      "readings_count": 8,
+      "total_earnings": 326
+    }
+  ]
+}
+```
+
+### File Structure
+```
+mcp-server/
+├── index.js           # Lambda handler (deployment entry point)
+├── server.js          # Shared TarotTrackerMCPServer class
+├── test-lambda.js     # Local testing script
+├── package.json       # Node.js dependencies
+└── lambda.zip         # Deployment package
+```
+
+### AWS Lambda Deployment
+
+#### Deployment Details
+- **Function Name**: `blacksheep_tarot-tracker-mcp-server`
+- **Runtime**: Node.js 20.x
+- **Region**: us-east-2
+- **ARN**: `arn:aws:lambda:us-east-2:944012085152:function:blacksheep_tarot-tracker-mcp-server`
+- **HTTP URL**: `https://fjmqe5vx4n6r6tklpsiyzey6ea0zuzgo.lambda-url.us-east-2.on.aws/`
+
+#### Deployment Process
+1. **Create Deployment Package**:
+   ```bash
+   cd mcp-server
+   # Update lambda.zip with: index.js, server.js, package.json, node_modules/
+   ```
+
+2. **Deploy to Lambda**:
+   ```bash
+   aws lambda update-function-code --function-name blacksheep_tarot-tracker-mcp-server --zip-file fileb://lambda.zip --region us-east-2
+   ```
+
+3. **Configure Function URL** (if not exists):
+   ```bash
+   aws lambda create-function-url-config --function-name blacksheep_tarot-tracker-mcp-server --auth-type NONE --cors AllowCredentials=false,AllowHeaders=Content-Type,AllowMethods=POST,AllowOrigins=* --region us-east-2
+   ```
+
+### Testing Methods
+
+#### 1. Local Testing
+```bash
+cd mcp-server
+npm start  # Runs test-lambda.js
+```
+
+**Output Example**:
+```
+Testing tools/list...
+Response: { tools: [...] }
+
+Testing get_session_summary...
+Response: { content: [...] }
+```
+
+#### 2. AWS Lambda Invoke
+```bash
+aws lambda invoke --function-name blacksheep_tarot-tracker-mcp-server --cli-binary-format raw-in-base64-out --payload '{"httpMethod":"POST","body":"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_session_summary\",\"arguments\":{\"user_name\":\"Amanda\"}}}"}'  --region us-east-2 temp.json && type temp.json && del temp.json
+```
+
+#### 3. HTTP REST API (curl)
+```bash
+curl -X POST https://fjmqe5vx4n6r6tklpsiyzey6ea0zuzgo.lambda-url.us-east-2.on.aws/ -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_session_summary","arguments":{"user_name":"Amanda"}}}'
+```
+
+**Response Format**:
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\n  \"user_name\": \"Amanda\",\n  \"sessions_count\": 16,\n  \"total_readings\": 121,\n  \"total_earnings\": 5709.96,\n  \"average_per_session\": \"356.87\",\n  \"date_range\": {}\n}"
+    }
+  ]
+}
+```
+
+### Integration Examples
+
+#### Amazon Bedrock Chatbot
+Configure the Lambda function as a tool for Bedrock agents to query tarot data:
+```json
+{
+  "toolSpec": {
+    "name": "tarot_tracker_query",
+    "description": "Query tarot reading session data",
+    "inputSchema": {
+      "json": {
+        "type": "object",
+        "properties": {
+          "tool_name": {"type": "string"},
+          "user_name": {"type": "string"},
+          "limit": {"type": "number"}
+        }
+      }
+    }
+  }
+}
+```
+
+#### MCP Client Configuration
+For IDE integration or other MCP clients:
+```json
+{
+  "mcpServers": {
+    "tarot-tracker": {
+      "command": "node",
+      "args": ["path/to/mcp-server/test-lambda.js"]
+    }
+  }
+}
+```
 
 ## Deployment
 

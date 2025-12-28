@@ -41,5 +41,4 @@ server.listen(PORT, '0.0.0.0', () => {
     const url = `http://localhost:${PORT}`;
     console.log(`Server running at ${url}`);
     console.log(`Access from your phone using your computer's IP address: http://[YOUR_IP]:${PORT}`);
-    exec(`start ${url}`);
 });

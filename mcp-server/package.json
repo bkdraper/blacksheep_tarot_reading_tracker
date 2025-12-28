@@ -1,0 +1,12 @@
+{
+  "name": "tarot-tracker-mcp-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node test-lambda.js",
+    "start": "node test-lambda.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}

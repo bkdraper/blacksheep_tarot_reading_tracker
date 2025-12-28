@@ -177,6 +177,58 @@ Persistence:
 - `README.md`: Project documentation
 - `.gitignore`: Git ignore file
 - `.amazonq/rules/tarot-tracker-rules.md`: This instruction file
+- `mcp-server/`: MCP server for programmatic data access
+
+## MCP Server Integration
+
+### Overview
+The Model Context Protocol (MCP) server provides programmatic access to tarot tracker data for AI assistants, chatbots, and other applications. Built with Node.js and deployed to AWS Lambda with HTTP REST API support.
+
+### Architecture
+- **TarotTrackerMCPServer Class**: Shared server logic with Supabase integration
+- **Lambda Handler**: AWS Lambda deployment wrapper (index.js)
+- **Local Testing**: Node.js test script (test-lambda.js)
+- **Dual Access**: Both AWS Lambda invoke and HTTP REST API endpoints
+
+### Available Tools
+1. **get_session_summary**: User earnings summary with date range filtering
+2. **get_top_locations**: Best performing locations by earnings
+3. **get_recent_sessions**: Recent session history with performance data
+
+### Deployment Architecture
+- **Function Name**: blacksheep_tarot-tracker-mcp-server
+- **Runtime**: Node.js 20.x (us-east-2)
+- **HTTP URL**: https://fjmqe5vx4n6r6tklpsiyzey6ea0zuzgo.lambda-url.us-east-2.on.aws/
+- **Access Methods**: AWS Lambda invoke + HTTP REST API with CORS
+- **Authentication**: Public access (AuthType: NONE)
+
+### File Structure
+```
+mcp-server/
+├── index.js           # Lambda handler with Function URL support
+├── server.js          # Shared TarotTrackerMCPServer class
+├── test-lambda.js     # Local testing script
+├── package.json       # Node.js dependencies (@supabase/supabase-js)
+└── lambda.zip         # Deployment package
+```
+
+### Testing Methods
+1. **Local Testing**: `npm start` runs test-lambda.js with sample queries
+2. **AWS Lambda Invoke**: Direct Lambda invocation via AWS CLI with JSON payloads
+3. **HTTP REST API**: curl requests to Function URL with MCP protocol JSON
+
+### Integration Capabilities
+- **Amazon Bedrock**: Configure as tool for AI chatbot data queries
+- **MCP Clients**: IDE integration for programmatic data access
+- **Custom Applications**: HTTP REST API for any application integration
+- **AI Assistants**: Real-time tarot session data for conversational AI
+
+### Key Implementation Details
+- **Shared Class Pattern**: Eliminates code duplication between local and Lambda versions
+- **Function URL Compatibility**: Handler detects both API Gateway and Function URL events
+- **MCP Protocol Compliance**: Proper tools/list and tools/call method handling
+- **Error Handling**: Comprehensive error responses with proper HTTP status codes
+- **CORS Support**: Full cross-origin support for web application integration
 
 ## Development Notes
 - **Version bumping**: MUST increment version number on every code change
