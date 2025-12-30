@@ -169,12 +169,102 @@ graph TB
         I[get_session_summary]
         J[get_top_locations]
         K[get_recent_sessions]
+        L[get_reading_records]
     end
     
     C --> I
     C --> J
     C --> K
+    C --> L
 ```
+
+#### Server-Sent Events (SSE) Support
+The MCP server implements a **shared class pattern** to support both AWS Lambda invoke and HTTP REST API access methods:
+
+- **TarotTrackerMCPServer Class**: Core server logic with Supabase integration
+- **Lambda Handler**: Detects both API Gateway and Function URL events automatically
+- **HTTP Compatibility**: Function URL provides direct HTTP access without API Gateway overhead
+- **MCP Protocol Compliance**: Proper `tools/list` and `tools/call` method handling
+- **CORS Support**: Full cross-origin support for web application integration
+
+This architecture eliminates code duplication while providing multiple access patterns for different client types.
+
+#### MCP Protocol Requirements
+The Model Context Protocol requires specific response formats and streaming capabilities:
+
+**Response Streaming**: MCP clients expect streaming responses for tool calls, requiring the server to:
+- Return `content` array with `type: "text"` objects
+- Support JSON-RPC 2.0 protocol structure
+- Handle both synchronous and asynchronous tool execution
+- Provide proper error handling with MCP-compliant error codes
+
+**Implementation Details**:
+```javascript
+// MCP-compliant response format
+return {
+  content: [{
+    type: 'text',
+    text: JSON.stringify(result, null, 2)
+  }]
+};
+
+// Lambda handler detects event types
+const isApiGateway = event.httpMethod || event.requestContext;
+const isFunctionUrl = event.headers && !event.requestContext;
+
+// Dual compatibility for AWS Lambda
+if (isApiGateway) {
+  body = event.body;
+} else if (isFunctionUrl) {
+  body = event.body;
+} else {
+  // Direct Lambda invoke
+  body = JSON.stringify(event);
+}
+```
+
+**Why Response Streaming Was Required**:
+- **MCP Client Expectations**: Clients like Amazon Q expect streaming text responses
+- **Large Data Sets**: Reading records can contain hundreds of entries requiring chunked delivery
+- **Real-time Processing**: Tool results need to be delivered as they're computed
+- **Protocol Compliance**: MCP specification mandates specific content structure for tool responses
+
+#### AWS Lambda Streaming Requirements
+AWS Lambda Function URLs require `streamifyResponse` for HTTP transport compatibility:
+
+**streamifyResponse Usage**:
+```javascript
+// awslambda is a global object provided by AWS Lambda runtime
+export const handler = awslambda.streamifyResponse(async (event, responseStream, context) => {
+  // Unified metadata for HTTP transport
+  const metadata = {
+    statusCode: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'mcp-protocol-version': '2024-11-05',
+      'Access-Control-Allow-Origin': '*'
+    }
+  };
+
+  const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+  stream.write(JSON.stringify(response));
+  stream.end();
+});
+```
+
+**Required Headers**:
+- `Content-Type: application/json` - MCP protocol requirement for JSON-RPC 2.0
+- `mcp-protocol-version: 2024-11-05` - Protocol version identification
+- `Access-Control-Allow-Origin: *` - CORS support for web clients
+- `Access-Control-Allow-Methods: POST, OPTIONS` - HTTP method permissions
+- `Access-Control-Allow-Headers: Content-Type` - Header permissions for CORS
+
+**Why Everything Goes Through Stream**:
+- **Function URL Compatibility**: Lambda Function URLs require streaming for HTTP responses
+- **CORS Handling**: Preflight OPTIONS requests need proper streaming response
+- **Error Handling**: Both success and error responses must use the same streaming pattern
+- **Protocol Consistency**: MCP clients expect consistent streaming behavior across all endpoints
+- **Performance**: Streaming allows immediate response delivery without buffering
 
 ### Available Tools
 
@@ -239,6 +329,118 @@ graph TB
   ]
 }
 ```
+
+#### 4. get_reading_records
+**Description**: Get individual reading records with detailed data for analysis
+
+**Parameters**:
+- `user_name` (required): User name to query
+- `start_date` (optional): Start date (YYYY-MM-DD)
+- `end_date` (optional): End date (YYYY-MM-DD)
+- `location_filter` (optional): Filter locations containing this text (case-insensitive)
+- `limit` (optional): Number of records to return (default: 100)
+
+**Returns**:
+```json
+{
+  "reading_records": [
+    {
+      "session_date": "2025-09-21",
+      "location": "Denver fall 25",
+      "timestamp": "2025-09-22T00:04:00.000Z",
+      "price": 30,
+      "tip": 7.5,
+      "total": 37.5,
+      "payment_method": "CC",
+      "source": null
+    }
+  ],
+  "total_count": 10,
+  "returned_count": 5,
+  "location_filter": "denver"
+}
+```
+
+**Use Cases**:
+- Analyze payment method patterns by location
+- Track referral source effectiveness
+- Detailed transaction-level analysis
+- Filter readings by specific criteria
+
+### Bedrock Agent Integration
+
+#### Planned Architecture
+The MCP server will integrate with Amazon Bedrock Agent to provide conversational AI capabilities within the tarot tracker app:
+
+```mermaid
+graph TB
+    A[Tarot Tracker App] --> B[Chat Interface]
+    B --> C[Bedrock Agent]
+    C --> D[MCP Lambda Function]
+    D --> E[Supabase Database]
+    
+    subgraph "Agent Configuration"
+        F[TarotTrackerAgent]
+        G[Action Group: TarotDataTools]
+        H[4 MCP Tools]
+    end
+    
+    C --> F
+    F --> G
+    G --> H
+```
+
+#### Response Formatting Strategy
+**HTML Output Approach**: Bedrock Agent will be configured to return HTML-formatted responses for rich data display:
+
+```html
+<!-- Agent Response Format -->
+<p>Here are Amanda's top locations:</p>
+<table class='data-table'>
+<thead><tr><th>Location</th><th>Earnings</th><th>Sessions</th></tr></thead>
+<tbody>
+<tr><td>Va Beach BMSE Fall 25</td><td>$1,148.71</td><td>2</td></tr>
+<tr><td>Cincinnati Fall 25</td><td>$1,013.00</td><td>2</td></tr>
+</tbody>
+</table>
+<p>She's performing really well at these locations!</p>
+```
+
+**Benefits of HTML Approach**:
+- **Zero parsing complexity** - Direct HTML insertion into chat bubbles
+- **Perfect positioning** - Tables appear exactly where intended in responses
+- **Full styling control** - CSS can style all HTML elements
+- **Multiple formats** - Supports tables, lists, code blocks, etc.
+- **Natural flow** - Works seamlessly with conversational responses
+
+### MCP Client Integration
+
+#### Amazon Q Developer IDE Integration
+The MCP server can be integrated with Amazon Q Developer for IDE-based data queries:
+
+**Configuration** (`~/.aws/amazonq/mcp.json`):
+```json
+{
+  "servers": {
+    "Tarot Tracker": {
+      "url": "https://fjmqe5vx4n6r6tklpsiyzey6ea0zuzgo.lambda-url.us-east-2.on.aws/",
+      "type": "http"
+    }
+  }
+}
+```
+
+**Usage Examples**:
+- "What was Amanda's best two locations?"
+- "How did she do in Denver?"
+- "Show me Amanda's recent sessions"
+- "Get Amanda's earnings summary for this month"
+
+**Benefits**:
+- **Real-time Data Access**: Query live tarot session data from IDE
+- **Natural Language Interface**: Ask questions in plain English
+- **Contextual Analysis**: Get detailed breakdowns and comparisons
+- **Development Integration**: Access data while working on the application
 
 ### File Structure
 ```

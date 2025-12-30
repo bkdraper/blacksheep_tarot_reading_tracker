@@ -2,59 +2,47 @@ import { TarotTrackerMCPServer } from './server.js';
 
 const mcpServer = new TarotTrackerMCPServer();
 
-export const handler = async (event, context) => {
-  // Function URL events have different structure than API Gateway
+export const handler = awslambda.streamifyResponse(async (event, responseStream, context) => {
   const httpMethod = event.requestContext?.http?.method || event.httpMethod;
-  
+
+  // Unified metadata for HTTP transport
+  const metadata = {
+    statusCode: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'mcp-protocol-version': '2024-11-05',
+      'Access-Control-Allow-Origin': '*'
+    }
+  };
+
   // Handle CORS preflight
   if (httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      },
-      body: ''
-    };
+    metadata.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS';
+    metadata.headers['Access-Control-Allow-Headers'] = 'Content-Type';
+    const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+    stream.end();
+    return;
   }
 
-  // Only allow POST
-  if (httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+  // Handle POST requests for MCP HTTP transport
+  if (httpMethod === 'POST') {
+    try {
+      const request = JSON.parse(event.body);
+      const response = await mcpServer.handleRequest(request);
+      
+      const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+      stream.write(JSON.stringify(response));
+      stream.end();
+    } catch (error) {
+      metadata.statusCode = 500;
+      const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+      stream.write(JSON.stringify({ error: error.message }));
+      stream.end();
+    }
+    return;
   }
 
-  try {
-    // Parse the MCP request from Lambda event
-    const request = JSON.parse(event.body);
-    
-    // Handle the MCP request (same logic as before)
-    const response = await mcpServer.handleRequest(request);
-    
-    // Return Lambda response format
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(response)
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ error: error.message })
-    };
-  }
-};
+  // Return 405 for GET to force HTTP transport
+  const stream = awslambda.HttpResponseStream.from(responseStream, { statusCode: 405 });
+  stream.end();
+});

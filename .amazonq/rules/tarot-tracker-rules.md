@@ -194,6 +194,48 @@ The Model Context Protocol (MCP) server provides programmatic access to tarot tr
 1. **get_session_summary**: User earnings summary with date range filtering
 2. **get_top_locations**: Best performing locations by earnings
 3. **get_recent_sessions**: Recent session history with performance data
+4. **get_reading_records**: Individual reading records with detailed filtering (location, date, payment methods, sources)
+
+### Deployment Architecture
+- **Function Name**: blacksheep_tarot-tracker-mcp-server
+- **Runtime**: Node.js 20.x (us-east-2)
+- **HTTP URL**: https://fjmqe5vx4n6r6tklpsiyzey6ea0zuzgo.lambda-url.us-east-2.on.aws/
+- **Access Methods**: AWS Lambda invoke + HTTP REST API with CORS
+- **Authentication**: Public access (AuthType: NONE)
+
+### Key Implementation Details
+- **Shared Class Pattern**: Eliminates code duplication between local and Lambda versions
+- **Function URL Compatibility**: Handler detects both API Gateway and Function URL events
+- **MCP Protocol Compliance**: Proper tools/list and tools/call method handling
+- **CORS Support**: Full cross-origin support for web application integration
+- **Streaming Response Architecture**: Uses `awslambda.streamifyResponse` for HTTP transport compatibility
+- **Global Runtime Objects**: `awslambda` object provided by Lambda runtime (no import needed)
+
+### Response Streaming Requirements
+**Why Response Streaming Was Required**:
+- **MCP Client Expectations**: Clients like Amazon Q expect streaming text responses
+- **Large Data Sets**: Reading records can contain hundreds of entries requiring chunked delivery
+- **Real-time Processing**: Tool results need to be delivered as they're computed
+- **Protocol Compliance**: MCP specification mandates specific content structure for tool responses
+
+**AWS Lambda Streaming Requirements**:
+- **streamifyResponse Usage**: Required for Lambda Function URLs to work with HTTP transport
+- **Required Headers**: Content-Type, mcp-protocol-version, CORS headers
+- **Stream Management**: All responses (success and error) must use streaming pattern
+- **End Signal**: `stream.end()` required to signal completion to clients
+
+### Testing and Integration
+- **Local Testing**: `npm start` runs test-lambda.js with sample queries
+- **AWS Lambda Invoke**: Direct Lambda invocation via AWS CLI with JSON payloads
+- **HTTP REST API**: curl requests to Function URL with MCP protocol JSON
+- **Amazon Q Integration**: Configured in `~/.aws/amazonq/mcp.json` for IDE access
+
+### Planned Bedrock Agent Integration
+**Next Phase**: Integration with Amazon Bedrock Agent for conversational AI:
+- **Agent Configuration**: TarotTrackerAgent with TarotDataTools action group
+- **HTML Response Format**: Agent configured to return HTML tables and lists for rich UI display
+- **Chat Interface**: SMS-style chat bubbles in tarot tracker app
+- **Natural Language Queries**: "What was Amanda's best location?" → formatted HTML response
 
 ### Deployment Architecture
 - **Function Name**: blacksheep_tarot-tracker-mcp-server

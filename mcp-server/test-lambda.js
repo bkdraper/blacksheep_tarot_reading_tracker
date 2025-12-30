@@ -1,20 +1,19 @@
-import { handler } from './index.js';
+import { TarotTrackerMCPServer } from './server.js';
+
+const mcpServer = new TarotTrackerMCPServer();
 
 // Test the tools/list endpoint
 const testToolsList = async () => {
   console.log('Testing tools/list...');
   
-  const event = {
-    httpMethod: 'POST',
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'tools/list'
-    })
+  const request = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'tools/list'
   };
   
-  const result = await handler(event, {});
-  console.log('Response:', JSON.parse(result.body));
+  const result = await mcpServer.handleRequest(request);
+  console.log('Response:', result);
   console.log('---');
 };
 
@@ -22,23 +21,43 @@ const testToolsList = async () => {
 const testSessionSummary = async () => {
   console.log('Testing get_session_summary...');
   
-  const event = {
-    httpMethod: 'POST',
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 2,
-      method: 'tools/call',
-      params: {
-        name: 'get_session_summary',
-        arguments: {
-          user_name: 'Amanda'
-        }
+  const request = {
+    jsonrpc: '2.0',
+    id: 2,
+    method: 'tools/call',
+    params: {
+      name: 'get_session_summary',
+      arguments: {
+        user_name: 'Amanda'
       }
-    })
+    }
   };
   
-  const result = await handler(event, {});
-  console.log('Response:', JSON.parse(result.body));
+  const result = await mcpServer.handleRequest(request);
+  console.log('Response:', result);
+  console.log('---');
+};
+
+// Test the get_reading_records tool
+const testReadingRecords = async () => {
+  console.log('Testing get_reading_records...');
+  
+  const request = {
+    jsonrpc: '2.0',
+    id: 3,
+    method: 'tools/call',
+    params: {
+      name: 'get_reading_records',
+      arguments: {
+        user_name: 'Amanda',
+        location_filter: 'denver',
+        limit: 5
+      }
+    }
+  };
+  
+  const result = await mcpServer.handleRequest(request);
+  console.log('Response:', JSON.stringify(result, null, 2));
   console.log('---');
 };
 
@@ -46,6 +65,7 @@ const testSessionSummary = async () => {
 const runTests = async () => {
   await testToolsList();
   await testSessionSummary();
+  await testReadingRecords();
 };
 
 runTests().catch(console.error);

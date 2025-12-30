@@ -44,22 +44,69 @@ export class TarotTrackerMCPServer {
           },
           required: ['user_name']
         }
+      },
+      {
+        name: 'get_reading_records',
+        description: 'Get individual reading records with detailed data for analysis',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            user_name: { type: 'string', description: 'User name' },
+            start_date: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
+            end_date: { type: 'string', description: 'End date (YYYY-MM-DD)' },
+            location_filter: { type: 'string', description: 'Filter locations containing this text (case-insensitive)' },
+            limit: { type: 'number', description: 'Number of records to return', default: 100 }
+          },
+          required: ['user_name']
+        }
       }
     ];
   }
 
   async handleRequest(request) {
-    const { method, params } = request;
+    const { method, params, id } = request;
 
     switch (method) {
+      case 'initialize':
+        return {
+          jsonrpc: '2.0',
+          id,
+          result: {
+            protocolVersion: '2024-11-05',
+            capabilities: {
+              tools: {}
+            },
+            serverInfo: {
+              name: 'Tarot Tracker MCP Server',
+              version: '1.0.0'
+            }
+          }
+        };
+      
       case 'tools/list':
-        return { tools: this.tools };
+        return {
+          jsonrpc: '2.0',
+          id,
+          result: { tools: this.tools }
+        };
       
       case 'tools/call':
-        return await this.callTool(params.name, params.arguments);
+        const toolResult = await this.callTool(params.name, params.arguments);
+        return {
+          jsonrpc: '2.0',
+          id,
+          result: toolResult
+        };
       
       default:
-        throw new Error(`Unknown method: ${method}`);
+        return {
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: -32601,
+            message: `Unknown method: ${method}`
+          }
+        };
     }
   }
 
@@ -73,6 +120,9 @@ export class TarotTrackerMCPServer {
       
       case 'get_recent_sessions':
         return await this.getRecentSessions(args);
+      
+      case 'get_reading_records':
+        return await this.getReadingRecords(args);
       
       default:
         throw new Error(`Unknown tool: ${toolName}`);
@@ -94,9 +144,10 @@ export class TarotTrackerMCPServer {
     
     if (error) throw new Error(`Database error: ${error.message}`);
     
-    // Calculate totals
+    // Calculate totals with base/tips breakdown
     let totalReadings = 0;
-    let totalEarnings = 0;
+    let totalBaseEarnings = 0;
+    let totalTips = 0;
     
     data.forEach(session => {
       const readings = session.readings || [];
@@ -105,9 +156,12 @@ export class TarotTrackerMCPServer {
       readings.forEach(reading => {
         const price = reading.price || session.reading_price || 40;
         const tip = reading.tip || 0;
-        totalEarnings += price + tip;
+        totalBaseEarnings += price;
+        totalTips += tip;
       });
     });
+    
+    const totalEarnings = totalBaseEarnings + totalTips;
     
     return {
       content: [{
@@ -116,6 +170,8 @@ export class TarotTrackerMCPServer {
           user_name,
           sessions_count: data.length,
           total_readings: totalReadings,
+          total_base_earnings: totalBaseEarnings,
+          total_tips: totalTips,
           total_earnings: totalEarnings,
           average_per_session: data.length > 0 ? (totalEarnings / data.length).toFixed(2) : 0,
           date_range: { start_date, end_date }
@@ -134,7 +190,7 @@ export class TarotTrackerMCPServer {
     
     if (error) throw new Error(`Database error: ${error.message}`);
     
-    // Group by location and calculate earnings
+    // Group by location and calculate earnings with base/tips breakdown
     const locationStats = {};
     
     data.forEach(session => {
@@ -142,7 +198,7 @@ export class TarotTrackerMCPServer {
       const readings = session.readings || [];
       
       if (!locationStats[location]) {
-        locationStats[location] = { earnings: 0, sessions: 0, readings: 0 };
+        locationStats[location] = { base_earnings: 0, tips: 0, earnings: 0, sessions: 0, readings: 0 };
       }
       
       locationStats[location].sessions++;
@@ -151,6 +207,8 @@ export class TarotTrackerMCPServer {
       readings.forEach(reading => {
         const price = reading.price || session.reading_price || 40;
         const tip = reading.tip || 0;
+        locationStats[location].base_earnings += price;
+        locationStats[location].tips += tip;
         locationStats[location].earnings += price + tip;
       });
     });
@@ -183,19 +241,23 @@ export class TarotTrackerMCPServer {
     
     const sessions = data.map(session => {
       const readings = session.readings || [];
-      let totalEarnings = 0;
+      let totalBaseEarnings = 0;
+      let totalTips = 0;
       
       readings.forEach(reading => {
         const price = reading.price || session.reading_price || 40;
         const tip = reading.tip || 0;
-        totalEarnings += price + tip;
+        totalBaseEarnings += price;
+        totalTips += tip;
       });
       
       return {
         date: session.session_date,
         location: session.location,
         readings_count: readings.length,
-        total_earnings: totalEarnings
+        base_earnings: totalBaseEarnings,
+        tips: totalTips,
+        total_earnings: totalBaseEarnings + totalTips
       };
     });
     
@@ -203,6 +265,68 @@ export class TarotTrackerMCPServer {
       content: [{
         type: 'text',
         text: JSON.stringify({ recent_sessions: sessions }, null, 2)
+      }]
+    };
+  }
+
+  async getReadingRecords(args) {
+    const { user_name, start_date, end_date, location_filter, limit = 100 } = args;
+    
+    let query = supabase
+      .from('blacksheep_reading_tracker_sessions')
+      .select('*')
+      .eq('user_name', user_name)
+      .order('session_date', { ascending: false });
+    
+    if (start_date) query = query.gte('session_date', start_date);
+    if (end_date) query = query.lte('session_date', end_date);
+    if (location_filter) {
+      const words = location_filter.trim().split(/\s+/).filter(word => word.length > 0);
+      words.forEach(word => {
+        query = query.ilike('location', `%${word}%`);
+      });
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) throw new Error(`Database error: ${error.message}`);
+    
+    // Flatten all readings into individual records
+    const readingRecords = [];
+    
+    data.forEach(session => {
+      const readings = session.readings || [];
+      
+      readings.forEach(reading => {
+        const price = reading.price || session.reading_price || 40;
+        const tip = reading.tip || 0;
+        
+        readingRecords.push({
+          session_date: session.session_date,
+          location: session.location,
+          timestamp: reading.timestamp,
+          price: price,
+          tip: tip,
+          total: price + tip,
+          payment_method: reading.payment || null,
+          source: reading.source || null
+        });
+      });
+    });
+    
+    // Sort by timestamp and limit
+    readingRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const limitedRecords = readingRecords.slice(0, limit);
+    
+    return {
+      content: [{
+        type: 'text',
+        text: JSON.stringify({ 
+          reading_records: limitedRecords,
+          total_count: readingRecords.length,
+          returned_count: limitedRecords.length,
+          location_filter: location_filter || null
+        }, null, 2)
       }]
     };
   }

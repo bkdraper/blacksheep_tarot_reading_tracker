@@ -7,6 +7,7 @@
     "start": "node test-lambda.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "@aws-lambda-powertools/commons": "^2.0.0"
   }
 }
