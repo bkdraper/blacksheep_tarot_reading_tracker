@@ -1,0 +1,113 @@
+import { TarotTrackerMCPServer } from './server.js';
+
+const mcpServer = new TarotTrackerMCPServer();
+
+export const handler = awslambda.streamifyResponse(async (event, responseStream, context) => {
+  console.log('Lambda handler started');
+  console.log('Event:', JSON.stringify(event, null, 2));
+  
+  const httpMethod = event.requestContext?.http?.method || event.httpMethod;
+  console.log('HTTP Method:', httpMethod);
+
+  // Unified metadata for HTTP transport
+  const metadata = {
+    statusCode: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'mcp-protocol-version': '2024-11-05',
+      'Access-Control-Allow-Origin': '*'
+    }
+  };
+
+  // Handle CORS preflight
+  if (httpMethod === 'OPTIONS') {
+    metadata.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS';
+    metadata.headers['Access-Control-Allow-Headers'] = 'Content-Type';
+    const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+    stream.end();
+    return;
+  }
+
+  // Handle POST requests for MCP HTTP transport
+  if (httpMethod === 'POST') {
+    try {
+      const request = JSON.parse(event.body);
+      console.log('Received request:', JSON.stringify(request, null, 2));
+      
+      // Check if this is a Bedrock Agent call (no jsonrpc field)
+      if (!request.jsonrpc && request.actionGroup && request.function) {
+        console.log('Detected Bedrock Agent request');
+        // Bedrock Agent format - call tool directly
+        const toolName = request.function;
+        
+        // Convert parameters array to object
+        const args = {};
+        if (request.parameters && Array.isArray(request.parameters)) {
+          request.parameters.forEach(param => {
+            args[param.name] = param.value;
+          });
+        }
+        console.log('Tool name:', toolName, 'Args:', JSON.stringify(args));
+        
+        const result = await mcpServer.callTool(toolName, args, true);
+        console.log('Tool result:', JSON.stringify(result, null, 2));
+        
+        // Return simple JSON for Bedrock Agent
+        const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+        stream.write(JSON.stringify(result));
+        stream.end();
+      } else {
+        console.log('Detected MCP request');
+        // MCP protocol format
+        const response = await mcpServer.handleRequest(request);
+        
+        const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+        stream.write(JSON.stringify(response));
+        stream.end();
+      }
+    } catch (error) {
+      console.error('Error processing request:', error);
+      metadata.statusCode = 500;
+      const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+      stream.write(JSON.stringify({ error: error.message }));
+      stream.end();
+    }
+    return;
+  }
+  
+  // Handle direct Bedrock Agent calls (no HTTP method)
+  if (!httpMethod && event.actionGroup && event.function) {
+    try {
+      console.log('Detected direct Bedrock Agent call');
+      const toolName = event.function;
+      
+      // Convert parameters array to object
+      const args = {};
+      if (event.parameters && Array.isArray(event.parameters)) {
+        event.parameters.forEach(param => {
+          args[param.name] = param.value;
+        });
+      }
+      console.log('Tool name:', toolName, 'Args:', JSON.stringify(args));
+      
+      const result = await mcpServer.callTool(toolName, args, true);
+      console.log('Tool result:', JSON.stringify(result, null, 2));
+      
+      // Return simple JSON for Bedrock Agent
+      const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+      stream.write(JSON.stringify(result));
+      stream.end();
+    } catch (error) {
+      console.error('Error processing Bedrock request:', error);
+      metadata.statusCode = 500;
+      const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+      stream.write(JSON.stringify({ error: error.message }));
+      stream.end();
+    }
+    return;
+  }
+
+  // Return 405 for GET to force HTTP transport
+  const stream = awslambda.HttpResponseStream.from(responseStream, { statusCode: 405 });
+  stream.end();
+});

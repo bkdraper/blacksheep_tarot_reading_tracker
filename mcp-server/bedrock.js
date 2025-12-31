@@ -1,0 +1,61 @@
+import { TarotTrackerMCPServer } from './server.js';
+
+const mcpServer = new TarotTrackerMCPServer();
+
+const convertBedrockParameters = (parameters) => {
+  const args = {};
+  if (parameters && Array.isArray(parameters)) {
+    parameters.forEach(param => {
+      args[param.name] = param.value;
+    });
+  }
+  return args;
+};
+
+export const handler = async (event, context) => {
+  console.log('Bedrock Lambda: Processing request');
+  
+  try {
+    const toolName = event.function;
+    const args = convertBedrockParameters(event.parameters);
+    
+    const result = await mcpServer.callTool(toolName, args, true);
+    
+    return {
+      messageVersion: "1.0",
+      response: {
+        actionGroup: "TarotDataTools",
+        function: toolName,
+        functionResponse: {
+          responseState: "SUCCESS",
+          responseBody: {
+            "TEXT": {
+              body: typeof result === 'string' ? result : JSON.stringify(result)
+            }
+          }
+        }
+      },
+      sessionAttributes: {},
+      promptSessionAttributes: {}
+    };
+  } catch (error) {
+    console.error('Bedrock Lambda: Error:', error);
+    return {
+      messageVersion: "1.0",
+      response: {
+        actionGroup: "TarotDataTools",
+        function: event.function,
+        functionResponse: {
+          responseState: "FAILURE",
+          responseBody: {
+            "TEXT": {
+              body: `Error: ${error.message}`
+            }
+          }
+        }
+      },
+      sessionAttributes: {},
+      promptSessionAttributes: {}
+    };
+  }
+};

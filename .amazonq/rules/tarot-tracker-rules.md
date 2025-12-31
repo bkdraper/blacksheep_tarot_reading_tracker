@@ -182,13 +182,72 @@ Persistence:
 ## MCP Server Integration
 
 ### Overview
-The Model Context Protocol (MCP) server provides programmatic access to tarot tracker data for AI assistants, chatbots, and other applications. Built with Node.js and deployed to AWS Lambda with HTTP REST API support.
+The Model Context Protocol (MCP) server provides programmatic access to tarot tracker data for AI assistants, chatbots, and other applications. Built with Node.js and deployed to AWS Lambda with **dual Lambda architecture** for MCP and Bedrock Agent compatibility.
+
+### Dual Lambda Architecture
+The MCP server uses separate Lambda functions to avoid conflicts between MCP protocol requirements and Bedrock Agent invocation patterns:
+
+- **MCP Lambda**: `blacksheep_tarot-tracker-mcp-server` (index.js handler with streaming)
+- **Bedrock Lambda**: `blacksheep_tarot-tracker-bedrock` (bedrock.js handler with direct response)
+- **Shared Logic**: Both functions use the same `server.js` and deployment package
 
 ### Architecture
-- **TarotTrackerMCPServer Class**: Shared server logic with Supabase integration
-- **Lambda Handler**: AWS Lambda deployment wrapper (index.js)
-- **Local Testing**: Node.js test script (test-lambda.js)
-- **Dual Access**: Both AWS Lambda invoke and HTTP REST API endpoints
+```mermaid
+graph TB
+    A[Shared Codebase] --> B[MCP Lambda]
+    A --> C[Bedrock Lambda]
+    B --> D[MCP Clients]
+    C --> E[Bedrock Agent]
+    
+    subgraph "MCP Lambda (PROTECTED)"
+        F[index.js - Streaming Handler]
+        G[Function URL: /mcp endpoint]
+    end
+    
+    subgraph "Bedrock Lambda (ACTIVE)"
+        H[bedrock.js - Direct Handler]
+        I[Direct Lambda Invocation]
+    end
+end
+```
+
+### Deployment Strategy
+
+#### MCP Lambda (PROTECTED)
+- **Status**: FROZEN - Only deploy when adding new tools to `server.js`
+- **Reason**: Working perfectly with MCP clients, don't risk breaking
+- **Handler**: `index.handler` (requires streaming for MCP protocol)
+- **Access**: HTTP Function URL for MCP clients like Amazon Q Developer
+
+#### Bedrock Lambda (ACTIVE)
+- **Status**: ACTIVE - Deploy here for all Bedrock experiments
+- **Reason**: Isolated from MCP, safe to experiment
+- **Handler**: `bedrock.handler` (direct response for Bedrock Agent)
+- **Access**: Direct Lambda invocation only
+
+#### When to Deploy Where
+
+**Deploy to Bedrock Lambda only** (most common):
+- Bedrock response format changes
+- Bedrock Agent integration fixes
+- Any Bedrock-specific experiments
+
+**Deploy to both Lambda functions** (rare):
+- Adding new tools to `server.js` (affects both MCP and Bedrock)
+- Updating shared database logic
+- Adding new MCP protocol features
+
+### File Structure
+```
+mcp-server/
+├── index.js           # MCP handler (PROTECTED - never modify)
+├── bedrock.js         # Bedrock handler (ACTIVE - experiment here)
+├── server.js          # Shared TarotTrackerMCPServer class
+├── package.json       # Node.js dependencies
+├── bedrock-handler.js # Legacy file (unused)
+├── mcp-handler.js     # Legacy file (unused)
+└── lambda.zip         # Deployment package
+```
 
 ### Available Tools
 1. **get_session_summary**: User earnings summary with date range filtering
@@ -238,20 +297,30 @@ The Model Context Protocol (MCP) server provides programmatic access to tarot tr
 - **Natural Language Queries**: "What was Amanda's best location?" → formatted HTML response
 
 ### Deployment Architecture
-- **Function Name**: blacksheep_tarot-tracker-mcp-server
-- **Runtime**: Node.js 20.x (us-east-2)
-- **HTTP URL**: https://fjmqe5vx4n6r6tklpsiyzey6ea0zuzgo.lambda-url.us-east-2.on.aws/
-- **Access Methods**: AWS Lambda invoke + HTTP REST API with CORS
-- **Authentication**: Public access (AuthType: NONE)
 
-### File Structure
+#### Dual Lambda Functions
+- **MCP Function**: blacksheep_tarot-tracker-mcp-server (PROTECTED)
+- **Bedrock Function**: blacksheep_tarot-tracker-bedrock (ACTIVE)
+- **Runtime**: Node.js 20.x (us-east-2)
+- **MCP HTTP URL**: https://fjmqe5vx4n6r6tklpsiyzey6ea0zuzgo.lambda-url.us-east-2.on.aws/
+- **Bedrock ARN**: arn:aws:lambda:us-east-2:944012085152:function:blacksheep_tarot-tracker-bedrock
+- **Access Methods**: MCP via HTTP Function URL, Bedrock via direct invocation
+- **Authentication**: MCP public access (AuthType: NONE), Bedrock via IAM
+
+#### Deployment Commands
+
+**Bedrock Only** (most deployments):
+```bash
+aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock --zip-file fileb://lambda.zip --region us-east-2
 ```
-mcp-server/
-├── index.js           # Lambda handler with Function URL support
-├── server.js          # Shared TarotTrackerMCPServer class
-├── test-lambda.js     # Local testing script
-├── package.json       # Node.js dependencies (@supabase/supabase-js)
-└── lambda.zip         # Deployment package
+
+**Both Functions** (when adding tools):
+```bash
+# MCP Lambda (PROTECTED)
+aws lambda update-function-code --function-name blacksheep_tarot-tracker-mcp-server --zip-file fileb://lambda.zip --region us-east-2
+
+# Bedrock Lambda (ACTIVE)
+aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock --zip-file fileb://lambda.zip --region us-east-2
 ```
 
 ### Testing Methods

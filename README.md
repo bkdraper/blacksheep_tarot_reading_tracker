@@ -452,31 +452,73 @@ mcp-server/
 └── lambda.zip         # Deployment package
 ```
 
-### AWS Lambda Deployment
+### Dual Lambda Architecture
 
-#### Deployment Details
-- **Function Name**: `blacksheep_tarot-tracker-mcp-server`
-- **Runtime**: Node.js 20.x
-- **Region**: us-east-2
-- **ARN**: `arn:aws:lambda:us-east-2:944012085152:function:blacksheep_tarot-tracker-mcp-server`
-- **HTTP URL**: `https://fjmqe5vx4n6r6tklpsiyzey6ea0zuzgo.lambda-url.us-east-2.on.aws/`
+The MCP server uses a **dual Lambda architecture** to support both MCP clients and Amazon Bedrock Agents without conflicts:
 
-#### Deployment Process
-1. **Create Deployment Package**:
-   ```bash
-   cd mcp-server
-   # Update lambda.zip with: index.js, server.js, package.json, node_modules/
-   ```
+```mermaid
+graph TB
+    A[Shared Codebase] --> B[MCP Lambda]
+    A --> C[Bedrock Lambda]
+    B --> D[MCP Clients]
+    C --> E[Bedrock Agent]
+    
+    subgraph "MCP Lambda"
+        F[index.js - Streaming Handler]
+        G[Function URL Enabled]
+    end
+    
+    subgraph "Bedrock Lambda"
+        H[bedrock.js - Direct Handler]
+        I[Direct Invocation Only]
+    end
+    
+    B --> F
+    B --> G
+    C --> H
+    C --> I
+end
+```
 
-2. **Deploy to Lambda**:
-   ```bash
-   aws lambda update-function-code --function-name blacksheep_tarot-tracker-mcp-server --zip-file fileb://lambda.zip --region us-east-2
-   ```
+#### Lambda Functions
 
-3. **Configure Function URL** (if not exists):
-   ```bash
-   aws lambda create-function-url-config --function-name blacksheep_tarot-tracker-mcp-server --auth-type NONE --cors AllowCredentials=false,AllowHeaders=Content-Type,AllowMethods=POST,AllowOrigins=* --region us-east-2
-   ```
+1. **MCP Lambda**: `blacksheep_tarot-tracker-mcp-server`
+   - **Handler**: `index.handler` (streaming required for MCP protocol)
+   - **Access**: HTTP Function URL for MCP clients
+   - **Status**: FROZEN - Only deploy when adding new tools
+   - **URL**: `https://fjmqe5vx4n6r6tklpsiyzey6ea0zuzgo.lambda-url.us-east-2.on.aws/`
+
+2. **Bedrock Lambda**: `blacksheep_tarot-tracker-bedrock`
+   - **Handler**: `bedrock.handler` (direct response for Bedrock Agent)
+   - **Access**: Direct Lambda invocation only
+   - **Status**: ACTIVE - Deploy here for all Bedrock experiments
+   - **ARN**: `arn:aws:lambda:us-east-2:944012085152:function:blacksheep_tarot-tracker-bedrock`
+
+#### Deployment Strategy
+
+**Bedrock Only** (most common):
+```bash
+aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock --zip-file fileb://lambda.zip --region us-east-2
+```
+
+**Both Functions** (only when adding tools to `server.js`):
+```bash
+# Deploy to MCP Lambda
+aws lambda update-function-code --function-name blacksheep_tarot-tracker-mcp-server --zip-file fileb://lambda.zip --region us-east-2
+
+# Deploy to Bedrock Lambda  
+aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock --zip-file fileb://lambda.zip --region us-east-2
+```
+
+#### File Structure
+```
+mcp-server/
+├── index.js           # MCP handler (PROTECTED - streaming required)
+├── bedrock.js         # Bedrock handler (ACTIVE - direct response)
+├── server.js          # Shared TarotTrackerMCPServer class
+├── package.json       # Node.js dependencies
+└── lambda.zip         # Deployment package for both functions
+```
 
 ### Testing Methods
 

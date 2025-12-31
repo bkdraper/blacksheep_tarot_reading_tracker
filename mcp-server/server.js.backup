@@ -72,7 +72,7 @@ export class TarotTrackerMCPServer {
           jsonrpc: '2.0',
           id,
           result: {
-            protocolVersion: '2025-06-18',
+            protocolVersion: '2024-11-05',
             capabilities: {
               tools: {}
             },
@@ -111,76 +111,51 @@ export class TarotTrackerMCPServer {
   }
 
   async callTool(toolName, args, forBedrock = false) {
-    console.log(`[MCP Server] callTool called with toolName: ${toolName}, args:`, JSON.stringify(args), `forBedrock: ${forBedrock}`);
     let result;
     
-    try {
-      switch (toolName) {
-        case 'get_session_summary':
-          console.log('[MCP Server] Calling getSessionSummary...');
-          result = await this.getSessionSummary(args);
-          break;
-        
-        case 'get_top_locations':
-          console.log('[MCP Server] Calling getTopLocations...');
-          result = await this.getTopLocations(args);
-          break;
-        
-        case 'get_recent_sessions':
-          console.log('[MCP Server] Calling getRecentSessions...');
-          result = await this.getRecentSessions(args);
-          break;
-        
-        case 'get_reading_records':
-          console.log('[MCP Server] Calling getReadingRecords...');
-          result = await this.getReadingRecords(args);
-          break;
-        
-        default:
-          throw new Error(`Unknown tool: ${toolName}`);
-      }
+    switch (toolName) {
+      case 'get_session_summary':
+        result = await this.getSessionSummary(args);
+        break;
       
-      console.log('[MCP Server] Tool execution completed, result:', JSON.stringify(result));
+      case 'get_top_locations':
+        result = await this.getTopLocations(args);
+        break;
       
-      // For Bedrock Agent, return the parsed JSON directly
-      if (forBedrock) {
-        console.log('[MCP Server] Parsing result for Bedrock...');
-        const parsedResult = JSON.parse(result.content[0].text);
-        console.log('[MCP Server] Parsed result for Bedrock:', JSON.stringify(parsedResult));
-        return parsedResult;
-      }
+      case 'get_recent_sessions':
+        result = await this.getRecentSessions(args);
+        break;
       
-      console.log('[MCP Server] Returning MCP format result');
-      return result;
-    } catch (error) {
-      console.error('[MCP Server] Error in callTool:', error);
-      console.error('[MCP Server] Error stack:', error.stack);
-      throw error;
+      case 'get_reading_records':
+        result = await this.getReadingRecords(args);
+        break;
+      
+      default:
+        throw new Error(`Unknown tool: ${toolName}`);
     }
+    
+    // For Bedrock Agent, return the parsed JSON directly
+    if (forBedrock) {
+      return JSON.parse(result.content[0].text);
+    }
+    
+    return result;
   }
 
   async getSessionSummary(args) {
-    console.log('[MCP Server] getSessionSummary called with args:', JSON.stringify(args));
     const { user_name, start_date, end_date } = args;
     
-    console.log('[MCP Server] Building Supabase query...');
     let query = supabase
       .from('blacksheep_reading_tracker_sessions')
       .select('*')
-      .ilike('user_name', user_name);
+      .eq('user_name', user_name);
     
     if (start_date) query = query.gte('session_date', start_date);
     if (end_date) query = query.lte('session_date', end_date);
     
-    console.log('[MCP Server] Executing Supabase query...');
     const { data, error } = await query;
     
-    if (error) {
-      console.error('[MCP Server] Supabase error:', error);
-      throw new Error(`Database error: ${error.message}`);
-    }
-    
-    console.log(`[MCP Server] Query returned ${data?.length || 0} sessions`);
+    if (error) throw new Error(`Database error: ${error.message}`);
     
     // Calculate totals with base/tips breakdown
     let totalReadings = 0;
@@ -201,23 +176,19 @@ export class TarotTrackerMCPServer {
     
     const totalEarnings = totalBaseEarnings + totalTips;
     
-    const result = {
-      user_name,
-      sessions_count: data.length,
-      total_readings: totalReadings,
-      total_base_earnings: totalBaseEarnings,
-      total_tips: totalTips,
-      total_earnings: totalEarnings,
-      average_per_session: data.length > 0 ? (totalEarnings / data.length).toFixed(2) : 0,
-      date_range: { start_date, end_date }
-    };
-    
-    console.log('[MCP Server] Calculated result:', JSON.stringify(result));
-    
     return {
       content: [{
         type: 'text',
-        text: JSON.stringify(result, null, 2)
+        text: JSON.stringify({
+          user_name,
+          sessions_count: data.length,
+          total_readings: totalReadings,
+          total_base_earnings: totalBaseEarnings,
+          total_tips: totalTips,
+          total_earnings: totalEarnings,
+          average_per_session: data.length > 0 ? (totalEarnings / data.length).toFixed(2) : 0,
+          date_range: { start_date, end_date }
+        }, null, 2)
       }]
     };
   }
@@ -228,7 +199,7 @@ export class TarotTrackerMCPServer {
     const { data, error } = await supabase
       .from('blacksheep_reading_tracker_sessions')
       .select('*')
-      .ilike('user_name', user_name);
+      .eq('user_name', user_name);
     
     if (error) throw new Error(`Database error: ${error.message}`);
     
@@ -275,7 +246,7 @@ export class TarotTrackerMCPServer {
     const { data, error } = await supabase
       .from('blacksheep_reading_tracker_sessions')
       .select('*')
-      .ilike('user_name', user_name)
+      .eq('user_name', user_name)
       .order('session_date', { ascending: false })
       .limit(limit);
     
@@ -317,7 +288,7 @@ export class TarotTrackerMCPServer {
     let query = supabase
       .from('blacksheep_reading_tracker_sessions')
       .select('*')
-      .ilike('user_name', user_name)
+      .eq('user_name', user_name)
       .order('session_date', { ascending: false });
     
     if (start_date) query = query.gte('session_date', start_date);
