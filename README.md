@@ -728,6 +728,30 @@ npm start  # Runs server on port 8080
 - **Auto-Save**: Every user action triggers save with debounced database sync
 - **Offline Support**: Graceful degradation to localStorage when database unavailable
 
+### Supabase Keepalive Strategy
+Supabase free tier pauses projects after 7 days of inactivity. To prevent data loss and maintain availability:
+
+**GitHub Actions Workflow**: Automated weekly ping to keep project active
+- **File**: `.github/workflows/supabase-keepalive.yml`
+- **Schedule**: Runs every Sunday at midnight UTC (`cron: '0 0 * * 0'`)
+- **Method**: HTTP request to Supabase REST API endpoint
+- **Manual Trigger**: Available via "Run workflow" button in GitHub Actions tab
+- **Cost**: Free (GitHub Actions free tier)
+
+**How It Works**:
+1. GitHub Actions runner executes curl command weekly
+2. Queries `blacksheep_reading_tracker_sessions` table with `limit=1`
+3. Simulates user activity to prevent project pause
+4. Uses anon key (safe to expose, same key in client-side code)
+5. External ping from GitHub's servers (not from Supabase itself)
+
+**Testing**:
+- Go to GitHub repo → Actions tab → "Supabase Keepalive"
+- Click "Run workflow" to test manually
+- Check logs for successful HTTP 200 response
+
+**Security Note**: The anon key in the workflow is the same public key used in `index.html`. It's designed to be exposed and protected by Supabase Row Level Security (RLS) policies.
+
 ## Browser Compatibility
 Designed for modern mobile browsers with support for:
 - CSS Flexbox
