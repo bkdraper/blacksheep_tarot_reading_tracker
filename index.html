@@ -1224,7 +1224,7 @@
     <header class="header">
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
-            <span class="version-badge">v3.93.3</span>
+            <span class="version-badge">v3.93.5</span>
             <button class="settings-btn" onclick="openSettingsDrawer()" title="Settings">⚙️</button>
         </div>
     </header>
@@ -1748,7 +1748,6 @@
             }
             set readings(value) {
                 this._readings = value;
-                this.migrateTimestamps();
                 this.updateReadingsList();
                 this.updateTotals();
                 this.save();
@@ -1953,50 +1952,6 @@
                     return new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 }
                 return timestamp; // Legacy format
-            }
-
-            async migrateTimestamps() {
-                if (!this._sessionId || !this._readings.length) return;
-                
-                let needsMigration = false;
-                let sessionDate = new Date().toISOString().split('T')[0]; // Fallback to today
-                
-                // Try to get actual session date from database
-                try {
-                    const { data } = await supabaseClient
-                        .from('blacksheep_reading_tracker_sessions')
-                        .select('session_date')
-                        .eq('id', this._sessionId)
-                        .single();
-                    if (data && data.session_date) {
-                        sessionDate = data.session_date;
-                    }
-                } catch (error) {
-                    // Use fallback date
-                }
-                
-                this._readings.forEach(reading => {
-                    if (!reading.timestamp.includes('T')) {
-                        needsMigration = true;
-                        const timeMatch = reading.timestamp.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-                        if (timeMatch) {
-                            let hour = parseInt(timeMatch[1]);
-                            const minute = parseInt(timeMatch[2]);
-                            const period = timeMatch[3].toUpperCase();
-                            
-                            if (period === 'PM' && hour !== 12) hour += 12;
-                            if (period === 'AM' && hour === 12) hour = 0;
-                            
-                            const fullDate = new Date(sessionDate);
-                            fullDate.setHours(hour, minute, 0, 0);
-                            reading.timestamp = fullDate.toISOString();
-                        }
-                    }
-                });
-                
-                if (needsMigration) {
-                    this.save();
-                }
             }
 
             updateTotals() {
@@ -2909,8 +2864,8 @@
                     const sessionsList = document.getElementById('sessionsList');
                     sessionsList.innerHTML = data.map(sessionData => {
                         const readingCount = sessionData.readings ? sessionData.readings.length : 0;
-                        const date = new Date(sessionData.session_date).toLocaleDateString();
-                        const dayOfWeek = new Date(sessionData.session_date).toLocaleDateString('en-US', { weekday: 'short' });
+                        const date = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString();
+                        const dayOfWeek = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString('en-US', { weekday: 'short' });
                         const baseTotal = sessionData.readings ? sessionData.readings.reduce((sum, r) => sum + (r.price || sessionData.reading_price || 0), 0) : 0;
                         const tipsTotal = sessionData.readings ? sessionData.readings.reduce((sum, reading) => sum + (reading.tip || 0), 0) : 0;
                         const grandTotal = baseTotal + tipsTotal;

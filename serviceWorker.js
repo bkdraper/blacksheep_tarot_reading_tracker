@@ -1,5 +1,5 @@
 const SERVICE_WORKER_VERSION = 'v7.0';
-const CACHE_NAME = 'app:v3.93.3-service:v7.0'; // Updated by pre-commit hook
+const CACHE_NAME = 'app:v3.93.5-service:v7.0'; // Updated by pre-commit hook
 const urlsToCache = [
   '/manifest.json',
   '/logo192.png',
