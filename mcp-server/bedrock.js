@@ -19,6 +19,27 @@ export const handler = async (event, context) => {
     const toolName = event.function;
     const args = convertBedrockParameters(event.parameters);
     
+    // Check for required parameters and use REPROMPT if missing
+    if (!args.user_name) {
+      return {
+        messageVersion: "1.0",
+        response: {
+          actionGroup: "TarotDataTools",
+          function: toolName,
+          functionResponse: {
+            responseState: "REPROMPT",
+            responseBody: {
+              "TEXT": {
+                body: "I need a user name to get their tarot reading data. Which user would you like information about?"
+              }
+            }
+          }
+        },
+        sessionAttributes: {},
+        promptSessionAttributes: {}
+      };
+    }
+    
     const result = await mcpServer.callTool(toolName, args, true);
     
     return {
@@ -27,7 +48,6 @@ export const handler = async (event, context) => {
         actionGroup: "TarotDataTools",
         function: toolName,
         functionResponse: {
-          responseState: "SUCCESS",
           responseBody: {
             "TEXT": {
               body: typeof result === 'string' ? result : JSON.stringify(result)

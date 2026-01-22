@@ -369,49 +369,128 @@ export const handler = awslambda.streamifyResponse(async (event, responseStream,
 
 ### Bedrock Agent Integration
 
-#### Planned Architecture
-The MCP server will integrate with Amazon Bedrock Agent to provide conversational AI capabilities within the tarot tracker app:
+### Bedrock Agent Integration
 
-```mermaid
-graph TB
-    A[Tarot Tracker App] --> B[Chat Interface]
-    B --> C[Bedrock Agent]
-    C --> D[MCP Lambda Function]
-    D --> E[Supabase Database]
-    
-    subgraph "Agent Configuration"
-        F[TarotTrackerAgent]
-        G[Action Group: TarotDataTools]
-        H[4 MCP Tools]
-    end
-    
-    C --> F
-    F --> G
-    G --> H
+#### Critical Response Format Requirements
+
+After extensive testing (100+ attempts over 3 days), the following Bedrock Agent response format requirements were discovered:
+
+**✅ SUCCESSFUL Response Format**:
+```javascript
+{
+  messageVersion: "1.0",
+  response: {
+    actionGroup: "TarotDataTools",
+    function: toolName,
+    functionResponse: {
+      // NO responseState field for success!
+      responseBody: {
+        "TEXT": {
+          body: "JSON data or text response"
+        }
+      }
+    }
+  },
+  sessionAttributes: {},
+  promptSessionAttributes: {}
+}
 ```
 
-#### Response Formatting Strategy
-**HTML Output Approach**: Bedrock Agent will be configured to return HTML-formatted responses for rich data display:
+**❌ FORBIDDEN**: `responseState: "SUCCESS"` - Bedrock Agent will reject this with error:
+> "responseState SUCCESS is not supported. Try providing one of FAILURE or REPROMPT"
 
-```html
-<!-- Agent Response Format -->
-<p>Here are Amanda's top locations:</p>
-<table class='data-table'>
-<thead><tr><th>Location</th><th>Earnings</th><th>Sessions</th></tr></thead>
-<tbody>
-<tr><td>Va Beach BMSE Fall 25</td><td>$1,148.71</td><td>2</td></tr>
-<tr><td>Cincinnati Fall 25</td><td>$1,013.00</td><td>2</td></tr>
-</tbody>
-</table>
-<p>She's performing really well at these locations!</p>
+**✅ REPROMPT Response Format** (missing required parameters):
+```javascript
+{
+  messageVersion: "1.0",
+  response: {
+    actionGroup: "TarotDataTools",
+    function: toolName,
+    functionResponse: {
+      responseState: "REPROMPT",
+      responseBody: {
+        "TEXT": {
+          body: "I need a user name to get their tarot reading data. Which user would you like information about?"
+        }
+      }
+    }
+  },
+  sessionAttributes: {},
+  promptSessionAttributes: {}
+}
 ```
 
-**Benefits of HTML Approach**:
-- **Zero parsing complexity** - Direct HTML insertion into chat bubbles
-- **Perfect positioning** - Tables appear exactly where intended in responses
-- **Full styling control** - CSS can style all HTML elements
-- **Multiple formats** - Supports tables, lists, code blocks, etc.
-- **Natural flow** - Works seamlessly with conversational responses
+**✅ FAILURE Response Format** (errors):
+```javascript
+{
+  messageVersion: "1.0",
+  response: {
+    actionGroup: "TarotDataTools",
+    function: toolName,
+    functionResponse: {
+      responseState: "FAILURE",
+      responseBody: {
+        "TEXT": {
+          body: "Error: Database connection failed"
+        }
+      }
+    }
+  },
+  sessionAttributes: {},
+  promptSessionAttributes: {}
+}
+```
+
+#### Response State Logic
+
+- **No `responseState`**: Tool executed successfully, return data to agent
+- **`REPROMPT`**: Tool needs more information, agent should ask follow-up questions
+- **`FAILURE`**: Tool encountered error, agent should inform user of failure
+- **`SUCCESS`**: ❌ **FORBIDDEN** - Will cause agent to fail
+
+#### Parameter Handling
+
+Bedrock Agent passes parameters as array format:
+```javascript
+// Input format from Bedrock Agent
+event.parameters = [
+  { name: "user_name", value: "Amanda" },
+  { name: "limit", value: "5" }
+]
+
+// Convert to object format for MCP server
+const args = {
+  user_name: "Amanda",
+  limit: "5"
+}
+```
+
+#### IAM Permissions Required
+
+Bedrock Agent execution role needs permission to invoke Lambda:
+```bash
+aws lambda add-permission \
+  --function-name blacksheep_tarot-tracker-bedrock \
+  --statement-id bedrock-agent-execution-role \
+  --action lambda:InvokeFunction \
+  --principal arn:aws:iam::944012085152:role/service-role/AmazonBedrockExecutionRoleForAgents_KWCJTGJ4UR \
+  --region us-east-2
+```
+
+#### Testing Workflow
+
+1. **Test Draft Version**: Always test draft before promoting to live
+2. **Verify All Tools**: Test all 4 MCP tools through Bedrock Agent
+3. **Check CloudWatch Logs**: Monitor Lambda execution logs
+4. **Promote to Live**: Update live alias after successful draft testing
+
+#### Common Pitfalls Avoided
+
+- ❌ Using `responseState: "SUCCESS"` (causes rejection)
+- ❌ Using `streamifyResponse` for direct Lambda invocation (breaks Bedrock)
+- ❌ Wrong parameter format conversion
+- ❌ Missing IAM permissions for agent execution role
+- ❌ Incorrect messageVersion or response structure
 
 ### MCP Client Integration
 
