@@ -755,6 +755,14 @@ npm start  # Runs server on port 8080
 # Access at http://192.168.5.62:8080 on local network
 ```
 
+### Git Hook Setup
+Install the pre-push hook to automatically sync service worker cache names:
+```bash
+copy pre-push-hook.sh .git\hooks\pre-push  # Windows
+cp pre-push-hook.sh .git/hooks/pre-push    # Unix/Mac
+chmod +x .git/hooks/pre-push               # Unix/Mac only
+```
+
 ### Version Management
 - **CRITICAL**: Version number MUST be bumped on every code change
 - Version displayed in header bar for cache-busting
