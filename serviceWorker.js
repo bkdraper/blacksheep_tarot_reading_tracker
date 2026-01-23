@@ -1,5 +1,5 @@
-const SERVICE_WORKER_VERSION = 'v7.0';
-const CACHE_NAME = 'app:v3.93.5-service:v7.0'; // Updated by pre-commit hook
+const SERVICE_WORKER_VERSION = 'v7.2';
+const CACHE_NAME = 'app:v3.94.1-service:v7.2'; // Updated by pre-push hook
 const urlsToCache = [
   '/manifest.json',
   '/logo192.png',
@@ -152,5 +152,14 @@ async function backupReadings() {
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    event.waitUntil(
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => caches.delete(cacheName))
+        );
+      })
+    );
   }
 });

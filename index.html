@@ -1218,13 +1218,179 @@
             cursor: not-allowed;
             opacity: 0.6;
         }
+        
+        /* ========================================
+           GPSY CHAT STYLES
+           ======================================== */
+        .gpsy-drawer {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 100%;
+            height: 100dvh;
+            background: white;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.3);
+            z-index: 3000;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .gpsy-drawer.open {
+            right: 0;
+        }
+        .gpsy-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #28a745;
+            color: white;
+            flex-shrink: 0;
+        }
+        .gpsy-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .gpsy-messages {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-height: 0;
+        }
+        .gpsy-message {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .gpsy-message.user {
+            flex-direction: row-reverse;
+        }
+        .gpsy-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #28a745;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .gpsy-message.user .gpsy-avatar {
+            background: #007bff;
+        }
+        .gpsy-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            background: #f0f0f0;
+            word-wrap: break-word;
+        }
+        .gpsy-message.user .gpsy-bubble {
+            background: #007bff;
+            color: white;
+        }
+        .gpsy-input-container {
+            padding: 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .gpsy-input-container input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ccc;
+            border-radius: 24px;
+            font-size: 16px;
+        }
+        .gpsy-send-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 16px;
+            cursor: pointer;
+            min-height: 44px;
+        }
+        .tracker-buddy-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            min-height: 60px;
+        }
+        .tracker-buddy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+        }
+        .gpsy-thinking {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+        .gpsy-thinking span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #999;
+            animation: thinking 1.4s infinite;
+        }
+        .gpsy-thinking span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .gpsy-thinking span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes thinking {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        /* Dark mode for Gpsy */
+        body.dark-mode .gpsy-drawer {
+            background: #2d2d2d;
+            color: #ffffff;
+        }
+        body.dark-mode .gpsy-header {
+            background: #1a4d2e;
+        }
+        body.dark-mode .gpsy-bubble {
+            background: #3d3d3d;
+            color: #ffffff;
+        }
+        body.dark-mode .gpsy-message.user .gpsy-bubble {
+            background: #0056b3;
+        }
+        body.dark-mode .gpsy-input-container input {
+            background: #3d3d3d;
+            color: #ffffff;
+            border-color: #555;
+        }
     </style>
 </head>
 <body>
     <header class="header">
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
-            <span class="version-badge">v3.93.5</span>
+            <span class="version-badge">v3.94.2</span>
             <button class="settings-btn" onclick="openSettingsDrawer()" title="Settings">⚙️</button>
         </div>
     </header>
@@ -1456,6 +1622,20 @@
         </div>
     </div>
 
+    <!-- Gpsy Chat Drawer -->
+    <div id="gpsyOverlay" class="settings-overlay" onclick="closeGpsyChat()"></div>
+    <div id="gpsyDrawer" class="gpsy-drawer">
+        <div class="gpsy-header">
+            <h2>🐑 Gpsy</h2>
+            <button class="modal-close" onclick="closeGpsyChat()">×</button>
+        </div>
+        <div id="gpsyMessages" class="gpsy-messages"></div>
+        <div class="gpsy-input-container">
+            <input type="text" id="gpsyInput" placeholder="Ask about your readings..." onkeydown="if(event.key==='Enter') sendGpsyMessage()">
+            <button onclick="sendGpsyMessage()" class="gpsy-send-btn">Send</button>
+        </div>
+    </div>
+
     <!-- Settings Drawer -->
     <div id="settingsOverlay" class="settings-overlay" onclick="closeSettingsDrawer()"></div>
     <div id="settingsDrawer" class="settings-drawer">
@@ -1464,6 +1644,14 @@
             <button class="modal-close" onclick="closeSettingsDrawer()">×</button>
         </div>
         <div class="settings-drawer-content">
+            <!-- My Tracker Buddy -->
+            <div class="settings-section" style="border-bottom: 2px solid #ddd; padding-bottom: 20px; margin-bottom: 20px;">
+                <button class="tracker-buddy-btn" onclick="openGpsyChat()">
+                    <span style="font-size: 24px;">🐑</span>
+                    <span style="font-size: 16px; font-weight: 600;">My Tracker Buddy</span>
+                </button>
+            </div>
+
             <!-- App Preferences -->
             <div class="settings-section">
                 <h3>App Preferences</h3>
@@ -1603,6 +1791,13 @@
                         <div class="setting-description">Manually check for new app versions</div>
                     </div>
                     <button class="settings-button" onclick="checkForUpdates()">Check</button>
+                </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Clear Cache</div>
+                        <div class="setting-description">Clear all cached files and reload</div>
+                    </div>
+                    <button class="settings-button" onclick="clearCache()">Clear</button>
                 </div>
             </div>
         </div>
@@ -3307,6 +3502,20 @@
             }
         }
 
+        function clearCache() {
+            if (settings.get('haptic')) vibrate([50]);
+            
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
+                showSnackbar('Cache cleared! Reloading...', 'success');
+                setTimeout(() => {
+                    window.location.reload(true);
+                }, 1000);
+            } else {
+                showSnackbar('Service worker not available', 'error');
+            }
+        }
+
         function startAlarm() {
             playAlarmSequence();
             alarmInterval = setInterval(() => {
@@ -4248,6 +4457,141 @@
         }
         
 
+    </script>
+    
+    <script>
+        // ========================================
+        // GPSY CHAT FUNCTIONALITY
+        // ========================================
+        
+        class GpsyChat {
+            constructor() {
+                this.messages = [];
+                this.sessionId = crypto.randomUUID();
+                this.apiEndpoint = 'YOUR_API_GATEWAY_ENDPOINT'; // TODO: Replace with actual endpoint
+            }
+            
+            addMessage(role, content) {
+                this.messages.push({ role, content, timestamp: new Date() });
+                this.renderMessages();
+            }
+            
+            renderMessages() {
+                const container = document.getElementById('gpsyMessages');
+                container.innerHTML = this.messages.map(msg => {
+                    const isUser = msg.role === 'user';
+                    const avatar = isUser ? '👤' : '🐑';
+                    return `
+                        <div class="gpsy-message ${isUser ? 'user' : 'assistant'}">
+                            <div class="gpsy-avatar">${avatar}</div>
+                            <div class="gpsy-bubble">${this.formatContent(msg.content)}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Scroll to bottom
+                container.scrollTop = container.scrollHeight;
+            }
+            
+            formatContent(content) {
+                // Basic HTML rendering (tables, lists, etc.)
+                return content.replace(/\n/g, '<br>');
+            }
+            
+            showThinking() {
+                const container = document.getElementById('gpsyMessages');
+                const thinkingDiv = document.createElement('div');
+                thinkingDiv.className = 'gpsy-message assistant';
+                thinkingDiv.id = 'gpsy-thinking';
+                thinkingDiv.innerHTML = `
+                    <div class="gpsy-avatar">🐑</div>
+                    <div class="gpsy-bubble gpsy-thinking">
+                        <span></span><span></span><span></span>
+                    </div>
+                `;
+                container.appendChild(thinkingDiv);
+                container.scrollTop = container.scrollHeight;
+            }
+            
+            hideThinking() {
+                const thinking = document.getElementById('gpsy-thinking');
+                if (thinking) thinking.remove();
+            }
+            
+            async sendMessage(userMessage) {
+                if (!userMessage.trim()) return;
+                
+                // Add user message
+                this.addMessage('user', userMessage);
+                
+                // Show thinking indicator
+                this.showThinking();
+                
+                try {
+                    // TODO: Replace with actual API call
+                    // const response = await fetch(this.apiEndpoint, {
+                    //     method: 'POST',
+                    //     headers: { 'Content-Type': 'application/json' },
+                    //     body: JSON.stringify({
+                    //         message: userMessage,
+                    //         sessionId: this.sessionId,
+                    //         user: session.user
+                    //     })
+                    // });
+                    // const data = await response.json();
+                    
+                    // Dummy responses for testing
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    const dummyResponses = [
+                        "I can help you analyze your tarot reading sessions! Try asking about earnings, locations, or comparisons.",
+                        "Once connected, I'll be able to show you detailed reports with tables and charts.",
+                        "I'm Gpsy, your tracker buddy! I'll help you understand your reading patterns and earnings.",
+                        "Great question! When I'm connected to the backend, I'll give you detailed insights about that.",
+                        "I can compare months, analyze locations, and track your best performing days!"
+                    ];
+                    const mockResponse = dummyResponses[Math.floor(Math.random() * dummyResponses.length)];
+                    
+                    this.hideThinking();
+                    this.addMessage('assistant', mockResponse);
+                    
+                } catch (error) {
+                    this.hideThinking();
+                    this.addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+                    console.error('Gpsy error:', error);
+                }
+            }
+        }
+        
+        // Initialize Gpsy chat
+        const gpsyChat = new GpsyChat();
+        
+        function openGpsyChat() {
+            vibrate([50]);
+            document.getElementById('gpsyOverlay').classList.add('open');
+            document.getElementById('gpsyDrawer').classList.add('open');
+            
+            // Show welcome message if first time
+            if (gpsyChat.messages.length === 0) {
+                gpsyChat.addMessage('assistant', "Hi, I'm Gpsy. How can I help?");
+            }
+        }
+        
+        function closeGpsyChat() {
+            vibrate([30]);
+            document.getElementById('gpsyOverlay').classList.remove('open');
+            document.getElementById('gpsyDrawer').classList.remove('open');
+        }
+        
+        function sendGpsyMessage() {
+            vibrate([30]);
+            const input = document.getElementById('gpsyInput');
+            const message = input.value.trim();
+            
+            if (message) {
+                gpsyChat.sendMessage(message);
+                input.value = '';
+            }
+        }
     </script>
 </body>
 </html>
