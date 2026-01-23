@@ -11,6 +11,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 - Session management with cloud persistence
 - Timer functionality for reading sessions
 - Multi-user support with data separation
+- AI chat assistant (Gpsy) for data queries and insights
 
 ## Architecture Overview
 
@@ -126,6 +127,98 @@ Session state:
 7. **Real-time Totals**: Automatic calculation of all totals with fallback pricing
 8. **Countdown Timer**: Comprehensive timer with audio alarms and visual warnings
 9. **Report Generation**: Create summary reports with grouping and totals
+
+### Gpsy Chat Assistant (Bedrock Agent Integration)
+
+#### Overview
+Gpsy is an AI-powered chat assistant integrated into the tarot tracker app, providing natural language access to session data and insights.
+
+#### Architecture
+```mermaid
+graph TB
+    A[User Browser] --> B[Gpsy Chat UI]
+    B --> C[Chat Proxy Lambda]
+    C --> D[Bedrock Agent]
+    D --> E[Bedrock Lambda]
+    E --> F[MCP Server Tools]
+    F --> G[Supabase Database]
+    
+    subgraph "Frontend"
+        B
+        H[GpsyChat Class]
+        B --> H
+    end
+    
+    subgraph "AWS Backend"
+        C
+        D
+        E
+    end
+```
+
+#### Key Features
+- **Natural Language Queries**: Ask questions in plain English about session data
+- **User Context Awareness**: Automatically uses selected user's data
+- **HTML Response Formatting**: Tables and formatted data in chat bubbles
+- **Animated Logo Avatar**: Black Sheep Gypsies logo with pulse animation
+- **Session Persistence**: Maintains conversation context across queries
+- **Claude 3.5 Haiku**: Powered by Amazon Bedrock's Claude model
+
+#### Technical Implementation
+
+**Frontend (GpsyChat Class)**:
+- SMS-style chat interface with message bubbles
+- User avatar (👤) and Gpsy avatar (animated logo)
+- Thinking indicator with bouncing logo animation
+- HTML content rendering for tables and formatted responses
+- Automatic scrolling to latest messages
+
+**Chat Proxy Lambda**:
+- **Function**: `blacksheep_tarot-tracker-bedrock-chat-proxy`
+- **Handler**: ES6 module format (index.handler)
+- **Function URL**: `https://57h2jhw5tcjn35yzuitv4zjmfu0snuom.lambda-url.us-east-2.on.aws/`
+- **User Context Injection**: Prepends user context to messages
+- **Timeout**: 30 seconds for complex queries
+- **CORS**: Handled automatically by Function URL
+
+**User Context Injection**:
+```javascript
+const contextMessage = `[User context: The user asking this question is ${userName}. When they say "my" or "I", they mean ${userName}'s data.]`;
+const fullMessage = `${contextMessage}\n\n${userMessage}`;
+```
+
+**Bedrock Agent Configuration**:
+- **Agent ID**: 0LC3MUMHNN
+- **Alias ID**: CYVKITJVFL (version 2, "live" alias)
+- **Model**: Claude 3.5 Haiku
+- **Region**: us-east-2
+- **Action Group**: TarotDataTools (calls Bedrock Lambda)
+- **Instructions**: Configured to infer parameters and return HTML tables
+
+**Response Format**:
+- Agent returns HTML-formatted responses
+- Tables with borders, padding, and rounded corners
+- Dark mode support for chat interface
+- Color-coded snackbars for system messages
+
+#### Usage Examples
+- "What were my best two locations?"
+- "How did I do in Denver?"
+- "Show me my recent sessions"
+- "What's my total earnings this month?"
+- "Which payment method do I use most?"
+
+#### CSS Styling
+- Full-width drawer on mobile (100% width)
+- Animated logo avatars with pulse and bounce effects
+- Table styling with 8px rounded corners
+- Dark mode support throughout
+- Z-index hierarchy: Snackbars (3000) > Gpsy Drawer (3000) > Sheets (2001)
+
+#### Lambda Permissions
+- **Execution Role**: lambda-execution-role
+- **Policies**: AmazonBedrockFullAccess for agent invocation
+- **Agent Permission**: Bedrock agent execution role can invoke Bedrock Lambda
 
 ### Timer Features
 - **Canvas Display**: 300x300px circular countdown with 72px text

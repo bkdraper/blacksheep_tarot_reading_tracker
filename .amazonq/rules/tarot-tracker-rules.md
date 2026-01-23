@@ -84,6 +84,15 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 
 ## Features
 
+### Gpsy Chat Assistant
+- **AI-Powered Queries**: Natural language interface for data analysis
+- **User Context Awareness**: Automatically uses selected user's data
+- **Bedrock Agent Integration**: Powered by Amazon Bedrock with Claude 3.5 Haiku
+- **HTML Response Formatting**: Tables and formatted data in chat bubbles
+- **Animated Logo Avatar**: Black Sheep Gypsies logo with pulse animation
+- **Session Persistence**: Maintains conversation context across queries
+- **Lambda Proxy**: Chat requests routed through AWS Lambda to Bedrock Agent
+
 ### Session Management
 1. **Session Phases**: SETUP → READY_TO_CREATE → ACTIVE lifecycle
 2. **Session Creation**: Location + day selection creates unique sessions
@@ -343,6 +352,7 @@ aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock
 
 ## Development Notes
 - **Version bumping**: MUST increment version number on every code change
+- **Current version**: v3.94.5 (includes Gpsy chat integration)
 - **Git hook setup**: Run `copy pre-push-hook.sh .git\hooks\pre-push` (Windows) or `cp pre-push-hook.sh .git/hooks/pre-push && chmod +x .git/hooks/pre-push` (Unix/Mac) to auto-sync cache names
 - Version timestamp in upper right corner for cache-busting during development
 - Cache-control meta tags to prevent browser caching during development
@@ -460,6 +470,11 @@ aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock
 - `.settings-btn`: Header settings button with hover effects
 - `.settings-drawer`: Comprehensive settings panel with sections
 - `.settings-select`: Dropdown inputs in settings (80px min-width for narrow screens)
+- `.gpsy-drawer`: Full-width chat drawer (100% width, z-index 3000)
+- `.gpsy-avatar`: 32px circular avatar with animated logo
+- `.gpsy-bubble`: Chat message bubbles with HTML content support
+- `.tracker-buddy-btn`: Gradient button with animated logo avatar
+- `.gpsy-thinking`: Animated thinking indicator with bouncing logo
 - `.timer-canvas-container`: Flex container for canvas centering
 - `.timer-canvas`: 300x300px canvas, border: none, padding: 0, margin: 0
 - `.start-btn`: flex:3, 70px height, prominent green styling

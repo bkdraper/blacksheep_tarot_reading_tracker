@@ -23,12 +23,12 @@ export class TarotTrackerMCPServer {
       },
       {
         name: 'get_top_locations',
-        description: 'Get best performing locations by earnings',
+        description: 'Get best performing locations by earnings. If limit is not specified, defaults to 5 locations.',
         inputSchema: {
           type: 'object',
           properties: {
             user_name: { type: 'string', description: 'User name' },
-            limit: { type: 'number', description: 'Number of locations to return', default: 5 }
+            limit: { type: 'number', description: 'Number of locations to return (optional, defaults to 5)' }
           },
           required: ['user_name']
         }

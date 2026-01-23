@@ -40,6 +40,11 @@ export const handler = async (event, context) => {
       };
     }
     
+    // Set default limit for top_locations if not provided
+    if (toolName === 'get_top_locations' && !args.limit) {
+      args.limit = 5;
+    }
+    
     const result = await mcpServer.callTool(toolName, args, true);
     
     return {

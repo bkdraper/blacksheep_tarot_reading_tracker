@@ -15,6 +15,7 @@
     <link rel="icon" type="image/png" id="favicon" href="/logo192.png">
 
     <title>Tarot Reading Tracker</title>
+
     <script>
         // Global app title variable
         function isDevelopmentMode() {
@@ -1281,6 +1282,24 @@
             justify-content: center;
             font-size: 18px;
             flex-shrink: 0;
+            overflow: hidden;
+        }
+        .gpsy-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            animation: gpsyPulse 2s ease-in-out infinite;
+        }
+        .gpsy-avatar.thinking img {
+            animation: gpsyBounce 0.6s ease-in-out infinite;
+        }
+        @keyframes gpsyPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        @keyframes gpsyBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
         }
         .gpsy-message.user .gpsy-avatar {
             background: #007bff;
@@ -1376,6 +1395,42 @@
             background: #3d3d3d;
             color: #ffffff;
         }
+        
+        /* Bedrock response table styling */
+        .gpsy-bubble table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 10px 0;
+            font-size: 14px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+        .gpsy-bubble th,
+        .gpsy-bubble td {
+            border-bottom: 1px solid #ddd;
+            border-right: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .gpsy-bubble th:last-child,
+        .gpsy-bubble td:last-child {
+            border-right: none;
+        }
+        .gpsy-bubble tr:last-child td {
+            border-bottom: none;
+        }
+        .gpsy-bubble th {
+            font-weight: bold;
+        }
+        body.dark-mode .gpsy-bubble table {
+            border-color: #555;
+        }
+        body.dark-mode .gpsy-bubble td,
+        body.dark-mode .gpsy-bubble th {
+            border-color: #555;
+        }
         body.dark-mode .gpsy-message.user .gpsy-bubble {
             background: #0056b3;
         }
@@ -1390,7 +1445,7 @@
     <header class="header">
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
-            <span class="version-badge">v3.94.2</span>
+            <span class="version-badge">v3.94.5</span>
             <button class="settings-btn" onclick="openSettingsDrawer()" title="Settings">⚙️</button>
         </div>
     </header>
@@ -1626,7 +1681,12 @@
     <div id="gpsyOverlay" class="settings-overlay" onclick="closeGpsyChat()"></div>
     <div id="gpsyDrawer" class="gpsy-drawer">
         <div class="gpsy-header">
-            <h2>🐑 Gpsy</h2>
+            <h2 style="display: flex; align-items: center; gap: 10px;">
+                <div class="gpsy-avatar" style="width: 28px; height: 28px; background: transparent;">
+                    <img src="" id="gpsyHeaderLogo" alt="Gpsy">
+                </div>
+                Gpsy
+            </h2>
             <button class="modal-close" onclick="closeGpsyChat()">×</button>
         </div>
         <div id="gpsyMessages" class="gpsy-messages"></div>
@@ -1647,7 +1707,9 @@
             <!-- My Tracker Buddy -->
             <div class="settings-section" style="border-bottom: 2px solid #ddd; padding-bottom: 20px; margin-bottom: 20px;">
                 <button class="tracker-buddy-btn" onclick="openGpsyChat()">
-                    <span style="font-size: 24px;">🐑</span>
+                    <div class="gpsy-avatar" style="width: 32px; height: 32px; background: transparent;">
+                        <img src="" id="buddyLogo" alt="Gpsy">
+                    </div>
                     <span style="font-size: 16px; font-weight: 600;">My Tracker Buddy</span>
                 </button>
             </div>
@@ -1804,6 +1866,7 @@
     </div>
 
     <script src="https://unpkg.com/@supabase/supabase-js@2?v=2"></script>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1691.0.min.js"></script>
     <script>
         // Supabase configuration
         const SUPABASE_URL = 'https://uuindvqgdblkjzvjsyrz.supabase.co';
@@ -3718,6 +3781,10 @@
             const defaultMinutes = settings.get('defaultTimer');
             document.getElementById('timerInput').value = defaultMinutes;
             timer.seconds = defaultMinutes * 60;
+            
+            // Set buddy logo and header logo
+            document.getElementById('buddyLogo').src = window.APP_LOGO;
+            document.getElementById('gpsyHeaderLogo').src = window.APP_LOGO;
         });
 
         document.getElementById('price').addEventListener('input', function() {
@@ -4480,7 +4547,9 @@
                 const container = document.getElementById('gpsyMessages');
                 container.innerHTML = this.messages.map(msg => {
                     const isUser = msg.role === 'user';
-                    const avatar = isUser ? '👤' : '🐑';
+                    const avatar = isUser 
+                        ? '👤' 
+                        : `<img src="${window.APP_LOGO}" alt="Gpsy">`;
                     return `
                         <div class="gpsy-message ${isUser ? 'user' : 'assistant'}">
                             <div class="gpsy-avatar">${avatar}</div>
@@ -4494,8 +4563,8 @@
             }
             
             formatContent(content) {
-                // Basic HTML rendering (tables, lists, etc.)
-                return content.replace(/\n/g, '<br>');
+                // Wrap content in styled container
+                return `<div style="max-height: 400px; overflow-y: auto;">${content}</div>`;
             }
             
             showThinking() {
@@ -4504,7 +4573,7 @@
                 thinkingDiv.className = 'gpsy-message assistant';
                 thinkingDiv.id = 'gpsy-thinking';
                 thinkingDiv.innerHTML = `
-                    <div class="gpsy-avatar">🐑</div>
+                    <div class="gpsy-avatar thinking"><img src="${window.APP_LOGO}" alt="Gpsy"></div>
                     <div class="gpsy-bubble gpsy-thinking">
                         <span></span><span></span><span></span>
                     </div>
@@ -4521,38 +4590,62 @@
             async sendMessage(userMessage) {
                 if (!userMessage.trim()) return;
                 
+                // Check if user is selected
+                if (!session.user) {
+                    this.addMessage('user', userMessage);
+                    this.addMessage('assistant', 'Please select a user first before asking questions.');
+                    return;
+                }
+                
                 // Add user message
                 this.addMessage('user', userMessage);
+                
+                // Check for test keyword - intercept before sending to agent
+                if (userMessage.toLowerCase() === 'table') {
+                    const testTable = `<table>
+                        <thead>
+                            <tr>
+                                <th>Location</th>
+                                <th>Base Earnings</th>
+                                <th>Tips</th>
+                                <th>Total Earnings</th>
+                                <th>Sessions</th>
+                                <th>Readings</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Va Beach BMSE Fall 25</td>
+                                <td>$950.00</td>
+                                <td>$198.71</td>
+                                <td>$1,148.71</td>
+                                <td>2</td>
+                                <td>19</td>
+                            </tr>
+                        </tbody>
+                    </table>`;
+                    this.addMessage('assistant', testTable);
+                    return;
+                }
                 
                 // Show thinking indicator
                 this.showThinking();
                 
                 try {
-                    // TODO: Replace with actual API call
-                    // const response = await fetch(this.apiEndpoint, {
-                    //     method: 'POST',
-                    //     headers: { 'Content-Type': 'application/json' },
-                    //     body: JSON.stringify({
-                    //         message: userMessage,
-                    //         sessionId: this.sessionId,
-                    //         user: session.user
-                    //     })
-                    // });
-                    // const data = await response.json();
+                    const response = await fetch('https://57h2jhw5tcjn35yzuitv4zjmfu0snuom.lambda-url.us-east-2.on.aws/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            message: userMessage,
+                            sessionId: this.sessionId,
+                            userName: session.user
+                        })
+                    });
                     
-                    // Dummy responses for testing
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                    const dummyResponses = [
-                        "I can help you analyze your tarot reading sessions! Try asking about earnings, locations, or comparisons.",
-                        "Once connected, I'll be able to show you detailed reports with tables and charts.",
-                        "I'm Gpsy, your tracker buddy! I'll help you understand your reading patterns and earnings.",
-                        "Great question! When I'm connected to the backend, I'll give you detailed insights about that.",
-                        "I can compare months, analyze locations, and track your best performing days!"
-                    ];
-                    const mockResponse = dummyResponses[Math.floor(Math.random() * dummyResponses.length)];
+                    const data = await response.json();
                     
                     this.hideThinking();
-                    this.addMessage('assistant', mockResponse);
+                    this.addMessage('assistant', data.response || 'No response received');
                     
                 } catch (error) {
                     this.hideThinking();
