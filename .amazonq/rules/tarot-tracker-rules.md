@@ -343,6 +343,7 @@ aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock
 
 ## Development Notes
 - **Version bumping**: MUST increment version number on every code change
+- **Git hook setup**: Run `copy pre-push-hook.sh .git\hooks\pre-push` (Windows) or `cp pre-push-hook.sh .git/hooks/pre-push && chmod +x .git/hooks/pre-push` (Unix/Mac) to auto-sync cache names
 - Version timestamp in upper right corner for cache-busting during development
 - Cache-control meta tags to prevent browser caching during development
 - Server runs on port 8080, accessible at http://192.168.5.62:8080 on local network
