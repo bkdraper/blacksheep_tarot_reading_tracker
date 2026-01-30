@@ -163,6 +163,7 @@ graph TB
 - **Animated Logo Avatar**: Black Sheep Gypsies logo with pulse animation
 - **Session Persistence**: Maintains conversation context across queries
 - **Claude 3.5 Haiku**: Powered by Amazon Bedrock's Claude model
+- **Follow-Up Suggestions**: Clickable suggestion buttons for contextual data exploration
 
 #### Technical Implementation
 
@@ -172,6 +173,8 @@ graph TB
 - Thinking indicator with bouncing logo animation
 - HTML content rendering for tables and formatted responses
 - Automatic scrolling to latest messages
+- Clickable suggestion buttons with data-prompt attributes
+- Dynamic onclick handler attachment after DOM insertion
 
 **Chat Proxy Lambda**:
 - **Function**: `blacksheep_tarot-tracker-bedrock-chat-proxy`
@@ -214,6 +217,7 @@ const fullMessage = `${contextMessage}\n\n${userMessage}`;
 - Table styling with 8px rounded corners
 - Dark mode support throughout
 - Z-index hierarchy: Snackbars (3000) > Gpsy Drawer (3000) > Sheets (2001)
+- Suggestion buttons: Purple borders (#7c3aed), bold text, hover effects with shadows
 
 #### Lambda Permissions
 - **Execution Role**: lambda-execution-role

@@ -24,10 +24,10 @@
     "use_aws",
     "execute_bash",
     "fs_write",
-    "@reading_tracker/get_session_summary",
-    "@reading_tracker/get_top_locations",
-    "@reading_tracker/get_recent_sessions",
-    "@reading_tracker/get_reading_records"
+    "@reading_tracker/list_sessions",
+    "@reading_tracker/list_readings",
+    "@reading_tracker/search_locations",
+    "@reading_tracker/aggregate_readings"
   ],
   "toolsSettings": {
     "use_aws": {

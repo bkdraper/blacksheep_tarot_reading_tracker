@@ -1396,8 +1396,63 @@
             color: #ffffff;
         }
         
-        /* Bedrock response table styling */
-        .gpsy-bubble table {
+        /* Bedrock suggestion buttons */
+        .bedrock-suggestions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .bedrock-suggestion {
+            background: #f8f9fa;
+            border: 2px solid #7c3aed;
+            padding: 10px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #333;
+        }
+        .bedrock-suggestion:hover {
+            background: #ede9fe;
+            border-color: #6d28d9;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+        }
+        .bedrock-suggestion:active {
+            transform: translateY(0);
+        }
+        
+        body.dark-mode .bedrock-suggestions {
+            border-top-color: #555;
+        }
+        body.dark-mode .bedrock-suggestion {
+            background: #3d3d3d;
+            border-color: #a78bfa;
+            color: #ffffff;
+        }
+        body.dark-mode .bedrock-suggestion:hover {
+            background: #4d4d4d;
+            border-color: #c4b5fd;
+            box-shadow: 0 2px 8px rgba(167, 139, 250, 0.3);
+        }
+        
+        /* Bedrock response styling */
+        .bedrock-response {
+            margin: 10px 0;
+        }
+        .bedrock-section {
+            font-size: 17px;
+            font-weight: bold;
+            margin: 12px 0 10px 0;
+            color: #111;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 4px;
+        }
+        .bedrock-table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
@@ -1407,28 +1462,129 @@
             overflow: hidden;
             border: 1px solid #ddd;
         }
-        .gpsy-bubble th,
-        .gpsy-bubble td {
+        .bedrock-header {
+            background: #e0e0e0;
+            font-weight: bold;
+            padding: 10px 8px;
+            text-align: left;
+            border-bottom: 2px solid #ccc;
+            border-right: 1px solid #ddd;
+            font-size: 15px;
+            color: #222;
+        }
+        .bedrock-header:last-child {
+            border-right: none;
+        }
+        .bedrock-cell {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            border-right: 1px solid #ddd;
+            text-align: left;
+            background: white;
+        }
+        .bedrock-cell:last-child {
+            border-right: none;
+        }
+        .bedrock-table tr:last-child .bedrock-cell {
+            border-bottom: none;
+        }
+        .bedrock-currency {
+            font-weight: 500;
+            color: #28a745;
+        }
+        .bedrock-total {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .bedrock-list {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .bedrock-item {
+            margin: 5px 0;
+        }
+        .bedrock-highlight {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .bedrock-insight {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .bedrock-footnote {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        /* Legacy table support */
+        .gpsy-bubble table:not(.bedrock-table) {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 10px 0;
+            font-size: 14px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+        .gpsy-bubble th:not(.bedrock-header),
+        .gpsy-bubble td:not(.bedrock-cell) {
             border-bottom: 1px solid #ddd;
             border-right: 1px solid #ddd;
             padding: 8px;
             text-align: left;
         }
-        .gpsy-bubble th:last-child,
-        .gpsy-bubble td:last-child {
+        .gpsy-bubble th:last-child:not(.bedrock-header),
+        .gpsy-bubble td:last-child:not(.bedrock-cell) {
             border-right: none;
         }
-        .gpsy-bubble tr:last-child td {
+        .gpsy-bubble tr:last-child td:not(.bedrock-cell) {
             border-bottom: none;
         }
-        .gpsy-bubble th {
+        .gpsy-bubble th:not(.bedrock-header) {
             font-weight: bold;
         }
-        body.dark-mode .gpsy-bubble table {
+        
+        /* Dark mode */
+        body.dark-mode .bedrock-section {
+            color: #ffffff;
+        }
+        body.dark-mode .bedrock-table {
             border-color: #555;
         }
-        body.dark-mode .gpsy-bubble td,
-        body.dark-mode .gpsy-bubble th {
+        body.dark-mode .bedrock-header {
+            background: #4a4a4a;
+            border-color: #666;
+            color: #ffffff;
+            font-size: 15px;
+        }
+        body.dark-mode .bedrock-cell {
+            border-color: #555;
+            color: #ffffff;
+            background: #2d2d2d;
+        }
+        body.dark-mode .bedrock-insight {
+            background: #3d3d3d;
+            border-color: #007bff;
+            color: #ffffff;
+        }
+        body.dark-mode .bedrock-footnote {
+            color: #aaa;
+            border-top-color: #555;
+        }
+        body.dark-mode .gpsy-bubble table:not(.bedrock-table) {
+            border-color: #555;
+        }
+        body.dark-mode .gpsy-bubble td:not(.bedrock-cell),
+        body.dark-mode .gpsy-bubble th:not(.bedrock-header) {
             border-color: #555;
         }
         body.dark-mode .gpsy-message.user .gpsy-bubble {
@@ -4558,12 +4714,23 @@
                     `;
                 }).join('');
                 
+                // Attach onclick handlers to suggestion buttons
+                container.querySelectorAll('.bedrock-suggestion').forEach(btn => {
+                    btn.onclick = () => {
+                        const prompt = btn.getAttribute('data-prompt');
+                        if (prompt) {
+                            document.getElementById('gpsyInput').value = prompt;
+                            sendGpsyMessage();
+                        }
+                    };
+                });
+                
                 // Scroll to bottom
                 container.scrollTop = container.scrollHeight;
             }
             
             formatContent(content) {
-                // Wrap content in styled container
+                // Return HTML directly - onclick handlers will be attached after render
                 return `<div style="max-height: 400px; overflow-y: auto;">${content}</div>`;
             }
             
@@ -4600,31 +4767,111 @@
                 // Add user message
                 this.addMessage('user', userMessage);
                 
-                // Check for test keyword - intercept before sending to agent
-                if (userMessage.toLowerCase() === 'table') {
-                    const testTable = `<table>
-                        <thead>
-                            <tr>
-                                <th>Location</th>
-                                <th>Base Earnings</th>
-                                <th>Tips</th>
-                                <th>Total Earnings</th>
-                                <th>Sessions</th>
-                                <th>Readings</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Va Beach BMSE Fall 25</td>
-                                <td>$950.00</td>
-                                <td>$198.71</td>
-                                <td>$1,148.71</td>
-                                <td>2</td>
-                                <td>19</td>
-                            </tr>
-                        </tbody>
-                    </table>`;
+                // Check for test keywords - intercept before sending to agent
+                const lowerMessage = userMessage.toLowerCase();
+                
+                if (lowerMessage === 'table') {
+                    const testTable = `<div class="bedrock-response">
+                        <div class="bedrock-section">Top 3 Locations by Earnings</div>
+                        <table class="bedrock-table">
+                            <thead>
+                                <tr>
+                                    <th class="bedrock-header">Location</th>
+                                    <th class="bedrock-header">Base Earnings</th>
+                                    <th class="bedrock-header">Tips</th>
+                                    <th class="bedrock-header">Total Earnings</th>
+                                    <th class="bedrock-header">Sessions</th>
+                                    <th class="bedrock-header">Readings</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="bedrock-cell">Va Beach BMSE Fall 25</td>
+                                    <td class="bedrock-cell bedrock-currency">$950.00</td>
+                                    <td class="bedrock-cell bedrock-currency">$198.71</td>
+                                    <td class="bedrock-cell bedrock-currency bedrock-total">$1,148.71</td>
+                                    <td class="bedrock-cell">2</td>
+                                    <td class="bedrock-cell">19</td>
+                                </tr>
+                                <tr>
+                                    <td class="bedrock-cell">Cincinnati Fall 25</td>
+                                    <td class="bedrock-cell bedrock-currency">$320.00</td>
+                                    <td class="bedrock-cell bedrock-currency">$45.00</td>
+                                    <td class="bedrock-cell bedrock-currency bedrock-total">$365.00</td>
+                                    <td class="bedrock-cell">1</td>
+                                    <td class="bedrock-cell">8</td>
+                                </tr>
+                                <tr>
+                                    <td class="bedrock-cell">Denver Fall 25</td>
+                                    <td class="bedrock-cell bedrock-currency">$300.00</td>
+                                    <td class="bedrock-cell bedrock-currency">$37.50</td>
+                                    <td class="bedrock-cell bedrock-currency bedrock-total">$337.50</td>
+                                    <td class="bedrock-cell">1</td>
+                                    <td class="bedrock-cell">10</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="bedrock-insight">
+                            <strong>Insight:</strong> Va Beach BMSE Fall 25 is your <span class="bedrock-highlight">top performing location</span> with $1,148.71 in total earnings across 2 sessions.
+                        </div>
+                        <div class="bedrock-suggestions">
+                            <button class="bedrock-suggestion" data-prompt="Show me worst 3 locations by earnings">Worst 3 locations</button>
+                            <button class="bedrock-suggestion" data-prompt="Compare Va Beach to Cincinnati">Compare Va Beach to Cincinnati</button>
+                            <button class="bedrock-suggestion" data-prompt="Break down by payment method">By payment method</button>
+                        </div>
+                    </div>`;
                     this.addMessage('assistant', testTable);
+                    return;
+                }
+                
+                if (lowerMessage === 'list') {
+                    const testList = `<div class="bedrock-response">
+                        <div class="bedrock-section">Recent Sessions</div>
+                        <ul class="bedrock-list">
+                            <li class="bedrock-item"><strong>11/23/2025</strong> - Cincinnati Fall 25 - 8 readings - <span class="bedrock-currency">$365.00</span></li>
+                            <li class="bedrock-item"><strong>10/15/2025</strong> - Va Beach BMSE Fall 25 - 12 readings - <span class="bedrock-currency">$650.00</span></li>
+                            <li class="bedrock-item"><strong>09/21/2025</strong> - Denver Fall 25 - 10 readings - <span class="bedrock-currency">$337.50</span></li>
+                        </ul>
+                        <div class="bedrock-insight">
+                            You've completed <span class="bedrock-highlight">30 readings</span> in your last 3 sessions.
+                        </div>
+                    </div>`;
+                    this.addMessage('assistant', testList);
+                    return;
+                }
+                
+                if (lowerMessage === 'summary') {
+                    const testSummary = `<div class="bedrock-response">
+                        <div class="bedrock-section">Earnings Summary</div>
+                        <table class="bedrock-table">
+                            <tbody>
+                                <tr>
+                                    <td class="bedrock-cell">Total Sessions</td>
+                                    <td class="bedrock-cell bedrock-highlight">16</td>
+                                </tr>
+                                <tr>
+                                    <td class="bedrock-cell">Total Readings</td>
+                                    <td class="bedrock-cell bedrock-highlight">121</td>
+                                </tr>
+                                <tr>
+                                    <td class="bedrock-cell">Base Earnings</td>
+                                    <td class="bedrock-cell bedrock-currency">$4,840.00</td>
+                                </tr>
+                                <tr>
+                                    <td class="bedrock-cell">Tips Earned</td>
+                                    <td class="bedrock-cell bedrock-currency">$869.96</td>
+                                </tr>
+                                <tr>
+                                    <td class="bedrock-cell"><strong>Total Earnings</strong></td>
+                                    <td class="bedrock-cell bedrock-currency bedrock-total">$5,709.96</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="bedrock-insight">
+                            Your average earnings per session is <span class="bedrock-currency bedrock-highlight">$356.87</span>.
+                        </div>
+                    </div>`;
+                    this.addMessage('assistant', testSummary);
                     return;
                 }
                 

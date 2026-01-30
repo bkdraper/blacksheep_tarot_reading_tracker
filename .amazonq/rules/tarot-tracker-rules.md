@@ -92,6 +92,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 - **Animated Logo Avatar**: Black Sheep Gypsies logo with pulse animation
 - **Session Persistence**: Maintains conversation context across queries
 - **Lambda Proxy**: Chat requests routed through AWS Lambda to Bedrock Agent
+- **Follow-Up Suggestions**: Clickable buttons for contextual data exploration with short labels and full prompts
 
 ### Session Management
 1. **Session Phases**: SETUP → READY_TO_CREATE → ACTIVE lifecycle
@@ -253,16 +254,22 @@ mcp-server/
 ├── bedrock.js         # Bedrock handler (ACTIVE - experiment here)
 ├── server.js          # Shared TarotTrackerMCPServer class
 ├── package.json       # Node.js dependencies
+├── sql/
+│   └── query_readings.sql  # PostgreSQL function for aggregate_readings tool
 ├── bedrock-handler.js # Legacy file (unused)
 ├── mcp-handler.js     # Legacy file (unused)
 └── lambda.zip         # Deployment package
 ```
 
 ### Available Tools
-1. **get_session_summary**: User earnings summary with date range filtering
-2. **get_top_locations**: Best performing locations by earnings
-3. **get_recent_sessions**: Recent session history with performance data
-4. **get_reading_records**: Individual reading records with detailed filtering (location, date, payment methods, sources)
+1. **list_sessions**: List sessions with summary data (date, location, reading count, price)
+2. **list_readings**: List individual reading records with full details (timestamp, price, tip, payment, source)
+3. **search_locations**: Search for unique locations by partial name match
+4. **aggregate_readings**: Universal aggregation tool with dynamic grouping, filtering, and sorting
+   - Uses PostgreSQL function `query_readings` (see `mcp-server/sql/query_readings.sql`)
+   - Supports any combination of group_by fields (source, payment, location, session_date)
+   - Supports multiple aggregations (count, sum_earnings, sum_tips, sum_base, avg_tip, avg_price, min_tip, max_tip)
+   - All filtering and aggregation done in database for optimal performance
 
 ### Deployment Architecture
 - **Function Name**: blacksheep_tarot-tracker-mcp-server
@@ -397,6 +404,10 @@ aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock
 - **JavaScript Date Parsing**: YYYY-MM-DD format creates UTC dates, MM/DD/YYYY creates local dates - normalize to avoid timezone shifts
 - **Variable Naming Conflicts**: Avoid conflicts with global CDN variables (e.g., rename `const supabase` to `const supabaseClient`)
 - **Documentation Maintenance**: README.md contains complete deployment architecture with Mermaid diagrams
+- **Suggestion Button Architecture**: onclick handlers attached after DOM insertion in renderMessages(), not during string manipulation in formatContent()
+- **Button Text vs Prompt Separation**: Short display text (2-5 words) with full natural language query in data-prompt attribute
+- **HTML List Formatting**: Bedrock Agent must use proper <ul>/<li> tags with CSS classes, never bullet characters (•)
+- **Suggestion Button Styling**: Purple borders (#7c3aed light mode, #a78bfa dark mode) with bold text and hover shadows
 
 ## Usage
 1. Set reading price (defaults to $40)
@@ -475,6 +486,7 @@ aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock
 - `.gpsy-bubble`: Chat message bubbles with HTML content support
 - `.tracker-buddy-btn`: Gradient button with animated logo avatar
 - `.gpsy-thinking`: Animated thinking indicator with bouncing logo
+- `.bedrock-suggestion`: Purple-bordered suggestion buttons (bold, 2px #7c3aed border, hover effects)
 - `.timer-canvas-container`: Flex container for canvas centering
 - `.timer-canvas`: 300x300px canvas, border: none, padding: 0, margin: 0
 - `.start-btn`: flex:3, 70px height, prominent green styling
