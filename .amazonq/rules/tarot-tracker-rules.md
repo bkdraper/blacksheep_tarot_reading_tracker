@@ -15,7 +15,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 ## Version Management
 - **CRITICAL**: Version number MUST be bumped on every code change
 - Version displayed in header bar for cache-busting
-- Current version: v3.93.2
+- Current version: v3.94.6
 
 ## Technical Requirements
 - **Pure web technologies**: HTML/CSS/JS only, no frameworks
@@ -359,7 +359,7 @@ aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock
 
 ## Development Notes
 - **Version bumping**: MUST increment version number on every code change
-- **Current version**: v3.94.5 (includes Gpsy chat integration)
+- **Current version**: v3.94.6 (includes ChatGPSY chat integration)
 - **Git hook setup**: Run `copy pre-push-hook.sh .git\hooks\pre-push` (Windows) or `cp pre-push-hook.sh .git/hooks/pre-push && chmod +x .git/hooks/pre-push` (Unix/Mac) to auto-sync cache names
 - Version timestamp in upper right corner for cache-busting during development
 - Cache-control meta tags to prevent browser caching during development

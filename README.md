@@ -863,7 +863,7 @@ chmod +x .git/hooks/pre-push               # Unix/Mac only
 ### Version Management
 - **CRITICAL**: Version number MUST be bumped on every code change
 - Version displayed in header bar for cache-busting
-- Current version: v3.93.2
+- Current version: v3.94.6
 
 ### Development vs Production
 - **Development Detection**: localhost, 127.0.0.1, 192.168.x.x, port 8080, or dev=true parameter
