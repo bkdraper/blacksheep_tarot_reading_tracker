@@ -15,7 +15,7 @@ A mobile-optimized single page application for tracking tarot readings and tips 
 ## Version Management
 - **CRITICAL**: Version number MUST be bumped on every code change
 - Version displayed in header bar for cache-busting
-- Current version: v3.94.6
+- Current version: v3.95.0
 
 ## Technical Requirements
 - **Pure web technologies**: HTML/CSS/JS only, no frameworks
@@ -359,7 +359,8 @@ aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock
 
 ## Development Notes
 - **Version bumping**: MUST increment version number on every code change
-- **Current version**: v3.94.6 (includes ChatGPSY chat integration)
+- **Current version**: v3.96.0
+- **Icon cleanup (v3.96.0)**: Removed cluttered icons from Reading Price, Event Name, and Event Date labels for cleaner interface. Changed user icon from fa-user to fa-id-card. Replaced Font Awesome icons in session list with bullet character (•) for cleaner divider between readings count and earnings
 - **Git hook setup**: Run `copy pre-push-hook.sh .git\hooks\pre-push` (Windows) or `cp pre-push-hook.sh .git/hooks/pre-push && chmod +x .git/hooks/pre-push` (Unix/Mac) to auto-sync cache names
 - Version timestamp in upper right corner for cache-busting during development
 - Cache-control meta tags to prevent browser caching during development
@@ -531,3 +532,27 @@ Designed for modern mobile browsers with support for:
 - **PWA Support**: Installable as standalone app with service worker
 - **DNS Integration**: Squarespace DNS → CloudFront → Amplify hosting
 - **SSL Management**: Amplify managed certificates with automatic renewal
+
+
+## Phase 1 UX Implementation Status
+
+### Completed
+- **Feature #11: Empty State** ✅
+  - Empty state with 4 example queries
+  - Clickable example queries that populate input
+  - Shows "Hi, I'm Gpsy. Ask me anything about your readings"
+  - Disappears after first message exchange
+
+### In Progress
+- **Feature #1: Input Feedback** - NOT STARTED
+- **Feature #4: Mobile Keyboard** - NOT STARTED
+
+### Implementation Notes
+- File size (170K+) prevents direct editing with fsReplace
+- Using manual step-by-step implementation approach
+- All CSS styles already present in index.html
+- GpsyChat class methods added: attachSuggestionHandlers(), updateQuickActions()
+- Modified openGpsyChat() to call renderMessages() instead of adding welcome message
+
+### Next Session
+Continue with Feature #1 (Input Feedback) and Feature #4 (Mobile Keyboard)

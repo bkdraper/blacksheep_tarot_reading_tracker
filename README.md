@@ -863,7 +863,16 @@ chmod +x .git/hooks/pre-push               # Unix/Mac only
 ### Version Management
 - **CRITICAL**: Version number MUST be bumped on every code change
 - Version displayed in header bar for cache-busting
-- Current version: v3.94.6
+- Current version: v3.96.0
+
+### Recent Changes
+
+#### v3.96.0 - Icon Cleanup
+- Removed cluttered icons from session labels (Reading Price, Event Name, Event Date)
+- Changed user icon from fa-user (\f007) to fa-id-card (\f2bd) for better representation
+- Replaced Font Awesome icons in session list with bullet character (•) for cleaner divider
+- Kept icons in totals table for visual hierarchy (book, coins, hand-holding-dollar, wallet)
+- User icon managed via CSS ::before pseudo-element, not in HTML label
 
 ### Development vs Production
 - **Development Detection**: localhost, 127.0.0.1, 192.168.x.x, port 8080, or dev=true parameter

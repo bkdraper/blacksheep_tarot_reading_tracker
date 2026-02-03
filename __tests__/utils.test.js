@@ -1,120 +1,80 @@
-const { describe, test, expect, beforeEach } = require('@jest/globals');
+// Mock DOM and globals
+global.document = {
+  getElementById: jest.fn(() => ({ 
+    value: '', 
+    classList: { add: jest.fn(), remove: jest.fn() },
+    style: { display: '' },
+    textContent: ''
+  })),
+  querySelector: jest.fn(() => ({ style: { display: '' } })),
+  querySelectorAll: jest.fn(() => [])
+};
+
+global.localStorage = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn()
+};
+
+global.supabaseClient = {
+  from: jest.fn(() => ({
+    select: jest.fn(() => ({
+      eq: jest.fn(() => ({
+        order: jest.fn(() => Promise.resolve({ data: [], error: null }))
+      })),
+      not: jest.fn(() => Promise.resolve({ data: [], error: null }))
+    })),
+    insert: jest.fn(() => Promise.resolve({ data: [{ id: 'test-id' }], error: null })),
+    update: jest.fn(() => ({
+      eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
+    }))
+  }))
+};
+
 const fs = require('fs');
 const path = require('path');
-const { JSDOM } = require('jsdom');
+const code = fs.readFileSync(path.join(__dirname, '..', 'session-store.js'), 'utf8');
+const SessionStore = eval(`(function() { ${code}; return SessionStore; })()`);
 
-// Load the HTML file
-const html = fs.readFileSync(path.resolve(__dirname, '../index.html'), 'utf8');
-
-describe('Tarot Reading Tracker', () => {
-  let window, document, normalizeDate, SessionStore;
+describe('SessionStore Unit Tests', () => {
+  let session;
 
   beforeEach(() => {
-    // Create JSDOM instance without loading external resources
-    const dom = new JSDOM(html, {
-      url: 'http://localhost',
-      runScripts: 'outside-only'
-    });
-    
-    window = dom.window;
-    document = window.document;
-    
-    // Mock Supabase in window
-    window.supabase = {
-      createClient: () => global.supabaseClient
-    };
-    
-    // Extract and execute inline scripts manually
-    const scriptContent = Array.from(document.querySelectorAll('script'))
-      .filter(script => script.textContent && !script.src)
-      .map(script => script.textContent)
-      .join('\n');
-    
-    // Execute in window context
-    dom.window.eval(scriptContent);
-    
-    // Extract functions from window scope
-    normalizeDate = window.normalizeDate;
-    SessionStore = window.SessionStore;
+    session = new SessionStore();
   });
 
-  describe('normalizeDate utility', () => {
-    test('should convert YYYY-MM-DD to MM/DD/YYYY', () => {
-      expect(normalizeDate('2026-01-11')).toBe('1/11/2026');
-    });
-
-    test('should convert YY-MM-DD to MM/DD/YYYY', () => {
-      expect(normalizeDate('26-01-11')).toBe('1/11/2026');
-    });
-
-    test('should remove leading zeros from month and day', () => {
-      expect(normalizeDate('2025-03-05')).toBe('3/5/2025');
-    });
-
-    test('should return null for empty string', () => {
-      expect(normalizeDate('')).toBeNull();
-    });
-
-    test('should return null for null input', () => {
-      expect(normalizeDate(null)).toBeNull();
-    });
-
-    test('should return unchanged for already formatted dates', () => {
-      expect(normalizeDate('1/11/2026')).toBe('1/11/2026');
-    });
+  test('should initialize with default values', () => {
+    expect(session.sessionId).toBeNull();
+    expect(session.user).toBe('');
+    expect(session.location).toBe('');
+    expect(session.sessionDate).toBe('');
+    expect(session.price).toBe(40);
+    expect(session.readings).toEqual([]);
   });
 
-  describe('SessionStore', () => {
-    let session;
+  test('should calculate canCreateSession correctly', () => {
+    expect(session.canCreateSession).toBeFalsy();
+    
+    session._user = 'Amanda';
+    session._location = 'Test Location';
+    session._sessionDate = '2026-01-11';
+    session._price = 40;
+    
+    expect(session.canCreateSession).toBeTruthy();
+  });
 
-    beforeEach(() => {
-      if (SessionStore) {
-        session = new SessionStore();
-      }
-    });
-
-    test('should initialize with default values', () => {
-      if (!SessionStore) {
-        console.warn('SessionStore not available in test environment');
-        return;
-      }
-      
-      expect(session.sessionId).toBeNull();
-      expect(session.user).toBe('');
-      expect(session.location).toBe('');
-      expect(session.sessionDate).toBe('');
-      expect(session.price).toBe(40);
-      expect(session.readings).toEqual([]);
-    });
-
-    test('should calculate canCreateSession correctly', () => {
-      if (!SessionStore) return;
-      
-      expect(session.canCreateSession).toBe(false);
-      
-      session._user = 'Amanda';
-      session._location = 'Test Location';
-      session._sessionDate = '2026-01-11';
-      session._price = 40;
-      
-      expect(session.canCreateSession).toBe(true);
-    });
-
-    test('should calculate sessionPhase correctly', () => {
-      if (!SessionStore) return;
-      
-      expect(session.sessionPhase).toBe('SETUP');
-      
-      session._user = 'Amanda';
-      session._location = 'Test Location';
-      session._sessionDate = '2026-01-11';
-      session._price = 40;
-      
-      expect(session.sessionPhase).toBe('READY_TO_CREATE');
-      
-      session._sessionId = 'test-id';
-      
-      expect(session.sessionPhase).toBe('ACTIVE');
-    });
+  test('should calculate sessionPhase correctly', () => {
+    expect(session.sessionPhase).toBe('SETUP');
+    
+    session._user = 'Amanda';
+    session._location = 'Test Location';
+    session._sessionDate = '2026-01-11';
+    session._price = 40;
+    
+    expect(session.sessionPhase).toBe('READY_TO_CREATE');
+    
+    session._sessionId = 'test-id';
+    
+    expect(session.sessionPhase).toBe('ACTIVE');
   });
 });

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -13,6 +13,7 @@
     <meta name="application-name" content="Tarot Reading Tracker" id="appName">
     <meta name="msapplication-starturl" content="/">
     <link rel="icon" type="image/png" id="favicon" href="/logo192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <title>Tarot Reading Tracker</title>
 
@@ -295,8 +296,10 @@
             margin-bottom: 15px;
         }
         .user-section label::before {
-            content: '👤 ';
-            font-size: 14px;
+            content: '\f2bd';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            margin-right: 5px;
         }
         .user-section .btn-load-session {
             width: 100%;
@@ -1098,109 +1101,6 @@
             color: #f4e4a6 !important;
         }
         
-        /* Report Maker Styles */
-        .report-preset-btn {
-            background: #f8f9fa;
-            border: 1px solid #ccc;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .report-preset-btn:hover {
-            background: #e9ecef;
-        }
-        .report-preset-btn.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        .report-group {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .report-group-header {
-            font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 10px;
-            color: #333;
-        }
-        .report-totals {
-            background: #e8f5e8;
-            border: 2px solid #28a745;
-            border-radius: 6px;
-            padding: 15px;
-            margin-top: 20px;
-        }
-        .report-totals h3 {
-            margin: 0 0 10px 0;
-            color: #28a745;
-        }
-        .report-session {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 12px;
-            margin-bottom: 8px;
-        }
-        .report-session-header {
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #333;
-        }
-        .report-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            font-size: 14px;
-        }
-        .report-stat {
-            display: flex;
-            justify-content: space-between;
-        }
-        .report-totals-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 10px;
-        }
-        .report-total-item {
-            text-align: center;
-            padding: 8px;
-            background: #f8f9fa;
-            border-radius: 4px;
-        }
-        body.dark-mode .report-preset-btn {
-            background: #3d3d3d;
-            color: #ffffff;
-            border-color: #555;
-        }
-        body.dark-mode .report-preset-btn:hover {
-            background: #4d4d4d;
-        }
-        body.dark-mode .report-group {
-            background: #2d2d2d;
-            border-color: #555;
-        }
-        body.dark-mode .report-group-header {
-            color: #ffffff;
-        }
-        body.dark-mode .report-totals {
-            background: #1a4d2e;
-            border-color: #28a745;
-        }
-        body.dark-mode .report-table th {
-            background: #1a1a1a;
-            color: #ffffff;
-        }
-        body.dark-mode .report-table td {
-            color: #ffffff;
-        }
-        
         .btn {
             padding: 12px 20px;
             font-size: 16px;
@@ -1440,6 +1340,78 @@
             box-shadow: 0 2px 8px rgba(167, 139, 250, 0.3);
         }
         
+        /* Gpsy quick actions */
+        .gpsy-quick-actions {
+            padding: 10px 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            overflow-x: auto;
+            flex-shrink: 0;
+        }
+        .gpsy-quick-action {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+            min-height: 36px;
+        }
+        .gpsy-quick-action:hover {
+            background: #218838;
+        }
+        .gpsy-empty-state {
+            padding: 40px 20px;
+            text-align: center;
+            color: #666;
+        }
+        .gpsy-empty-state h3 {
+            margin: 0 0 20px 0;
+            font-size: 18px;
+            color: #333;
+        }
+        .gpsy-example-query {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-align: left;
+        }
+        .gpsy-example-query:hover {
+            background: #e9ecef;
+        }
+        .gpsy-example-query strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #28a745;
+        }
+        
+        body.dark-mode .gpsy-quick-actions {
+            border-top-color: #555;
+        }
+        body.dark-mode .gpsy-empty-state {
+            color: #aaa;
+        }
+        body.dark-mode .gpsy-empty-state h3 {
+            color: #ffffff;
+        }
+        body.dark-mode .gpsy-example-query {
+            background: #3d3d3d;
+            border-color: #555;
+            color: #ffffff;
+        }
+        body.dark-mode .gpsy-example-query:hover {
+            background: #4d4d4d;
+        }
+        
         /* Bedrock response styling */
         .bedrock-response {
             margin: 10px 0;
@@ -1601,15 +1573,15 @@
     <header class="header">
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
-            <span class="version-badge">v3.94.6</span>
-            <button class="settings-btn" onclick="openSettingsDrawer()" title="Settings">⚙️</button>
+            <span class="version-badge">v3.96.0</span>
+            <button class="settings-btn" onclick="openSettingsDrawer()" title="Settings"><i class="fas fa-cog"></i></button>
         </div>
     </header>
     <div class="container">
         <div class="event-settings">
             <div class="settings-header" onclick="toggleSettings()">
                 <span>Event Settings</span>
-                <span class="collapse-icon">▼</span>
+                <span class="collapse-icon"><i class="fas fa-chevron-down"></i></span>
             </div>
             <div class="settings-content" id="settingsContent">
                 <div class="user-section">
@@ -1659,19 +1631,19 @@
         <div class="totals">
             <table class="totals-table">
                 <tr>
-                    <td>Readings:</td>
+                    <td><i class="fas fa-book-open" style="margin-right: 8px;"></i>Readings:</td>
                     <td><span id="readingCount">0</span></td>
                 </tr>
                 <tr>
-                    <td>Base Total:</td>
+                    <td><i class="fas fa-coins" style="margin-right: 8px;"></i>Base Total:</td>
                     <td>$<span id="baseTotal">0.00</span></td>
                 </tr>
                 <tr>
-                    <td>Tips Total:</td>
+                    <td><i class="fas fa-hand-holding-usd" style="margin-right: 8px;"></i>Tips Total:</td>
                     <td>$<span id="tipsTotal">0.00</span></td>
                 </tr>
             </table>
-            <div class="grand-total">Total: $<span id="grandTotal">0.00</span></div>
+            <div class="grand-total"><i class="fas fa-wallet" style="margin-right: 8px;"></i>Total: $<span id="grandTotal">0.00</span></div>
         </div>
 
         <div class="readings-list">
@@ -1682,9 +1654,9 @@
         <div class="timer">
             <h3>Timer</h3>
             <div class="timer-controls">
-                <button class="arrow-btn" onclick="adjustTime(-1)">▼</button>
+                <button class="arrow-btn" onclick="adjustTime(-1)"><i class="fas fa-minus"></i></button>
                 <input type="number" class="timer-input" id="timerInput" value="15" min="0" max="99" inputmode="numeric">
-                <button class="arrow-btn" onclick="adjustTime(1)">▲</button>
+                <button class="arrow-btn" onclick="adjustTime(1)"><i class="fas fa-plus"></i></button>
             </div>
             <div class="timer-canvas-container">
                 <canvas id="timerCanvas" class="timer-canvas" width="300" height="300"></canvas>
@@ -1703,7 +1675,7 @@
     <div id="paymentSheet" class="payment-sheet">
         <div class="payment-sheet-header">
             <h3>Select Payment Method</h3>
-            <button class="modal-close" onclick="closePaymentSheet()">×</button>
+            <button class="modal-close" onclick="closePaymentSheet()"><i class="fas fa-times"></i></button>
         </div>
         <div class="payment-sheet-options" id="paymentOptions">
             <!-- Payment options populated dynamically -->
@@ -1715,7 +1687,7 @@
     <div id="sourceSheet" class="payment-sheet">
         <div class="payment-sheet-header">
             <h3>Select Source</h3>
-            <button class="modal-close" onclick="closeSourceSheet()">×</button>
+            <button class="modal-close" onclick="closeSourceSheet()"><i class="fas fa-times"></i></button>
         </div>
         <div class="payment-sheet-options" id="sourceOptions">
             <!-- Source options populated dynamically -->
@@ -1727,7 +1699,7 @@
     <div id="userSheet" class="session-sheet">
         <div class="session-sheet-header">
             <h3>Select User</h3>
-            <button class="modal-close" onclick="hideUserSelection()">&times;</button>
+            <button class="modal-close" onclick="hideUserSelection()"><i class="fas fa-times"></i></button>
         </div>
         <div class="session-sheet-content">
             <div id="userList"></div>
@@ -1740,7 +1712,7 @@
     <div id="sessionSheet" class="session-sheet">
         <div class="session-sheet-header">
             <h3>Load Existing Session</h3>
-            <button class="modal-close" onclick="closeSessionSheet()">×</button>
+            <button class="modal-close" onclick="closeSessionSheet()"><i class="fas fa-times"></i></button>
         </div>
         <div class="session-sheet-content">
             <div id="sessionsList"></div>
@@ -1752,7 +1724,7 @@
     <div id="paymentMethodsSheet" class="payment-methods-sheet">
         <div class="session-sheet-header">
             <h3>Customize Payment Methods</h3>
-            <button class="modal-close" onclick="closePaymentMethodsSheet()">×</button>
+            <button class="modal-close" onclick="closePaymentMethodsSheet()"><i class="fas fa-times"></i></button>
         </div>
         <div class="session-sheet-content">
             <div id="paymentMethodsList"></div>
@@ -1765,7 +1737,7 @@
     <div id="sourcesSheet" class="payment-methods-sheet">
         <div class="session-sheet-header">
             <h3>Customize Sources</h3>
-            <button class="modal-close" onclick="closeSourcesSheet()">×</button>
+            <button class="modal-close" onclick="closeSourcesSheet()"><i class="fas fa-times"></i></button>
         </div>
         <div class="session-sheet-content">
             <div id="sourcesList"></div>
@@ -1773,68 +1745,8 @@
         </div>
     </div>
 
-    <!-- Report Maker Modal -->
-    <div id="reportModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Generate Report</h2>
-                <button class="modal-close" onclick="closeReportMaker()">×</button>
-            </div>
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold;">Date Range:</label>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
-                    <button class="report-preset-btn active" onclick="setDateRange('today')">Today</button>
-                    <button class="report-preset-btn" onclick="setDateRange('weekend')">This Weekend</button>
-                    <button class="report-preset-btn" onclick="setDateRange('month')">This Month</button>
-                    <button class="report-preset-btn" onclick="setDateRange('ytd')">YTD</button>
-                    <button class="report-preset-btn" onclick="setDateRange('year')">1 Year</button>
-                    <button class="report-preset-btn" onclick="setDateRange('lastYear')">Last Year</button>
-                    <button class="report-preset-btn" onclick="setDateRange('all')">All Time</button>
-                    <button class="report-preset-btn" onclick="setDateRange('custom')">Custom</button>
-                </div>
-                <div id="customDateInputs" style="display: none;">
-                    <div style="margin-bottom: 8px;">
-                        <label style="display: block; font-size: 12px; margin-bottom: 4px; color: #666;">From:</label>
-                        <input type="date" id="startDate" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-                    </div>
-                    <div>
-                        <label style="display: block; font-size: 12px; margin-bottom: 4px; color: #666;">To:</label>
-                        <input type="date" id="endDate" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-                    </div>
-                </div>
-            </div>
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: bold;">Group By:</label>
-                <select id="groupBy" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-                    <option value="location">Location</option>
-                    <option value="date">Date</option>
-                    <option value="payment">Payment Method</option>
-                    <option value="source">Referral Source</option>
-                </select>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-secondary" onclick="generateReport()" style="flex: 1;" id="generateBtn">Generate Report</button>
-                <button class="btn btn-secondary" onclick="exportReportData()" style="flex: 1;" id="exportBtn" disabled>Export CSV</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Report Results Modal -->
-    <div id="reportResultsModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
-            <div class="modal-header">
-                <h2>Report Results</h2>
-                <button class="modal-close" onclick="closeReportResults()">×</button>
-            </div>
-            <div id="reportContent"></div>
-            <div style="margin-top: 20px; text-align: center;">
-                <button class="btn btn-secondary" onclick="exportReportData()">Export CSV</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Gpsy Chat Drawer -->
-    <div id="gpsyOverlay" class="settings-overlay" onclick="closeGpsyChat()"></div>
+    <div id="gpsyOverlay" class="settings-overlay" onclick="gpsyChat.close()"></div>
     <div id="gpsyDrawer" class="gpsy-drawer">
         <div class="gpsy-header">
             <h2 style="display: flex; align-items: center; gap: 10px;">
@@ -1843,12 +1755,15 @@
                 </div>
                 ChatGPSY
             </h2>
-            <button class="modal-close" onclick="closeGpsyChat()">×</button>
+            <button class="modal-close" onclick="gpsyChat.close()"><i class="fas fa-times"></i></button>
         </div>
         <div id="gpsyMessages" class="gpsy-messages"></div>
+        <div id="gpsyQuickActions" class="gpsy-quick-actions" style="display: none;">
+            <!-- Quick action chips populated dynamically -->
+        </div>
         <div class="gpsy-input-container">
-            <input type="text" id="gpsyInput" placeholder="Ask about your readings..." onkeydown="if(event.key==='Enter') sendGpsyMessage()">
-            <button onclick="sendGpsyMessage()" class="gpsy-send-btn">Send</button>
+            <input type="text" id="gpsyInput" placeholder="Ask about your readings..." onkeydown="if(event.key==='Enter') gpsyChat.send()">
+            <button id="gpsySendBtn" onclick="gpsyChat.send()" class="gpsy-send-btn">Send</button>
         </div>
     </div>
 
@@ -1857,12 +1772,12 @@
     <div id="settingsDrawer" class="settings-drawer">
         <div class="settings-drawer-header">
             <h2>Settings</h2>
-            <button class="modal-close" onclick="closeSettingsDrawer()">×</button>
+            <button class="modal-close" onclick="closeSettingsDrawer()"><i class="fas fa-times"></i></button>
         </div>
         <div class="settings-drawer-content">
             <!-- ChatGPSY -->
             <div class="settings-section" style="border-bottom: 2px solid #ddd; padding-bottom: 20px; margin-bottom: 20px;">
-                <button class="tracker-buddy-btn" onclick="openGpsyChat()">
+                <button class="tracker-buddy-btn" onclick="gpsyChat.open()">
                     <div class="gpsy-avatar" style="width: 32px; height: 32px; background: transparent;">
                         <img src="" id="buddyLogo" alt="ChatGPSY">
                     </div>
@@ -1945,19 +1860,11 @@
                 <h3>Data & Export</h3>
                 <div class="setting-item">
                     <div>
-                        <div class="setting-label">Generate Report</div>
-                        <div class="setting-description">Create summary reports with grouping and totals</div>
-                    </div>
-                    <button class="settings-button" onclick="showReportMaker()">Report</button>
-                </div>
-                <div class="setting-item">
-                    <div>
                         <div class="setting-label">Export Data</div>
                         <div class="setting-description">Download session data as CSV</div>
                     </div>
                     <button class="settings-button" onclick="exportData()">Export</button>
                 </div>
-
             </div>
 
             <!-- Analytics -->
@@ -2076,417 +1983,7 @@
 
         
         // Central Session Store
-        class SessionStore {
-            constructor() {
-                this._sessionId = null;
-                this._user = '';
-                this._location = '';
-                this._sessionDate = '';
-                this._price = 40;
-                this._readings = [];
-                this.saveTimeout = null;
-                this._loading = false;
-            }
-
-            // Getters
-            get sessionId() { return this._sessionId; }
-            get user() { return this._user; }
-            get location() { return this._location; }
-            get sessionDate() { return this._sessionDate; }
-            get price() { return this._price; }
-            get readings() { return this._readings; }
-
-            // Computed properties
-            get canCreateSession() {
-                return this._user.trim() && this._location.trim() && this._sessionDate && this._price;
-            }
-            get hasValidSession() {
-                return this._sessionId && this._user.trim() && this._location.trim() && this._sessionDate;
-            }
-            get sessionPhase() {
-                if (this.hasValidSession) return 'ACTIVE';
-                if (this.canCreateSession) return 'READY_TO_CREATE';
-                return 'SETUP';
-            }
-
-            // Setters with side effects
-            set sessionId(value) {
-                this._sessionId = value;
-                this.updateUI();
-                this.save();
-            }
-            set user(value) {
-                const wasActiveSession = this.hasValidSession;
-                const previousUser = this._user;
-                
-                this._user = value;
-                const userBtn = document.getElementById('userBtn');
-                userBtn.textContent = value || 'Select User...';
-                userBtn.classList.toggle('selected', !!value);
-                
-                // If switching users during active session, clear session
-                if (wasActiveSession && previousUser && previousUser !== value) {
-                    this._sessionId = null;
-                    this._location = '';
-                    this._sessionDate = '';
-                    this._price = 40;
-                    this._readings = [];
-                    document.getElementById('location').value = '';
-                    document.getElementById('price').value = '40';
-                    document.getElementById('sessionDate').value = '';
-                    this.updateReadingsList();
-                    this.updateTotals();
-                    showSnackbar(`Switched to ${value}. Ready to create new session or load existing.`, 'success');
-                }
-                
-                this.updateUI();
-                this.debouncedSave();
-            }
-            set location(value) {
-                this._location = value;
-                document.getElementById('location').value = value;
-                this.updateUI();
-                this.debouncedSave();
-            }
-            set sessionDate(value) {
-                this._sessionDate = value;
-                document.getElementById('sessionDate').value = value;
-                this.updateUI();
-                this.debouncedSave();
-            }
-            set price(value) {
-                this._price = value;
-                document.getElementById('price').value = value;
-                this.updateUI();
-                this.debouncedSave();
-            }
-            set readings(value) {
-                this._readings = value;
-                this.updateReadingsList();
-                this.updateTotals();
-                this.save();
-            }
-
-            // Methods
-            addReading(reading) {
-                this._readings.push(reading);
-                this.updateReadingsList();
-                this.updateTotals();
-                this.save();
-            }
-            removeReading(index) {
-                this._readings.splice(index, 1);
-                this.updateReadingsList();
-                this.updateTotals();
-                this.save();
-            }
-            updateReading(index, field, value) {
-                this._readings[index][field] = value;
-                this.updateReadingsList();
-                this.updateTotals();
-                this.debouncedSave();
-            }
-
-            startOver() {
-                this._sessionId = null;
-                this._location = '';
-                this._sessionDate = '';
-                this._price = 40;
-                this._readings = [];
-                document.getElementById('location').value = '';
-                document.getElementById('price').value = '40';
-                document.getElementById('sessionDate').value = '';
-                this.clearUserData();
-                this.updateUI();
-            }
-
-            clear() {
-                this.startOver();
-            }
-
-            updateUI() {
-                this.updateButtons();
-                this.updateSections();
-            }
-
-            updateButtons() {
-                const createBtn = document.querySelector('.btn-create-session');
-                const newBtn = document.querySelector('.btn-new-session');
-                const loadBtn = document.querySelector('.btn-load-session');
-                const locationInput = document.getElementById('location');
-                const sessionDateInput = document.getElementById('sessionDate');
-                const requiredNote = document.getElementById('requiredFieldsNote');
-                
-                // Load Session button - disabled if no user
-                if (loadBtn) {
-                    if (!this._user.trim()) {
-                        loadBtn.classList.add('disabled');
-                        loadBtn.disabled = true;
-                    } else {
-                        loadBtn.classList.remove('disabled');
-                        loadBtn.disabled = false;
-                    }
-                }
-                
-                // Create Session button - only visible in setup phase
-                if (this.sessionPhase === 'SETUP' || this.sessionPhase === 'READY_TO_CREATE') {
-                    createBtn.style.display = 'block';
-                    if (this.sessionPhase === 'READY_TO_CREATE') {
-                        createBtn.classList.remove('inactive');
-                        createBtn.classList.add('active');
-                    } else {
-                        createBtn.classList.remove('active');
-                        createBtn.classList.add('inactive');
-                    }
-                } else {
-                    createBtn.style.display = 'none';
-                }
-                
-                // Show/hide required fields note
-                if (requiredNote) {
-                    requiredNote.style.display = this.sessionPhase === 'SETUP' ? 'block' : 'none';
-                }
-                
-                // Highlight required fields and auto-expand when in setup mode
-                if (this.sessionPhase === 'SETUP') {
-                    // Auto-expand settings panel
-                    const content = document.getElementById('settingsContent');
-                    const icon = document.querySelector('.collapse-icon');
-                    if (!content.classList.contains('open')) {
-                        content.classList.add('open');
-                        icon.classList.add('open');
-                    }
-                    
-                    const userBtn = document.getElementById('userBtn');
-                    if (!this._user.trim()) {
-                        userBtn.classList.add('required-field');
-                    } else {
-                        userBtn.classList.remove('required-field');
-                    }
-                    
-                    if (!this._location.trim()) {
-                        locationInput.classList.add('required-field');
-                    } else {
-                        locationInput.classList.remove('required-field');
-                    }
-                    
-                    if (!this._sessionDate) {
-                        sessionDateInput.classList.add('required-field');
-                    } else {
-                        sessionDateInput.classList.remove('required-field');
-                    }
-                } else {
-                    const userBtn = document.getElementById('userBtn');
-                    userBtn.classList.remove('required-field');
-                    locationInput.classList.remove('required-field');
-                    sessionDateInput.classList.remove('required-field');
-                }
-                
-                // New Session button - only show when session is active
-                newBtn.style.display = this.sessionPhase === 'ACTIVE' ? 'block' : 'none';
-                
-                // Auto-expand settings when create button becomes ready
-                if (this.sessionPhase === 'READY_TO_CREATE') {
-                    const content = document.getElementById('settingsContent');
-                    const icon = document.querySelector('.collapse-icon');
-                    if (!content.classList.contains('open')) {
-                        content.classList.add('open');
-                        icon.classList.add('open');
-                    }
-                }
-            }
-
-            updateSections() {
-                const buttonsDiv = document.querySelector('.buttons');
-                const totalsDiv = document.querySelector('.totals');
-                const readingsDiv = document.querySelector('.readings-list');
-                
-                const showSections = this.sessionPhase === 'ACTIVE';
-                buttonsDiv.style.display = showSections ? 'flex' : 'none';
-                totalsDiv.style.display = showSections ? 'block' : 'none';
-                readingsDiv.style.display = showSections ? 'block' : 'none';
-            }
-
-            updateReadingsList() {
-                const list = document.getElementById('readingsList');
-                list.innerHTML = this._readings.map((reading, index) => {
-                    const displayTime = this.formatTimestamp(reading.timestamp);
-                    return `
-                    <div class="reading-item" data-index="${index}">
-                        <div class="reading-left">
-                            <button class="delete-btn" onclick="deleteReading(${index})">×</button>
-                            <div style="border-left: 2px solid #ddd; padding-left: 10px;">
-                                <span class="index">${index + 1}.</span>
-                                <span class="timestamp">${displayTime}</span>
-                            </div>
-                        </div>
-                        <div class="reading-right">
-                            <div class="reading-field">
-                                <span class="field-label">Price:</span>
-                                <div class="field-input-container">
-                                    <span class="dollar-sign">$</span>
-                                    <input type="number" class="price-input" placeholder="${this._price}" 
-                                           value="${reading.price || ''}" step="0.01" min="0" inputmode="decimal"
-                                           onchange="session.updateReading(${index}, 'price', parseFloat(this.value) || null)"
-                                           onkeydown="if(event.key==='Enter') this.blur()">
-                                </div>
-                            </div>
-                            <div class="reading-field">
-                                <span class="field-label">Tip:</span>
-                                <div class="field-input-container">
-                                    <span class="dollar-sign">$</span>
-                                    <input type="number" class="tip-input" placeholder="0" 
-                                           value="${reading.tip || ''}" step="0.01" min="0" inputmode="decimal"
-                                           onchange="session.updateReading(${index}, 'tip', parseFloat(this.value) || 0)"
-                                           onkeydown="if(event.key==='Enter') this.blur()">
-                                </div>
-                            </div>
-                            <div class="reading-field">
-                                <span class="field-label">Pay:</span>
-                                <button class="field-button ${reading.payment ? 'selected' : ''}" 
-                                        onclick="openPaymentSheet(${index})">
-                                    ${reading.payment || 'Method'}
-                                </button>
-                            </div>
-                            <div class="reading-field">
-                                <span class="field-label">From:</span>
-                                <button class="field-button ${reading.source ? 'selected' : ''}" 
-                                        onclick="openSourceSheet(${index})">
-                                    ${reading.source || 'Source'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `}).join('');
-            }
-
-            formatTimestamp(timestamp) {
-                if (!timestamp) return '';
-                if (timestamp.includes('T')) {
-                    return new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                }
-                return timestamp; // Legacy format
-            }
-
-            updateTotals() {
-                const count = this._readings.length;
-                const baseTotal = this._readings.reduce((sum, reading) => sum + (reading.price || this._price), 0);
-                const tipsTotal = this._readings.reduce((sum, reading) => sum + (reading.tip || 0), 0);
-                const grandTotal = baseTotal + tipsTotal;
-
-                document.getElementById('readingCount').textContent = count;
-                document.getElementById('baseTotal').textContent = baseTotal.toFixed(2);
-                document.getElementById('tipsTotal').textContent = tipsTotal.toFixed(2);
-                document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
-            }
-
-            async save() {
-                if (!this._user || this._loading) return; // Don't save without user or during loading
-                
-                const state = {
-                    sessionId: this._sessionId,
-                    user: this._user,
-                    location: this._location,
-                    sessionDate: this._sessionDate,
-                    price: this._price,
-                    readings: this._readings
-                };
-                localStorage.setItem(`readingTracker_${this._user}`, JSON.stringify(state));
-
-                if (this._sessionId) {
-                    try {
-                        const updateData = {
-                            user_name: this._user,
-                            location: this._location,
-                            reading_price: this._price,
-                            readings: this._readings
-                        };
-                        
-                        // Only include session_date if it's not empty
-                        if (this._sessionDate && this._sessionDate.trim()) {
-                            updateData.session_date = this._sessionDate;
-                        }
-                        
-                        await supabaseClient
-                            .from('blacksheep_reading_tracker_sessions')
-                            .update(updateData)
-                            .eq('id', this._sessionId);
-                    } catch (error) {
-                        console.error('Supabase update error:', error);
-                        console.error('Error details:', error.details, error.hint, error.code);
-                        console.error('Data being sent:', {
-                            user_name: this._user,
-                            location: this._location,
-                            session_date: this._sessionDate,
-                            reading_price: this._price,
-                            readings: this._readings
-                        });
-                        // Register for background sync on network failure
-                        registerBackgroundSync();
-                    }
-                }
-            }
-
-            debouncedSave() {
-                clearTimeout(this.saveTimeout);
-                this.saveTimeout = setTimeout(() => this.save(), 500);
-            }
-
-            loadFromStorage() {
-                if (!this._user) return;
-                
-                const saved = localStorage.getItem(`readingTracker_${this._user}`);
-                if (saved) {
-                    const state = JSON.parse(saved);
-                    this._sessionId = state.sessionId || null;
-                    this._location = state.location || '';
-                    this._sessionDate = state.sessionDate || state.selectedDay || '';
-                    this._price = state.price || 40;
-                    this._readings = state.readings || [];
-                    
-                    // Update DOM without triggering saves
-                    const userBtn = document.getElementById('userBtn');
-                    userBtn.textContent = this._user || 'Select User...';
-                    userBtn.classList.toggle('selected', !!this._user);
-                    document.getElementById('location').value = this._location;
-                    document.getElementById('price').value = this._price;
-                    document.getElementById('sessionDate').value = this._sessionDate;
-                    
-                    // Update readings display and totals
-                    this.updateReadingsList();
-                    this.updateTotals();
-                    this.updateUI();
-                }
-            }
-            
-            async loadUsers() {
-                try {
-                    const { data } = await supabaseClient
-                        .from('blacksheep_reading_tracker_sessions')
-                        .select('user_name')
-                        .not('user_name', 'is', null);
-                    
-                    const uniqueUsers = [...new Set(data?.map(row => row.user_name) || [])];
-                    const userList = document.getElementById('userList');
-                    if (userList) {
-                        userList.innerHTML = uniqueUsers.map(user => `
-                            <div class="user-item" onclick="selectUser('${user}')">${user}</div>
-                        `).join('');
-                    }
-                    return uniqueUsers;
-                } catch (error) {
-                    return [];
-                }
-            }
-            
-            clearUserData() {
-                if (this._user) {
-                    localStorage.removeItem(`readingTracker_${this._user}`);
-                }
-            }
-        }
-
-        // Timer class for encapsulating timer functionality
+        // SESSION STORE CLASS - See session-store.js
         class Timer {
             constructor() {
                 this._seconds = 900; // 15 minutes default
@@ -2843,12 +2340,7 @@
         }
 
         // Initialize stores
-        const settings = new SettingsStore();
-        const session = new SessionStore();
-        const timer = new Timer();
-        
-        // Make timer globally accessible for settings
-        window.timer = timer;
+        // SESSION STORE CLASS - See session-store.js
         
         // Analytics & Notification System
         class AnalyticsNotifier {
@@ -2918,7 +2410,7 @@
                 
                 if (totalReadings > 0) {
                     this.sendNotification(
-                        'Daily Summary 📊',
+                        '<i class="fas fa-chart-bar"></i> Daily Summary',
                         `Today: ${totalReadings} readings, $${totalEarnings.toFixed(2)} earned!`
                     );
                 }
@@ -2955,16 +2447,16 @@
                 
                 // Earnings goals
                 if (totalEarnings >= 500 && totalEarnings < 1000) {
-                    this.sendNotification('Weekend Goal 🎯', `$${totalEarnings.toFixed(2)} earned! $${(1000 - totalEarnings).toFixed(2)} to reach $1000 goal!`);
+                    this.sendNotification('<i class="fas fa-bullseye"></i> Weekend Goal', `$${totalEarnings.toFixed(2)} earned! $${(1000 - totalEarnings).toFixed(2)} to reach $1000 goal!`);
                 } else if (totalEarnings >= 1000) {
-                    this.sendNotification('Weekend Goal Crushed! 🚀', `Amazing! $${totalEarnings.toFixed(2)} earned this weekend!`);
+                    this.sendNotification('<i class="fas fa-bullseye"></i> Weekend Goal', `Amazing! $${totalEarnings.toFixed(2)} earned this weekend!`);
                 }
                 
                 // Reading count goals
                 if (totalReadings >= 10 && totalReadings < 15) {
-                    this.sendNotification('Reading Goal 📚', `${totalReadings} readings done! ${15 - totalReadings} more to reach 15!`);
+                    this.sendNotification('<i class="fas fa-book"></i> Reading Goal', `${totalReadings} readings done! ${15 - totalReadings} more to reach 15!`);
                 } else if (totalReadings >= 15) {
-                    this.sendNotification('Reading Goal Achieved! ⭐', `Fantastic! ${totalReadings} readings this weekend!`);
+                    this.sendNotification('<i class="fas fa-book"></i> Reading Goal', `Fantastic! ${totalReadings} readings this weekend!`);
                 }
             }
             
@@ -2998,7 +2490,7 @@
                 
                 if (bestDay !== null) {
                     this.sendNotification(
-                        'Best Day Alert 📈',
+                        '<i class="fas fa-star"></i> Best Day Alert',
                         `${dayNames[bestDay]} is your highest earning day - $${bestAverage.toFixed(2)} average!`
                     );
                 }
@@ -3021,9 +2513,9 @@
                 
                 if (Math.abs(change) >= 15) {
                     const trend = change > 0 ? 'increased' : 'decreased';
-                    const emoji = change > 0 ? '💸' : '📉';
+                    
                     this.sendNotification(
-                        `Tip Trends ${emoji}`,
+                        '<i class="fas fa-chart-line"></i> Tip Trends',
                         `Your average tip ${trend} ${Math.abs(change).toFixed(1)}% recently!`
                     );
                 }
@@ -3061,7 +2553,7 @@
                 if (peakPercentage >= 20) {
                     const timeRange = `${peakHour}:00-${parseInt(peakHour) + 1}:00`;
                     this.sendNotification(
-                        'Peak Time Alert ⏰',
+                        '<i class="fas fa-clock"></i> Peak Time Alert',
                         `${timeRange} is your busiest time - ${peakPercentage.toFixed(1)}% of readings!`
                     );
                 }
@@ -3118,7 +2610,7 @@
             
             if ('serviceWorker' in navigator && Notification.permission === 'granted') {
                 navigator.serviceWorker.ready.then(registration => {
-                    registration.showNotification('Timer Finished! ⏰', {
+                    registration.showNotification('<i class="fas fa-bell"></i> Timer Finished!', {
                         body: 'Your tarot reading timer has expired.',
                         icon: window.APP_LOGO,
                         badge: window.APP_LOGO,
@@ -3137,7 +2629,7 @@
                         if (isDevelopmentMode()) {
                             setTimeout(() => {
                                 try {
-                                    new Notification('Timer Finished! ⏰', {
+                                    new Notification('<i class="fas fa-bell"></i> Timer Finished!', {
                                         body: 'Your tarot reading timer has expired.',
                                         icon: window.APP_LOGO
                                     });
@@ -3631,7 +3123,7 @@
             toast.className = `toast ${type}`;
             toast.innerHTML = `
                 <span>${message}</span>
-                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+                <button class="toast-close" onclick="this.parentElement.remove()">Ãƒâ€”</button>
             `;
             document.body.appendChild(toast);
             
@@ -4153,412 +3645,6 @@
             showSourcesSheet(); // Refresh the list
         }
 
-        // Report Maker Functions
-        let reportData = [];
-        
-        function showReportMaker() {
-            if (!session.user) {
-                showSnackbar('Select a user first', 'error');
-                return;
-            }
-            
-            if (settings.get('haptic')) vibrate([50]);
-            
-            // Set default date range to last 30 days
-            const today = new Date();
-            const thirtyDaysAgo = new Date(today);
-            thirtyDaysAgo.setDate(today.getDate() - 30);
-            
-            document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
-            document.getElementById('endDate').value = today.toISOString().split('T')[0];
-            
-            document.getElementById('reportModal').style.display = 'block';
-        }
-        
-        function closeReportMaker() {
-            if (settings.get('haptic')) vibrate([30]);
-            document.getElementById('reportModal').style.display = 'none';
-        }
-        
-        function closeReportResults() {
-            if (settings.get('haptic')) vibrate([30]);
-            document.getElementById('reportResultsModal').style.display = 'none';
-        }
-        
-        function setDateRange(preset) {
-            if (settings.get('haptic')) vibrate([30]);
-            
-            // Update active button
-            document.querySelectorAll('.report-preset-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            const customInputs = document.getElementById('customDateInputs');
-            
-            // Always hide/show custom inputs based on selection
-            if (preset === 'custom') {
-                customInputs.style.display = 'block';
-                return; // Don't set dates for custom
-            } else {
-                customInputs.style.display = 'none';
-            }
-            
-            const today = new Date();
-            let startDate, endDate;
-            
-            switch (preset) {
-                case 'today':
-                    startDate = new Date(today);
-                    endDate = new Date(today);
-                    endDate.setHours(23, 59, 59, 999);
-                    break;
-                case 'weekend':
-                    // Find most recent weekend (Friday to Sunday)
-                    const dayOfWeek = today.getDay();
-                    console.log('Today:', today, 'Day of week:', dayOfWeek);
-                    let friday = new Date(today);
-                    if (dayOfWeek === 0) { // Sunday - current weekend
-                        friday.setDate(today.getDate() - 2); // Go back to Friday
-                    } else if (dayOfWeek === 6) { // Saturday - current weekend
-                        friday.setDate(today.getDate() - 1); // Go back to Friday
-                    } else if (dayOfWeek === 5) { // Friday - current weekend
-                        // Friday stays as is
-                    } else { // Mon-Thu, get previous weekend
-                        const daysToSubtract = dayOfWeek + 2; // Mon=3, Tue=4, Wed=5, Thu=6
-                        friday.setDate(today.getDate() - daysToSubtract);
-                    }
-                    friday.setHours(0, 0, 0, 0); // Set to start of Friday
-                    console.log('Friday:', friday);
-                    const sunday = new Date(friday);
-                    sunday.setDate(friday.getDate() + 2); // Friday + 2 = Sunday
-                    sunday.setHours(23, 59, 59, 999);
-                    console.log('Sunday:', sunday);
-                    // Subtract 1 day to account for timezone shift when converting to YYYY-MM-DD
-                    const endDateAdjusted = new Date(sunday);
-                    endDateAdjusted.setDate(sunday.getDate() - 1);
-                    startDate = friday;
-                    endDate = endDateAdjusted;
-                    break;
-                case 'month':
-                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                    endDate = new Date(today);
-                    endDate.setHours(23, 59, 59, 999);
-                    break;
-                case 'ytd':
-                    startDate = new Date(today.getFullYear(), 0, 1);
-                    endDate = new Date(today);
-                    endDate.setHours(23, 59, 59, 999);
-                    break;
-                case 'year':
-                    startDate = new Date(today);
-                    startDate.setFullYear(today.getFullYear() - 1);
-                    endDate = new Date(today);
-                    endDate.setHours(23, 59, 59, 999);
-                    break;
-                case 'lastYear':
-                    startDate = new Date(today.getFullYear() - 1, 0, 1);
-                    endDate = new Date(today.getFullYear() - 1, 11, 31);
-                    endDate.setHours(23, 59, 59, 999);
-                    break;
-                case 'all':
-                    startDate = new Date('2020-01-01');
-                    endDate = new Date(today);
-                    endDate.setHours(23, 59, 59, 999);
-                    break;
-                case 'custom':
-                default:
-                    return;
-            }
-            
-            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
-            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
-            console.log('setDateRange endDate:', endDate.toISOString().split('T')[0]);
-        }
-        
-        async function generateReport() {
-            if (settings.get('haptic')) vibrate([50]);
-            
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            console.log('generateReport endDate:', endDate);
-            const groupBy = document.getElementById('groupBy').value;
-            const activePreset = document.querySelector('.report-preset-btn.active')?.textContent?.toLowerCase() || 'custom';
-            
-            if (!startDate || !endDate) {
-                showSnackbar('Please select start and end dates', 'error');
-                return;
-            }
-            
-            try {
-                // Get all sessions, then filter by session_date
-                const { data } = await supabaseClient
-                    .from('blacksheep_reading_tracker_sessions')
-                    .select('*')
-                    .eq('user_name', session.user)
-                    .order('session_date', { ascending: false });
-                
-                if (!data || data.length === 0) {
-                    showSnackbar('No data found', 'error');
-                    return;
-                }
-                
-                // Filter by session_date (sessions with no readings are excluded)
-                const startDateTime = new Date(normalizeDate(startDate));
-                const endDateTime = new Date(normalizeDate(endDate));
-                endDateTime.setHours(23, 59, 59, 999);
-                
-                const filteredData = data.filter(sessionData => {
-                    const readings = sessionData.readings || [];
-                    if (readings.length === 0) return false; // Exclude empty sessions
-                    
-                    const sessionDateTime = new Date(normalizeDate(sessionData.session_date));
-                    return sessionDateTime >= startDateTime && sessionDateTime <= endDateTime;
-                });
-                
-                if (filteredData.length === 0) {
-                    showSnackbar('No data found for selected date range', 'error');
-                    return;
-                }
-                
-                reportData = filteredData;
-
-                const reportHtml = generateReportHtml(filteredData, groupBy, startDate, endDate);
-                document.getElementById('reportContent').innerHTML = reportHtml;
-                
-                // Enable export button
-                document.getElementById('exportBtn').disabled = false;
-                
-                closeReportMaker();
-                document.getElementById('reportResultsModal').style.display = 'block';
-                
-            } catch (error) {
-                showSnackbar('Failed to generate report', 'error');
-            }
-        }
-        
-        function generateReportHtml(data, groupBy, startDate, endDate) {
-            const groups = {};
-            let totalReadings = 0;
-            let totalBase = 0;
-            let totalTips = 0;
-            
-            // Group data
-            data.forEach(sessionData => {
-                const readings = sessionData.readings || [];
-                
-                if (groupBy === 'payment' || groupBy === 'source') {
-                    // Group by individual readings
-                    readings.forEach(reading => {
-                        const baseTotal = reading.price || sessionData.reading_price || 0;
-                        const tipsTotal = reading.tip || 0;
-                        
-                        let groupKey;
-                        if (groupBy === 'payment') {
-                            groupKey = reading.payment || 'No Payment Method';
-                        } else {
-                            groupKey = reading.source || 'No Source';
-                        }
-                        
-                        if (!groups[groupKey]) {
-                            groups[groupKey] = {
-                                totalReadings: 0,
-                                totalBase: 0,
-                                totalTips: 0
-                            };
-                        }
-                        
-                        groups[groupKey].totalReadings += 1;
-                        groups[groupKey].totalBase += baseTotal;
-                        groups[groupKey].totalTips += tipsTotal;
-                        
-                        totalReadings += 1;
-                        totalBase += baseTotal;
-                        totalTips += tipsTotal;
-                    });
-                } else {
-                    // Group by sessions
-                    const readingCount = readings.length;
-                    const baseTotal = readings.reduce((sum, r) => sum + (r.price || sessionData.reading_price || 0), 0);
-                    const tipsTotal = readings.reduce((sum, r) => sum + (r.tip || 0), 0);
-                    
-                    let groupKey;
-                    if (groupBy === 'location') {
-                        groupKey = sessionData.location;
-                    } else {
-                        // Use session date as event date
-                        groupKey = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString();
-                    }
-                    
-                    if (!groups[groupKey]) {
-                        groups[groupKey] = {
-                            sessions: [],
-                            totalReadings: 0,
-                            totalBase: 0,
-                            totalTips: 0
-                        };
-                    }
-                    
-                    groups[groupKey].sessions.push(sessionData);
-                    groups[groupKey].totalReadings += readingCount;
-                    groups[groupKey].totalBase += baseTotal;
-                    groups[groupKey].totalTips += tipsTotal;
-                    
-                    totalReadings += readingCount;
-                    totalBase += baseTotal;
-                    totalTips += tipsTotal;
-                }
-            });
-            
-            // Generate HTML
-            let html = `<div style="margin-bottom: 20px;">`;
-            const [startYear, startMonth, startDay] = startDate.split('-');
-            const [endYear, endMonth, endDay] = endDate.split('-');
-            const formattedStartDate = `${parseInt(startMonth)}/${parseInt(startDay)}/${startYear}`;
-            const formattedEndDate = `${parseInt(endMonth)}/${parseInt(endDay)}/${endYear}`;
-            html += `<h3>Report: ${formattedStartDate} to ${formattedEndDate}</h3>`;
-            const groupLabels = { location: 'Location', date: 'Date', payment: 'Payment Method', source: 'Referral Source' };
-            html += `<p>Grouped by: ${groupLabels[groupBy]}</p>`;
-            html += `</div>`;
-            
-            // Sort group keys by date for date grouping
-            const sortedGroupKeys = groupBy === 'date' 
-                ? Object.keys(groups).sort((a, b) => new Date(a) - new Date(b))
-                : Object.keys(groups);
-            
-            sortedGroupKeys.forEach(groupKey => {
-                const group = groups[groupKey];
-                html += `<div class="report-group">`;
-                html += `<div class="report-group-header">${groupKey}</div>`;
-                
-                if (groupBy === 'payment' || groupBy === 'source') {
-                    // Show summary for payment/source grouping
-                    html += `<div class="report-session">`;
-                    html += `<div class="report-stats">`;
-                    html += `<div class="report-stat"><span>Readings:</span><span>${group.totalReadings}</span></div>`;
-                    html += `<div class="report-stat"><span>Base:</span><span>$${group.totalBase.toFixed(2)}</span></div>`;
-                    html += `<div class="report-stat"><span>Tips:</span><span>$${group.totalTips.toFixed(2)}</span></div>`;
-                    html += `<div class="report-stat"><span><strong>Total:</strong></span><span><strong>$${(group.totalBase + group.totalTips).toFixed(2)}</strong></span></div>`;
-                    html += `</div></div>`;
-                } else {
-                    // Show individual sessions for location/date grouping (sorted by date)
-                    const sortedSessions = group.sessions.sort((a, b) => {
-                        const dateA = new Date(normalizeDate(a.session_date));
-                        const dateB = new Date(normalizeDate(b.session_date));
-                        return dateA - dateB;
-                    });
-                    
-                    sortedSessions.forEach(sessionData => {
-                        const readings = sessionData.readings || [];
-                        const readingCount = readings.length;
-                        const baseTotal = readings.reduce((sum, r) => sum + (r.price || sessionData.reading_price || 0), 0);
-                        const tipsTotal = readings.reduce((sum, r) => sum + (r.tip || 0), 0);
-                        const sessionTotal = baseTotal + tipsTotal;
-                        
-                        const eventDate = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString();
-                        
-                        html += `<div class="report-session">`;
-                        html += `<div class="report-session-header">${eventDate}</div>`;
-                        html += `<div class="report-stats">`;
-                        html += `<div class="report-stat"><span>Readings:</span><span>${readingCount}</span></div>`;
-                        html += `<div class="report-stat"><span>Base:</span><span>$${baseTotal.toFixed(2)}</span></div>`;
-                        html += `<div class="report-stat"><span>Tips:</span><span>$${tipsTotal.toFixed(2)}</span></div>`;
-                        html += `<div class="report-stat"><span><strong>Total:</strong></span><span><strong>$${sessionTotal.toFixed(2)}</strong></span></div>`;
-                        html += `</div></div>`;
-                    });
-                    
-                    // Group totals for location/date grouping
-                    if (group.sessions && group.sessions.length > 1) {
-                        html += `<div style="margin-top: 12px; padding: 12px; background: #e8f5e8; border-radius: 4px; text-align: center;">`;
-                        html += `<div style="font-weight: bold; margin-bottom: 4px;">${groupKey} Total</div>`;
-                        html += `<div style="font-weight: bold; font-size: 18px;">$${(group.totalBase + group.totalTips).toFixed(2)}</div>`;
-                        html += `</div>`;
-                    }
-                }
-                html += `</div>`;
-            });
-            
-            html += `<div class="report-totals">`;
-            html += `<h3>Grand Totals</h3>`;
-            html += `<div class="report-totals-grid">`;
-            if (groupBy === 'payment' || groupBy === 'source') {
-                html += `<div class="report-total-item"><strong>${Object.keys(groups).length}</strong><br>${groupBy === 'payment' ? 'Payment Methods' : 'Sources'}</div>`;
-            } else {
-                html += `<div class="report-total-item"><strong>${data.length}</strong><br>Sessions</div>`;
-            }
-            html += `<div class="report-total-item"><strong>${totalReadings}</strong><br>Readings</div>`;
-            html += `<div class="report-total-item"><strong>$${totalBase.toFixed(2)}</strong><br>Base Total</div>`;
-            html += `<div class="report-total-item"><strong>$${totalTips.toFixed(2)}</strong><br>Tips Total</div>`;
-            html += `</div>`;
-            html += `<div class="grand-total">`;
-            html += `<div>Grand Total</div>`;
-            html += `<div>$${(totalBase + totalTips).toFixed(2)}</div>`;
-            html += `</div></div>`;
-            
-            return html;
-        }
-        
-        function exportReportData() {
-            if (settings.get('haptic')) vibrate([50]);
-            
-            if (!reportData || reportData.length === 0) {
-                showSnackbar('No report data to export', 'error');
-                return;
-            }
-            
-            // Create detailed CSV with individual readings
-            const csvData = [];
-            csvData.push(['Date', 'Location', 'Day', 'Reading Time', 'Reading Price', 'Tip', 'Payment Method', 'Source', 'Total']);
-            
-            reportData.forEach(sessionData => {
-                const readings = sessionData.readings || [];
-                if (readings.length === 0) {
-                    // Session with no readings
-                    csvData.push([
-                        sessionData.session_date,
-                        sessionData.location,
-                        sessionData.session_date,
-                        '',
-                        sessionData.reading_price || 0,
-                        0,
-                        '',
-                        '',
-                        0
-                    ]);
-                } else {
-                    readings.forEach(reading => {
-                        const readingTotal = (reading.price || sessionData.reading_price || 0) + (reading.tip || 0);
-                        const readingDate = new Date(reading.timestamp).toLocaleDateString();
-                        const readingTime = new Date(reading.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                        
-                        csvData.push([
-                            readingDate,
-                            sessionData.location,
-                            sessionData.session_date,
-                            readingTime,
-                            sessionData.reading_price || 0,
-                            reading.tip || 0,
-                            reading.payment || '',
-                            reading.source || '',
-                            readingTotal.toFixed(2)
-                        ]);
-                    });
-                }
-            });
-            
-            const csvContent = csvData.map(row => row.join(',')).join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            const startDate = document.getElementById('startDate').value || 'report';
-            const endDate = document.getElementById('endDate').value || 'data';
-            a.download = `tarot-report-${startDate}-to-${endDate}.csv`;
-            a.click();
-            
-            URL.revokeObjectURL(url);
-            showSnackbar('Report exported successfully', 'success');
-        }
-
         async function exportData() {
             if (!session.user) {
                 showSnackbar('Select a user first', 'error');
@@ -4682,294 +3768,21 @@
 
     </script>
     
+    <script src="session-store.js"></script>
+    <script src="gpsy-chat.js"></script>
+    
     <script>
         // ========================================
-        // GPSY CHAT FUNCTIONALITY
-        // ========================================
-        
-        class GpsyChat {
-            constructor() {
-                this.messages = [];
-                this.sessionId = crypto.randomUUID();
-                this.apiEndpoint = 'YOUR_API_GATEWAY_ENDPOINT'; // TODO: Replace with actual endpoint
-            }
-            
-            addMessage(role, content) {
-                this.messages.push({ role, content, timestamp: new Date() });
-                this.renderMessages();
-            }
-            
-            renderMessages(updateLastOnly = false) {
-                const container = document.getElementById('gpsyMessages');
-                
-                if (updateLastOnly && this.messages.length > 0) {
-                    // Optimize: only update last message bubble
-                    const lastBubble = container.querySelector('.gpsy-message:last-child .gpsy-bubble');
-                    if (lastBubble) {
-                        const lastMsg = this.messages[this.messages.length - 1];
-                        lastBubble.innerHTML = this.formatContent(lastMsg.content);
-                        this.attachSuggestionHandlers(lastBubble);
-                        container.scrollTop = container.scrollHeight;
-                        return;
-                    }
-                }
-                
-                // Full render
-                container.innerHTML = this.messages.map(msg => {
-                    const isUser = msg.role === 'user';
-                    const avatar = isUser 
-                        ? '👤' 
-                        : `<img src="${window.APP_LOGO}" alt="Gpsy">`;
-                    return `
-                        <div class="gpsy-message ${isUser ? 'user' : 'assistant'}">
-                            <div class="gpsy-avatar">${avatar}</div>
-                            <div class="gpsy-bubble">${this.formatContent(msg.content)}</div>
-                        </div>
-                    `;
-                }).join('');
-                
-                this.attachSuggestionHandlers(container);
-                container.scrollTop = container.scrollHeight;
-            }
-            
-            attachSuggestionHandlers(element) {
-                element.querySelectorAll('.bedrock-suggestion').forEach(btn => {
-                    btn.onclick = () => {
-                        const prompt = btn.getAttribute('data-prompt');
-                        if (prompt) {
-                            document.getElementById('gpsyInput').value = prompt;
-                            sendGpsyMessage();
-                        }
-                    };
-                });
-            }
-            
-            formatContent(content) {
-                // Return HTML directly - onclick handlers will be attached after render
-                return `<div style="max-height: 400px; overflow-y: auto;">${content}</div>`;
-            }
-            
-            showThinking() {
-                const container = document.getElementById('gpsyMessages');
-                const thinkingDiv = document.createElement('div');
-                thinkingDiv.className = 'gpsy-message assistant';
-                thinkingDiv.id = 'gpsy-thinking';
-                thinkingDiv.innerHTML = `
-                    <div class="gpsy-avatar thinking"><img src="${window.APP_LOGO}" alt="Gpsy"></div>
-                    <div class="gpsy-bubble gpsy-thinking">
-                        <span></span><span></span><span></span>
-                    </div>
-                `;
-                container.appendChild(thinkingDiv);
-                container.scrollTop = container.scrollHeight;
-            }
-            
-            hideThinking() {
-                const thinking = document.getElementById('gpsy-thinking');
-                if (thinking) thinking.remove();
-            }
-            
-            async sendMessage(userMessage) {
-                if (!userMessage.trim()) return;
-                
-                if (!session.user) {
-                    this.addMessage('user', userMessage);
-                    this.addMessage('assistant', 'Please select a user first before asking questions.');
-                    return;
-                }
-                
-                this.addMessage('user', userMessage);
-                
-                // Test keywords for UI testing
-                const lowerMessage = userMessage.toLowerCase();
-                
-                if (lowerMessage === 'table') {
-                    const testTable = `<div class="bedrock-response">
-                        <div class="bedrock-section">Top 3 Locations by Earnings</div>
-                        <table class="bedrock-table">
-                            <thead>
-                                <tr>
-                                    <th class="bedrock-header">Location</th>
-                                    <th class="bedrock-header">Earnings</th>
-                                    <th class="bedrock-header">Readings</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td class="bedrock-cell">Va Beach BMSE Fall 25</td>
-                                    <td class="bedrock-cell bedrock-currency">$1,148.71</td>
-                                    <td class="bedrock-cell">19</td>
-                                </tr>
-                                <tr>
-                                    <td class="bedrock-cell">Cincinnati Fall 25</td>
-                                    <td class="bedrock-cell bedrock-currency">$365.00</td>
-                                    <td class="bedrock-cell">8</td>
-                                </tr>
-                                <tr>
-                                    <td class="bedrock-cell">Denver Fall 25</td>
-                                    <td class="bedrock-cell bedrock-currency">$337.50</td>
-                                    <td class="bedrock-cell">10</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <div class="bedrock-suggestions">
-                            <button class="bedrock-suggestion" data-prompt="Show me worst performing locations">Worst locations</button>
-                            <button class="bedrock-suggestion" data-prompt="Break down by payment method">Payment methods</button>
-                            <button class="bedrock-suggestion" data-prompt="Show me this month's total">Monthly total</button>
-                        </div>
-                    </div>`;
-                    this.addMessage('assistant', testTable);
-                    return;
-                }
-                
-                if (lowerMessage === 'list') {
-                    const testList = `<div class="bedrock-response">
-                        <div class="bedrock-section">Your Recent Sessions</div>
-                        <ul class="bedrock-list">
-                            <li class="bedrock-item">Cincinnati Fall 25 - 24 readings - $1,013.00</li>
-                            <li class="bedrock-item">Denver Spring 25 - 15 readings - $678.50</li>
-                            <li class="bedrock-item">Schaumburg Fall 25 - 18 readings - $942.25</li>
-                        </ul>
-                        <div class="bedrock-suggestions">
-                            <button class="bedrock-suggestion" data-prompt="Show me earnings by location">Location breakdown</button>
-                            <button class="bedrock-suggestion" data-prompt="What was my best session?">Best session</button>
-                            <button class="bedrock-suggestion" data-prompt="Show total for this year">Year total</button>
-                        </div>
-                    </div>`;
-                    this.addMessage('assistant', testList);
-                    return;
-                }
-                
-                if (lowerMessage === 'summary') {
-                    const testSummary = `<div class="bedrock-response">
-                        <div class="bedrock-insight">
-                            You've completed <span class="bedrock-highlight">146</span> readings and earned <span class="bedrock-currency bedrock-total">$6,688.06</span> total.
-                        </div>
-                        <div class="bedrock-suggestions">
-                            <button class="bedrock-suggestion" data-prompt="Show me breakdown by location">By location</button>
-                            <button class="bedrock-suggestion" data-prompt="What were my top 3 locations?">Top 3 locations</button>
-                            <button class="bedrock-suggestion" data-prompt="Show me earnings by month">Monthly breakdown</button>
-                        </div>
-                    </div>`;
-                    this.addMessage('assistant', testSummary);
-                    return;
-                }
-                
-                this.showThinking();
-                
-                try {
-                    const response = await fetch('https://57h2jhw5tcjn35yzuitv4zjmfu0snuom.lambda-url.us-east-2.on.aws/', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            message: userMessage,
-                            sessionId: this.sessionId,
-                            userName: session.user
-                        })
-                    });
-                    
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    
-                    const contentType = response.headers.get('content-type');
-                    const isStreaming = contentType?.includes('text/event-stream');
-                    
-                    this.hideThinking();
-                    const msgIndex = this.messages.length;
-                    this.messages.push({ role: 'assistant', content: '', timestamp: new Date() });
-                    
-                    if (isStreaming) {
-                        const reader = response.body.getReader();
-                        const decoder = new TextDecoder();
-                        let buffer = '';
-                        let fullResponse = '';
-                        
-                        while (true) {
-                            const { done, value } = await reader.read();
-                            if (done) break;
-                            
-                            buffer += decoder.decode(value, { stream: true });
-                            const lines = buffer.split('\n');
-                            buffer = lines.pop();
-                            
-                            for (const line of lines) {
-                                if (!line.trim() || !line.startsWith('data: ')) continue;
-                                const data = line.slice(6);
-                                if (data === '[DONE]') continue;
-                                
-                                try {
-                                    const parsed = JSON.parse(data);
-                                    if (parsed.chunk) {
-                                        fullResponse += parsed.chunk;
-                                        this.messages[msgIndex].content = fullResponse;
-                                        this.renderMessages(true);
-                                    }
-                                } catch (e) {
-                                    console.error('SSE parse error:', e, 'Data:', data);
-                                }
-                            }
-                        }
-                        
-                        // Process remaining buffer
-                        if (buffer.trim() && buffer.startsWith('data: ')) {
-                            const data = buffer.slice(6);
-                            if (data !== '[DONE]') {
-                                try {
-                                    const parsed = JSON.parse(data);
-                                    if (parsed.chunk) {
-                                        fullResponse += parsed.chunk;
-                                        this.messages[msgIndex].content = fullResponse;
-                                        this.renderMessages(true);
-                                    }
-                                } catch (e) {
-                                    console.error('SSE buffer parse error:', e, 'Data:', data);
-                                }
-                            }
-                        }
-                    } else {
-                        const data = await response.json();
-                        this.messages[msgIndex].content = data.response || 'No response received';
-                        this.renderMessages();
-                    }
-                    
-                } catch (error) {
-                    this.hideThinking();
-                    const msgIndex = this.messages.findIndex(m => m.content === '');
-                    if (msgIndex !== -1) this.messages.splice(msgIndex, 1);
-                    this.addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
-                }
-            }
-        }
-        
-        // Initialize Gpsy chat
+        // INITIALIZATION
+        const settings = new SettingsStore();
+        const session = new SessionStore();
+        const timer = new Timer();
         const gpsyChat = new GpsyChat();
         
-        function openGpsyChat() {
-            vibrate([50]);
-            document.getElementById('gpsyOverlay').classList.add('open');
-            document.getElementById('gpsyDrawer').classList.add('open');
-            
-            // Show welcome message if first time
-            if (gpsyChat.messages.length === 0) {
-                gpsyChat.addMessage('assistant', "Hi, I'm Gpsy. How can I help?");
-            }
-        }
-        
-        function closeGpsyChat() {
-            vibrate([30]);
-            document.getElementById('gpsyOverlay').classList.remove('open');
-            document.getElementById('gpsyDrawer').classList.remove('open');
-        }
-        
-        function sendGpsyMessage() {
-            vibrate([30]);
-            const input = document.getElementById('gpsyInput');
-            const message = input.value.trim();
-            
-            if (message) {
-                gpsyChat.sendMessage(message);
-                input.value = '';
-            }
-        }
+        // Expose globally for inline handlers
+        window.session = session;
+        window.timer = timer;
+        window.gpsyChat = gpsyChat;
     </script>
 </body>
 </html>
