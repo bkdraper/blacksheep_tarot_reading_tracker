@@ -25,7 +25,7 @@ Object.defineProperty(global, 'crypto', {
 // Load GpsyChat class
 const fs = require('fs');
 const path = require('path');
-const code = fs.readFileSync(path.join(__dirname, 'gpsy-chat.js'), 'utf8');
+const code = fs.readFileSync(path.join(__dirname, '..', 'modules', 'gpsy-chat.js'), 'utf8');
 const GpsyChat = eval(`(function() { ${code}; return GpsyChat; })()`);
 
 describe('GpsyChat', () => {

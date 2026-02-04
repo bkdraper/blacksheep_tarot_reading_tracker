@@ -1,80 +1,70 @@
-// Mock DOM and globals
-global.document = {
-  getElementById: jest.fn(() => ({ 
-    value: '', 
-    classList: { add: jest.fn(), remove: jest.fn() },
-    style: { display: '' },
-    textContent: ''
-  })),
-  querySelector: jest.fn(() => ({ style: { display: '' } })),
-  querySelectorAll: jest.fn(() => [])
-};
-
-global.localStorage = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn()
-};
-
-global.supabaseClient = {
-  from: jest.fn(() => ({
-    select: jest.fn(() => ({
-      eq: jest.fn(() => ({
-        order: jest.fn(() => Promise.resolve({ data: [], error: null }))
-      })),
-      not: jest.fn(() => Promise.resolve({ data: [], error: null }))
-    })),
-    insert: jest.fn(() => Promise.resolve({ data: [{ id: 'test-id' }], error: null })),
-    update: jest.fn(() => ({
-      eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
-    }))
-  }))
-};
-
 const fs = require('fs');
 const path = require('path');
-const code = fs.readFileSync(path.join(__dirname, '..', 'session-store.js'), 'utf8');
-const SessionStore = eval(`(function() { ${code}; return SessionStore; })()`);
 
-describe('SessionStore Unit Tests', () => {
-  let session;
+describe('Utils', () => {
+  let Utils;
 
-  beforeEach(() => {
-    session = new SessionStore();
+  beforeAll(() => {
+    const code = fs.readFileSync(path.join(__dirname, '..', 'modules', 'utils.js'), 'utf8');
+    Utils = eval(`(function() { ${code}; return Utils; })()`);
   });
 
-  test('should initialize with default values', () => {
-    expect(session.sessionId).toBeNull();
-    expect(session.user).toBe('');
-    expect(session.location).toBe('');
-    expect(session.sessionDate).toBe('');
-    expect(session.price).toBe(40);
-    expect(session.readings).toEqual([]);
+  describe('normalizeDate', () => {
+    test('should convert YYYY-MM-DD to MM/DD/YYYY', () => {
+      expect(Utils.normalizeDate('2024-03-15')).toBe('3/15/2024');
+    });
+
+    test('should convert YY-MM-DD to MM/DD/YYYY', () => {
+      expect(Utils.normalizeDate('24-03-15')).toBe('3/15/2024');
+    });
+
+    test('should return null for empty string', () => {
+      expect(Utils.normalizeDate('')).toBeNull();
+    });
+
+    test('should return null for null', () => {
+      expect(Utils.normalizeDate(null)).toBeNull();
+    });
+
+    test('should return input for non-matching format', () => {
+      expect(Utils.normalizeDate('03/15/2024')).toBe('03/15/2024');
+    });
   });
 
-  test('should calculate canCreateSession correctly', () => {
-    expect(session.canCreateSession).toBeFalsy();
-    
-    session._user = 'Amanda';
-    session._location = 'Test Location';
-    session._sessionDate = '2026-01-11';
-    session._price = 40;
-    
-    expect(session.canCreateSession).toBeTruthy();
+  describe('isDevelopmentMode', () => {
+    test('should return boolean', () => {
+      const result = Utils.isDevelopmentMode();
+      expect(typeof result).toBe('boolean');
+    });
   });
 
-  test('should calculate sessionPhase correctly', () => {
-    expect(session.sessionPhase).toBe('SETUP');
-    
-    session._user = 'Amanda';
-    session._location = 'Test Location';
-    session._sessionDate = '2026-01-11';
-    session._price = 40;
-    
-    expect(session.sessionPhase).toBe('READY_TO_CREATE');
-    
-    session._sessionId = 'test-id';
-    
-    expect(session.sessionPhase).toBe('ACTIVE');
+  describe('vibrate', () => {
+    test('should be a function', () => {
+      expect(typeof Utils.vibrate).toBe('function');
+    });
+  });
+
+  describe('showSnackbar', () => {
+    test('should be a function', () => {
+      expect(typeof Utils.showSnackbar).toBe('function');
+    });
+  });
+
+  describe('showToast', () => {
+    test('should be a function', () => {
+      expect(typeof Utils.showToast).toBe('function');
+    });
+  });
+
+  describe('showSheet', () => {
+    test('should be a function', () => {
+      expect(typeof Utils.showSheet).toBe('function');
+    });
+  });
+
+  describe('hideSheet', () => {
+    test('should be a function', () => {
+      expect(typeof Utils.hideSheet).toBe('function');
+    });
   });
 });

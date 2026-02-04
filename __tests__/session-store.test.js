@@ -37,7 +37,7 @@ global.registerBackgroundSync = jest.fn();
 // Load SessionStore class
 const fs = require('fs');
 const path = require('path');
-const code = fs.readFileSync(path.join(__dirname, 'session-store.js'), 'utf8');
+const code = fs.readFileSync(path.join(__dirname, '..', 'modules', 'session-store.js'), 'utf8');
 const SessionStore = eval(`(function() { ${code}; return SessionStore; })()`);
 
 describe('SessionStore', () => {

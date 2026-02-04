@@ -236,7 +236,7 @@ class SessionStore {
                     return `
                     <div class="reading-item" data-index="${index}">
                         <div class="reading-left">
-                            <button class="delete-btn" onclick="deleteReading(${index})">×</button>
+                            <button class="delete-btn" onclick="readingsManager.deleteReading(${index})">×</button>
                             <div style="border-left: 2px solid #ddd; padding-left: 10px;">
                                 <span class="index">${index + 1}.</span>
                                 <span class="timestamp">${displayTime}</span>
@@ -266,14 +266,14 @@ class SessionStore {
                             <div class="reading-field">
                                 <span class="field-label">Pay:</span>
                                 <button class="field-button ${reading.payment ? 'selected' : ''}" 
-                                        onclick="openPaymentSheet(${index})">
+                                        onclick="readingsManager.openPaymentSheet(${index})">
                                     ${reading.payment || 'Method'}
                                 </button>
                             </div>
                             <div class="reading-field">
                                 <span class="field-label">From:</span>
                                 <button class="field-button ${reading.source ? 'selected' : ''}" 
-                                        onclick="openSourceSheet(${index})">
+                                        onclick="readingsManager.openSourceSheet(${index})">
                                     ${reading.source || 'Source'}
                                 </button>
                             </div>
@@ -392,7 +392,7 @@ class SessionStore {
                     const userList = document.getElementById('userList');
                     if (userList) {
                         userList.innerHTML = uniqueUsers.map(user => `
-                            <div class="user-item" onclick="selectUser('${user}')">${user}</div>
+                            <div class="user-item" onclick="session.selectUser('${user}')">${user}</div>
                         `).join('');
                     }
                     return uniqueUsers;
@@ -405,5 +405,258 @@ class SessionStore {
                 if (this._user) {
                     localStorage.removeItem(`readingTracker_${this._user}`);
                 }
+            }
+            
+            // UI Methods
+            showUserSelection() {
+                vibrate([30]);
+                showSheet('userOverlay', 'userSheet');
+                
+                const userList = document.getElementById('userList');
+                userList.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div></div>';
+                
+                this.loadUsers();
+            }
+            
+            hideUserSelection() {
+                vibrate([30]);
+                hideSheet('userOverlay', 'userSheet');
+            }
+            
+            selectUser(userName) {
+                vibrate([50]);
+                
+                // Check if switching users during active session
+                if (this.hasValidSession && this._user && this._user !== userName) {
+                    const message = `Switching users will unload the current session (${this._location} on ${this._sessionDate}). Continue?`;
+                    if (!confirm(message)) {
+                        return;
+                    }
+                }
+                
+                // Overwrite localStorage with clean user object
+                localStorage.setItem(`readingTracker_${userName}`, JSON.stringify({
+                    user: userName,
+                    sessionId: null,
+                    location: '',
+                    selectedDay: null,
+                    price: 40,
+                    readings: []
+                }));
+                
+                this.user = userName;
+                this.loadFromStorage();
+                this.hideUserSelection();
+            }
+            
+            addNewUser() {
+                vibrate([50]);
+                const userName = prompt('Enter new user name:');
+                if (userName && userName.trim()) {
+                    const trimmedName = userName.trim();
+                    this.user = trimmedName;
+                    this.hideUserSelection();
+                }
+            }
+            
+            handleCreateSession() {
+                const createBtn = document.querySelector('.btn-create-session');
+                if (createBtn.classList.contains('inactive')) {
+                    showSnackbar('User, location and date are required', 'error');
+                    vibrate([50]);
+                } else {
+                    this.createSession();
+                }
+            }
+
+            async createSession() {
+                if (!this.canCreateSession) {
+                    showSnackbar('User, location and date are required', 'error');
+                    return;
+                }
+                
+                vibrate([50]);
+                const btn = document.querySelector('.btn-create-session');
+                const originalText = btn.textContent;
+                btn.innerHTML = '<span class="spinner inline"></span>Creating...';
+                btn.classList.add('loading');
+                
+                try {
+                    const { data } = await supabaseClient
+                        .from('blacksheep_reading_tracker_sessions')
+                        .select('*')
+                        .eq('session_date', this._sessionDate)
+                        .eq('user_name', this._user)
+                        .eq('location', this._location)
+                        .limit(1);
+                    
+                    if (data && data[0]) {
+                        btn.textContent = originalText;
+                        btn.classList.remove('loading');
+                        const message = `${this._location} on ${this._sessionDate} already exists. Load existing session?`;
+                        if (confirm(message)) {
+                            await this.loadExistingSession(data[0]);
+                        } else {
+                            this._location = '';
+                            this._sessionDate = '';
+                            showSnackbar('Location and date must be unique', 'error');
+                        }
+                        return;
+                    }
+                    
+                    const { data: newData } = await supabaseClient
+                        .from('blacksheep_reading_tracker_sessions')
+                        .insert([{
+                            session_date: this._sessionDate,
+                            user_name: this._user,
+                            location: this._location,
+                            reading_price: this._price,
+                            readings: this._readings
+                        }])
+                        .select();
+                    
+                    if (newData && newData[0]) {
+                        this._sessionId = newData[0].id;
+                        this._readings = [];
+                        this.collapseSettings();
+                        showSnackbar('Session created successfully!');
+                        
+                        if ('serviceWorker' in navigator && Notification.permission === 'granted' && !isDevelopmentMode()) {
+                            setTimeout(() => {
+                                sendTestNotification();
+                            }, 4 * 60 * 60 * 1000);
+                        }
+                    }
+                } catch (error) {
+                    showSnackbar('Database error, using offline mode', 'error');
+                    registerBackgroundSync();
+                } finally {
+                    btn.textContent = originalText;
+                    btn.classList.remove('loading');
+                }
+            }
+
+            startNewSession() {
+                vibrate([100, 50, 100]);
+                if (confirm('Start a new session? This will unload all current data and start over.')) {
+                    this.startOver();
+                    window.timer.reset();
+                    document.getElementById('timerInput').value = window.settings.get('defaultTimer');
+                    showSnackbar('Ready to create new session', 'success');
+                }
+            }
+
+            async showLoadSession() {
+                if (!this._user) {
+                    return;
+                }
+                
+                vibrate([50]);
+                const btn = document.querySelector('.btn-load-session');
+                const originalText = btn.textContent;
+                btn.innerHTML = '<span class="spinner inline"></span>Loading...';
+                btn.classList.add('loading');
+                
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('blacksheep_reading_tracker_sessions')
+                        .select('*')
+                        .eq('user_name', this._user)
+                        .order('session_date', { ascending: false })
+                        .order('created_at', { ascending: false });
+                    
+                    if (data && data.length > 0) {
+                        const sessionsList = document.getElementById('sessionsList');
+                        sessionsList.innerHTML = data.map(sessionData => {
+                            const readingCount = sessionData.readings ? sessionData.readings.length : 0;
+                            const date = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString();
+                            const dayOfWeek = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString('en-US', { weekday: 'short' });
+                            const baseTotal = sessionData.readings ? sessionData.readings.reduce((sum, r) => sum + (r.price || sessionData.reading_price || 0), 0) : 0;
+                            const tipsTotal = sessionData.readings ? sessionData.readings.reduce((sum, reading) => sum + (reading.tip || 0), 0) : 0;
+                            const grandTotal = baseTotal + tipsTotal;
+                            return `
+                                <div class="session-item" onclick="session.selectSession('${sessionData.id}')">
+                                    <div class="session-info">${sessionData.location || 'No location'} - ${dayOfWeek} ${date}</div>
+                                    <div class="session-details">${readingCount} readings  $${grandTotal.toFixed(2)}</div>
+                                </div>
+                            `;
+                        }).join('');
+                        showSheet('sessionOverlay', 'sessionSheet');
+                    } else {
+                        showSnackbar('No existing sessions found', 'error');
+                    }
+                } catch (error) {
+                    showSnackbar('Failed to load sessions', 'error');
+                } finally {
+                    btn.textContent = originalText;
+                    btn.classList.remove('loading');
+                }
+            }
+
+            closeSessionSheet() {
+                vibrate([30]);
+                hideSheet('sessionOverlay', 'sessionSheet');
+            }
+
+            async selectSession(sessionId) {
+                vibrate([50]);
+                const sessionItem = event.target.closest('.session-item');
+                const originalHTML = sessionItem.innerHTML;
+                sessionItem.innerHTML = '<div class="session-info"><span class="spinner"></span>Loading session...</div>';
+                sessionItem.style.pointerEvents = 'none';
+                
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('blacksheep_reading_tracker_sessions')
+                        .select('*')
+                        .eq('id', sessionId)
+                        .single();
+                    
+                    if (data) {
+                        await this.loadExistingSession(data);
+                        this.closeSessionSheet();
+                    } else {
+                        showSnackbar('Session not found', 'error');
+                    }
+                } catch (error) {
+                    showSnackbar('Failed to load session', 'error');
+                } finally {
+                    sessionItem.innerHTML = originalHTML;
+                    sessionItem.style.pointerEvents = 'auto';
+                }
+            }
+
+            async loadExistingSession(sessionData) {
+                this._loading = true;
+                this._sessionId = sessionData.id;
+                this._user = sessionData.user_name || '';
+                this._location = sessionData.location || '';
+                this._sessionDate = sessionData.session_date || '';
+                this._price = sessionData.reading_price || 40;
+                this._readings = sessionData.readings || [];
+                this._loading = false;
+                
+                // Update UI after loading
+                this.updateReadingsList();
+                this.updateTotals();
+                this.updateUI();
+                
+                this.collapseSettings();
+                showSnackbar(`Loaded session: ${sessionData.location} on ${sessionData.session_date}`);
+            }
+
+            collapseSettings() {
+                const content = document.getElementById('settingsContent');
+                const icon = document.querySelector('.collapse-icon');
+                content.classList.remove('open');
+                icon.classList.remove('open');
+            }
+
+            toggleSettings() {
+                vibrate([50]);
+                const content = document.getElementById('settingsContent');
+                const icon = document.querySelector('.collapse-icon');
+                content.classList.toggle('open');
+                icon.classList.toggle('open');
             }
         }

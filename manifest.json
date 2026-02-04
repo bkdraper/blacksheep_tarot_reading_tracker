@@ -1,6 +1,7 @@
 {
   "name": "Tarot Reading Tracker",
   "short_name": "Tarot Tracker",
+  "version": "3.99.0",
   "description": "Track tarot readings and tips during events",
   "start_url": "/",
   "display": "standalone",
