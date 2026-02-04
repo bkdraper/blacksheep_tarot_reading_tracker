@@ -5,7 +5,10 @@
 class GpsyChat {
     constructor() {
         this.messages = [];
-        this.sessionId = crypto.randomUUID();
+        this.sessionId = crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
         this.apiEndpoint = 'https://57h2jhw5tcjn35yzuitv4zjmfu0snuom.lambda-url.us-east-2.on.aws/';
     }
     

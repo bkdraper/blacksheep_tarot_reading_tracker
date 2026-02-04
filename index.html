@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -63,7 +63,7 @@
                         <label for="user">User:</label>
                         <button id="userBtn" onclick="session.showUserSelection()" class="user-btn">Select User...</button>
                     </div>
-                    <button class="btn-load-session" onclick="session.showLoadSession()">Load Session</button>
+                    <button class="btn-load-session btn-base" onclick="session.showLoadSession()">Load Session</button>
                 </div>
 
                 <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
@@ -91,15 +91,15 @@
                 <div id="requiredFieldsNote" style="font-size: 11px; color: #dc3545; text-align: center; margin-bottom: 10px;">* Fill in the red-outlined fields to create a new session</div>
 
                 <div class="input-group">
-                    <button class="btn-create-session inactive" onclick="session.handleCreateSession()">Create Session</button>
-                    <button class="btn-new-session" onclick="session.startNewSession()" style="display: none;">New Session</button>
+                    <button class="btn-create-session inactive btn-base" onclick="session.handleCreateSession()">Create Session</button>
+                    <button class="btn-new-session btn-base" onclick="session.startNewSession()" style="display: none;">New Session</button>
                 </div>
             </div>
         </div>
 
         <div class="buttons">
-            <button class="btn-add" onclick="readingsManager.addReading()">+ Add Reading</button>
-            <button class="btn-remove" onclick="readingsManager.removeReading()">-</button>
+            <button class="btn-add btn-base" onclick="readingsManager.addReading()">+ Add Reading</button>
+            <button class="btn-remove btn-base" onclick="readingsManager.removeReading()">-</button>
         </div>
 
         <div class="totals">
@@ -146,8 +146,8 @@
 
     <!-- Payment Method Sheet -->
     <div id="paymentOverlay" class="payment-overlay" onclick="readingsManager.closePaymentSheet()"></div>
-    <div id="paymentSheet" class="payment-sheet">
-        <div class="payment-sheet-header">
+    <div id="paymentSheet" class="payment-sheet sheet">
+        <div class="payment-sheet-header sheet-header">
             <h3>Select Payment Method</h3>
             <button class="modal-close" onclick="readingsManager.closePaymentSheet()"><i class="fas fa-times"></i></button>
         </div>
@@ -158,8 +158,8 @@
 
     <!-- Source Sheet -->
     <div id="sourceOverlay" class="payment-overlay" onclick="readingsManager.closeSourceSheet()"></div>
-    <div id="sourceSheet" class="payment-sheet">
-        <div class="payment-sheet-header">
+    <div id="sourceSheet" class="payment-sheet sheet">
+        <div class="payment-sheet-header sheet-header">
             <h3>Select Source</h3>
             <button class="modal-close" onclick="readingsManager.closeSourceSheet()"><i class="fas fa-times"></i></button>
         </div>
@@ -170,21 +170,21 @@
 
     <!-- User Selection Sheet -->
     <div id="userOverlay" class="payment-overlay" onclick="session.hideUserSelection()"></div>
-    <div id="userSheet" class="session-sheet">
-        <div class="session-sheet-header">
+    <div id="userSheet" class="session-sheet sheet">
+        <div class="session-sheet-header sheet-header">
             <h3>Select User</h3>
             <button class="modal-close" onclick="session.hideUserSelection()"><i class="fas fa-times"></i></button>
         </div>
         <div class="session-sheet-content">
             <div id="userList"></div>
-            <button onclick="session.addNewUser()" class="btn-add-user">+ Add New User</button>
+            <button onclick="session.addNewUser()" class="btn-add-user btn-base">+ Add New User</button>
         </div>
     </div>
 
     <!-- Load Session Sheet -->
     <div id="sessionOverlay" class="payment-overlay" onclick="session.closeSessionSheet()"></div>
-    <div id="sessionSheet" class="session-sheet">
-        <div class="session-sheet-header">
+    <div id="sessionSheet" class="session-sheet sheet">
+        <div class="session-sheet-header sheet-header">
             <h3>Load Existing Session</h3>
             <button class="modal-close" onclick="session.closeSessionSheet()"><i class="fas fa-times"></i></button>
         </div>
@@ -195,27 +195,27 @@
 
     <!-- Payment Methods Customization Sheet -->
     <div id="paymentMethodsOverlay" class="payment-overlay" onclick="settings.closePaymentMethodsSheet()"></div>
-    <div id="paymentMethodsSheet" class="payment-methods-sheet">
-        <div class="session-sheet-header">
+    <div id="paymentMethodsSheet" class="payment-methods-sheet sheet">
+        <div class="session-sheet-header sheet-header">
             <h3>Customize Payment Methods</h3>
             <button class="modal-close" onclick="settings.closePaymentMethodsSheet()"><i class="fas fa-times"></i></button>
         </div>
         <div class="session-sheet-content">
             <div id="paymentMethodsList"></div>
-            <button onclick="settings.addPaymentMethod()" class="add-payment-method">+ Add Payment Method</button>
+            <button onclick="settings.addPaymentMethod()" class="add-payment-method btn-base">+ Add Payment Method</button>
         </div>
     </div>
 
     <!-- Sources Customization Sheet -->
     <div id="sourcesOverlay" class="payment-overlay" onclick="settings.closeSourcesSheet()"></div>
-    <div id="sourcesSheet" class="payment-methods-sheet">
-        <div class="session-sheet-header">
+    <div id="sourcesSheet" class="payment-methods-sheet sheet">
+        <div class="session-sheet-header sheet-header">
             <h3>Customize Sources</h3>
             <button class="modal-close" onclick="settings.closeSourcesSheet()"><i class="fas fa-times"></i></button>
         </div>
         <div class="session-sheet-content">
             <div id="sourcesList"></div>
-            <button onclick="settings.addSource()" class="add-payment-method">+ Add Source</button>
+            <button onclick="settings.addSource()" class="add-payment-method btn-base">+ Add Source</button>
         </div>
     </div>
 

@@ -74,3 +74,6 @@ class Utils {
         document.getElementById(sheetId).style.display = 'none';
     }
 }
+
+// Expose to window
+window.Utils = Utils;

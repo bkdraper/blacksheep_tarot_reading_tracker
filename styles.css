@@ -121,11 +121,7 @@
             padding: 12px;
             font-size: 14px;
             border: 2px solid #ccc;
-            border-radius: 6px;
             background: white;
-            cursor: pointer;
-            min-height: 44px;
-            touch-action: manipulation;
         }
         .day-btn.active {
             background: #007bff;
@@ -135,26 +131,16 @@
         .btn-new-session {
             background: #dc3545;
             color: white;
-            border: none;
             padding: 12px 20px;
             font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            min-height: 44px;
             flex: 1;
-            touch-action: manipulation;
         }
         .btn-load-session {
             background: #007bff;
             color: white;
-            border: none;
             padding: 12px 8px;
             font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            min-height: 44px;
             flex: 1;
-            touch-action: manipulation;
         }
         .btn-load-session.disabled {
             background: #6c757d;
@@ -270,14 +256,9 @@
         .btn-create-session {
             background: #28a745;
             color: white;
-            border: none;
             padding: 12px 20px;
             font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            min-height: 44px;
             flex: 1;
-            touch-action: manipulation;
         }
         .btn-create-session.inactive {
             background: #6c757d;
@@ -296,25 +277,19 @@
             flex: 3; 
             background: #28a745; 
             color: white; 
-            border: none; 
             padding: 18px; 
             font-size: 18px; 
-            border-radius: 8px; 
-            cursor: pointer;
+            border-radius: 8px;
             min-height: 60px;
-            touch-action: manipulation;
         }
         .btn-remove { 
             flex: 1; 
             background: #dc3545; 
             color: white; 
-            border: none; 
             padding: 18px; 
             font-size: 18px; 
-            border-radius: 8px; 
-            cursor: pointer;
+            border-radius: 8px;
             min-height: 60px;
-            touch-action: manipulation;
         }
         .totals { 
             background: white; 
@@ -488,7 +463,8 @@
             color: white;
             border-color: #007bff;
         }
-        .payment-sheet {
+        /* Base sheet styles */
+        .sheet {
             display: none;
             position: fixed;
             bottom: 0;
@@ -501,12 +477,18 @@
             z-index: 2001;
             animation: slideUpSheet 0.3s ease;
         }
-        .payment-sheet-header {
+        .sheet-header {
             padding: 20px;
             border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+        .payment-sheet {
+            /* Inherits from .sheet */
+        }
+        .payment-sheet-header {
+            /* Inherits from .sheet-header */
         }
         .payment-sheet-options {
             padding: 20px;
@@ -542,26 +524,11 @@
             z-index: 2000;
         }
         .session-sheet {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
-            background: white;
-            border-radius: 16px 16px 0 0;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
-            z-index: 2001;
-            animation: slideUpSheet 0.3s ease;
             max-height: 70vh;
             overflow-y: auto;
         }
         .session-sheet-header {
-            padding: 20px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            /* Inherits from .sheet-header */
         }
         .session-sheet-content {
             padding: 20px;
@@ -922,17 +889,6 @@
         
         /* Payment Methods Customization Sheet */
         .payment-methods-sheet {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
-            background: white;
-            border-radius: 16px 16px 0 0;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
-            z-index: 2001;
-            animation: slideUpSheet 0.3s ease;
             max-height: 70vh;
             overflow-y: auto;
         }
@@ -1029,8 +985,8 @@
         body.dark-mode .setting-description {
             color: #cccccc;
         }
-        body.dark-mode .modal-content,
-        body.dark-mode .payment-methods-sheet {
+        body.dark-mode .sheet,
+        body.dark-mode .modal-content {
             background: #2d2d2d;
             color: #ffffff;
         }
@@ -1038,11 +994,6 @@
             background: #3d3d3d;
             color: #ffffff;
             border-color: #555;
-        }
-        body.dark-mode .session-sheet,
-        body.dark-mode .payment-sheet {
-            background: #2d2d2d;
-            color: #ffffff;
         }
         body.dark-mode .session-info {
             color: #ffffff;
@@ -1058,14 +1009,17 @@
             color: #f4e4a6 !important;
         }
         
-        .btn {
-            padding: 12px 20px;
-            font-size: 16px;
+        /* Base button styles */
+        .btn-base {
             border: none;
             border-radius: 6px;
             cursor: pointer;
             min-height: 44px;
             touch-action: manipulation;
+        }
+        .btn {
+            padding: 12px 20px;
+            font-size: 16px;
         }
         .btn-secondary {
             background: #007bff;
