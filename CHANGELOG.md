@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.99.0 - Utils Module Extraction
+- Extracted Utils class to `modules/utils.js`
+- Removed ~100 lines of duplicate utility functions from index.html
+- All utility functions now sourced from Utils module
+- Integrated AnalyticsNotifier module for analytics notifications
+- Reduced index.html from 1153 to 1053 lines (9% reduction)
+- Modules export classes to window, index.html instantiates and exposes instances
+
 ## v3.97.0 - Code Modularization
 - Extracted Timer class to `modules/timer.js`
 - Extracted SettingsStore class to `modules/settings-store.js`

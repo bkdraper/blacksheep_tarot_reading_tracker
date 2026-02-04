@@ -7,7 +7,7 @@
 Pure HTML/CSS/JS, Supabase DB, localStorage backup, single-file deployment
 
 ## Core Classes
-SessionStore, Timer, SettingsStore, GpsyChat (all in index.html)
+SessionStore, Timer, SettingsStore, GpsyChat, ReadingsManager, AnalyticsNotifier, Utils (all in modules/)
 
 ## Features Summary
 - Session management (create, load, restore)
