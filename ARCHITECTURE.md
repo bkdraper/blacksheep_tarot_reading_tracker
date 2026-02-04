@@ -25,6 +25,9 @@ graph TB
 - `modules/timer.js`: Timer class
 - `modules/gpsy-chat.js`: GpsyChat class
 - `modules/settings-store.js`: SettingsStore class
+- `modules/readings-manager.js`: ReadingsManager class
+- `modules/analytics-notifier.js`: AnalyticsNotifier class
+- `modules/utils.js`: Utils class (shared utilities)
 
 ### Core Classes
 
@@ -54,6 +57,25 @@ graph TB
 - Dark mode toggle
 - Notification settings
 - Settings drawer UI management
+
+#### ReadingsManager (`modules/readings-manager.js`)
+- Reading CRUD operations
+- Payment/source sheet management
+- Reading list UI updates
+
+#### AnalyticsNotifier (`modules/analytics-notifier.js`)
+- Daily summary notifications
+- Weekend goal tracking
+- Best day alerts
+- Tip trend analysis
+- Peak time detection
+
+#### Utils (`modules/utils.js`)
+- Date normalization (YYYY-MM-DD → MM/DD/YYYY)
+- Development mode detection
+- Haptic feedback (vibrate)
+- Toast/snackbar notifications
+- Sheet show/hide helpers
 
 ## Data Structure
 
