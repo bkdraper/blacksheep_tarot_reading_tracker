@@ -2,7 +2,7 @@
 
 Mobile-optimized single page app for tracking tarot readings and tips. Built with pure HTML/CSS/JS and Supabase cloud database.
 
-## Version: v3.99.0
+## Version: v3.99.4
 
 ## Features
 - Track readings with timestamps, tips, payment methods, sources
@@ -46,7 +46,32 @@ npm start  # Runs on port 8080
 - `mcp-server/`: Data access API
 - See `ARCHITECTURE.md` for technical details
 
-## Recent Changes (v3.99.0)
+## Recent Changes (v3.99.4)
+- Refactored SessionStore to use setters consistently for all state changes
+- Split save() into save() and saveToLocalStorage() to avoid redundant DB writes
+- Fixed localStorage not updating when loading existing sessions
+- Improved user/startOver methods to use setters with _loading flag
+- Added XSS sanitization with Utils.sanitize() for user-generated content
+- Added offline indicator badge in header with network status monitoring
+- Fixed duplicate session check to happen before insert attempt
+- Added double confirmation to startNewSession()
+
+## Previous Changes (v3.99.3)
+- Consolidated button CSS into base classes (btn, btn-primary, btn-secondary, btn-danger, btn-ghost)
+- Added size modifiers (btn-small, btn-large, btn-xlarge)
+- Reduced CSS by ~150 lines through consolidation
+- All buttons now use consistent styling patterns
+
+## Previous Changes (v3.99.2)
+- Added IDs to all unique buttons and containers following {type}-{area}-{purpose} convention
+- IDs are additive (classes remain unchanged) for future refactoring
+- No functional changes, all tests pass
+
+## Previous Changes (v3.99.1)
+- Fixed bug where Add Reading and Delete Reading buttons disappeared after creating new session
+- Added comprehensive DOM tests to verify UI state across all session phases
+
+## Previous Changes (v3.99.0)
 - Removed ~100 lines of duplicate utility functions from index.html
 - All utility functions now sourced from Utils module
 - Integrated AnalyticsNotifier module for analytics notifications

@@ -139,7 +139,7 @@ class SettingsStore {
             <div class="payment-method-item">
                 <input type="text" class="payment-method-input" value="${method}" 
                        onchange="settings.updatePaymentMethod(${index}, this.value)">
-                <button class="payment-method-delete" onclick="settings.deletePaymentMethod(${index})">Delete</button>
+                <button class="payment-method-delete btn btn-danger btn-small" onclick="settings.deletePaymentMethod(${index})">Delete</button>
             </div>
         `).join('');
         showSheet('paymentMethodsOverlay', 'paymentMethodsSheet');
@@ -188,7 +188,7 @@ class SettingsStore {
             <div class="payment-method-item">
                 <input type="text" class="payment-method-input" value="${source}" 
                        onchange="settings.updateSource(${index}, this.value)">
-                <button class="payment-method-delete" onclick="settings.deleteSource(${index})">Delete</button>
+                <button class="payment-method-delete btn btn-danger btn-small" onclick="settings.deleteSource(${index})">Delete</button>
             </div>
         `).join('');
         showSheet('sourcesOverlay', 'sourcesSheet');

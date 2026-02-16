@@ -36,6 +36,86 @@
             font-size: 10px;
             font-weight: 500;
         }
+        .offline-badge {
+            background: #dc3545;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        /* ========================================
+           BUTTON SYSTEM - Base Classes
+           ======================================== */
+        .btn {
+            cursor: pointer;
+            border-radius: 6px;
+            touch-action: manipulation;
+        }
+        .btn-primary {
+            background: #28a745;
+            color: white;
+            border: 2px solid #28a745;
+            padding: 12px 20px;
+            font-size: 16px;
+            min-height: 44px;
+        }
+        .btn-secondary {
+            background: #007bff;
+            color: white;
+            border: 2px solid #007bff;
+            padding: 12px 20px;
+            font-size: 16px;
+            min-height: 44px;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border: 2px solid #dc3545;
+            padding: 12px 20px;
+            font-size: 16px;
+            min-height: 44px;
+        }
+        .btn-ghost {
+            background: white;
+            color: #333;
+            border: 2px solid #ccc;
+            padding: 12px 20px;
+            font-size: 16px;
+            min-height: 44px;
+        }
+        .btn-ghost.selected {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 12px;
+            min-height: 36px;
+        }
+        .btn-large {
+            padding: 18px 24px;
+            font-size: 18px;
+            min-height: 60px;
+        }
+        .btn-xlarge {
+            padding: 24px 32px;
+            font-size: 22px;
+            font-weight: bold;
+            min-height: 70px;
+        }
+        .btn:disabled,
+        .btn.disabled,
+        .btn.inactive {
+            background: #6c757d;
+            border-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        /* Header button */
         .settings-btn {
             background: rgba(255,255,255,0.2);
             border: none;
@@ -118,10 +198,6 @@
         }
         .day-btn {
             flex: 1;
-            padding: 12px;
-            font-size: 14px;
-            border: 2px solid #ccc;
-            background: white;
         }
         .day-btn.active {
             background: #007bff;
@@ -129,23 +205,10 @@
             border-color: #007bff;
         }
         .btn-new-session {
-            background: #dc3545;
-            color: white;
-            padding: 12px 20px;
-            font-size: 16px;
             flex: 1;
         }
         .btn-load-session {
-            background: #007bff;
-            color: white;
-            padding: 12px 8px;
-            font-size: 16px;
             flex: 1;
-        }
-        .btn-load-session.disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-            opacity: 0.6;
         }
         .modal {
             display: none;
@@ -254,16 +317,7 @@
             margin: 20px 0; 
         }
         .btn-create-session {
-            background: #28a745;
-            color: white;
-            padding: 12px 20px;
-            font-size: 16px;
             flex: 1;
-        }
-        .btn-create-session.inactive {
-            background: #6c757d;
-            cursor: not-allowed;
-            opacity: 0.6;
         }
         .required-field {
             border: 2px solid #dc3545 !important;
@@ -274,22 +328,12 @@
             padding: 8px;
         }
         .btn-add { 
-            flex: 3; 
-            background: #28a745; 
-            color: white; 
-            padding: 18px; 
-            font-size: 18px; 
+            flex: 3;
             border-radius: 8px;
-            min-height: 60px;
         }
         .btn-remove { 
-            flex: 1; 
-            background: #dc3545; 
-            color: white; 
-            padding: 18px; 
-            font-size: 18px; 
+            flex: 1;
             border-radius: 8px;
-            min-height: 60px;
         }
         .totals { 
             background: white; 
@@ -406,62 +450,16 @@
         }
         .field-button {
             flex: 1;
-            padding: 8px 12px;
-            font-size: 12px;
-            border: 2px solid #ccc;
-            border-radius: 6px;
-            background: white;
-            cursor: pointer;
-            min-height: 36px;
-            touch-action: manipulation;
-        }
-        .field-button.selected {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
         }
         .delete-btn {
-            background: #dc3545 !important;
-            color: white !important;
-            border: none !important;
-            padding: 8px 12px !important;
-            font-size: 12px !important;
             border-radius: 4px !important;
-            cursor: pointer !important;
-            min-height: 44px !important;
             min-width: 40px !important;
         }
         .payment-method-btn {
-            padding: 8px 12px;
-            font-size: 12px;
-            border: 2px solid #ccc;
-            border-radius: 6px;
-            background: white;
-            cursor: pointer;
-            min-height: 44px;
-            touch-action: manipulation;
             flex: 1;
-        }
-        .payment-method-btn.selected {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
         }
         .source-btn {
-            padding: 8px 12px;
-            font-size: 12px;
-            border: 2px solid #ccc;
-            border-radius: 6px;
-            background: white;
-            cursor: pointer;
-            min-height: 44px;
-            touch-action: manipulation;
             flex: 1;
-        }
-        .source-btn.selected {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
         }
         /* Base sheet styles */
         .sheet {
@@ -498,17 +496,11 @@
         }
         .payment-option {
             padding: 16px;
-            border: 2px solid #ccc;
             border-radius: 8px;
-            background: white;
-            cursor: pointer;
             text-align: center;
-            font-size: 14px;
-            min-height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
-            touch-action: manipulation;
         }
         .payment-option:hover {
             background: #f8f9fa;
@@ -537,33 +529,17 @@
             flex: 2;
             min-width: 0;
             padding: 8px;
-            font-size: 16px;
-            border: 2px solid #ccc;
-            border-radius: 6px;
-            background: white;
-            cursor: pointer;
             text-align: left;
             -webkit-appearance: none;
             appearance: none;
             box-sizing: border-box;
-            min-height: 44px;
-            touch-action: manipulation;
-        }
-        .user-btn.selected {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
         }
         .user-item {
             padding: 15px;
             border: 1px solid #ddd;
-            border-radius: 6px;
             margin-bottom: 10px;
-            cursor: pointer;
             transition: background-color 0.2s;
             text-align: center;
-            font-size: 16px;
-            min-height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -572,17 +548,8 @@
             background-color: #f8f9fa;
         }
         .btn-add-user {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 15px;
-            font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
             width: 100%;
-            min-height: 44px;
             margin-top: 10px;
-            touch-action: manipulation;
         }
         .timer {
             background: white;
@@ -646,14 +613,6 @@
             appearance: none;
         }
         .arrow-btn {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            min-height: 44px;
             min-width: 44px;
         }
         .timer-buttons {
@@ -662,25 +621,17 @@
             justify-content: center;
         }
         .timer-btn {
-            padding: 12px 20px;
-            font-size: 16px;
             border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            min-height: 44px;
-            touch-action: manipulation;
         }
         .start-btn { 
-            background: #28a745; 
-            color: white; 
             flex: 3;
-            padding: 24px 32px;
-            font-size: 22px;
-            font-weight: bold;
-            min-height: 70px;
         }
-        .pause-btn { background: #ffc107; color: black; }
-        .reset-btn { background: #dc3545; color: white; }
+        .pause-btn { 
+            background: #ffc107;
+            color: black;
+            border: 2px solid #ffc107;
+        }
+        .reset-btn { }
 
         .settings-drawer {
             position: fixed;
@@ -772,17 +723,11 @@
             flex: none;
         }
         .settings-button {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 16px;
             border-radius: 4px;
-            font-size: 14px;
-            cursor: pointer;
-            min-height: 36px;
         }
         .settings-button.danger {
             background: #dc3545;
+            border-color: #dc3545;
         }
         .settings-overlay {
             position: fixed;
@@ -910,26 +855,11 @@
             font-size: 14px;
         }
         .payment-method-delete {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 8px 12px;
             border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            min-height: 36px;
         }
         .add-payment-method {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
             width: 100%;
             margin-top: 15px;
-            min-height: 44px;
         }
         
         /* Dark Mode Styles */
@@ -1009,27 +939,7 @@
             color: #f4e4a6 !important;
         }
         
-        /* Base button styles */
-        .btn-base {
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            min-height: 44px;
-            touch-action: manipulation;
-        }
-        .btn {
-            padding: 12px 20px;
-            font-size: 16px;
-        }
-        .btn-secondary {
-            background: #007bff;
-            color: white;
-        }
-        .btn-secondary:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
+
         
         /* ========================================
            GPSY CHAT STYLES
@@ -1141,14 +1051,8 @@
             font-size: 16px;
         }
         .gpsy-send-btn {
-            background: #28a745;
-            color: white;
-            border: none;
             padding: 12px 24px;
             border-radius: 24px;
-            font-size: 16px;
-            cursor: pointer;
-            min-height: 44px;
         }
         .tracker-buddy-btn {
             width: 100%;
@@ -1157,15 +1061,12 @@
             border: none;
             padding: 20px;
             border-radius: 12px;
-            font-size: 18px;
-            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
             box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
             transition: transform 0.2s, box-shadow 0.2s;
-            min-height: 60px;
         }
         .tracker-buddy-btn:hover {
             transform: translateY(-2px);
@@ -1223,7 +1124,6 @@
             border-radius: 20px;
             font-size: 13px;
             font-weight: bold;
-            cursor: pointer;
             transition: all 0.2s;
             color: #333;
         }
@@ -1262,16 +1162,11 @@
             flex-shrink: 0;
         }
         .gpsy-quick-action {
-            background: #28a745;
-            color: white;
-            border: none;
             padding: 8px 16px;
             border-radius: 20px;
             font-size: 13px;
-            cursor: pointer;
             white-space: nowrap;
             transition: background 0.2s;
-            min-height: 36px;
         }
         .gpsy-quick-action:hover {
             background: #218838;

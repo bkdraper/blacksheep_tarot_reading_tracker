@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="version" content="v3.99.0">
+    <meta http-equiv="version" content="v3.99.4">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
     <meta name="mobile-web-app-capable" content="yes">
@@ -47,8 +47,9 @@
     <header class="header">
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
-            <span class="version-badge">v3.99.0</span>
-            <button class="settings-btn" onclick="settings.openDrawer()" title="Settings"><i class="fas fa-cog"></i></button>
+            <span id="offlineIndicator" class="offline-badge" style="display: none;">Offline</span>
+            <span class="version-badge">v3.99.4</span>
+            <button id="btn-app-settings" class="settings-btn" onclick="settings.openDrawer()" title="Settings"><i class="fas fa-cog"></i></button>
         </div>
     </header>
     <div class="container">
@@ -63,7 +64,7 @@
                         <label for="user">User:</label>
                         <button id="userBtn" onclick="session.showUserSelection()" class="user-btn">Select User...</button>
                     </div>
-                    <button class="btn-load-session btn-base" onclick="session.showLoadSession()">Load Session</button>
+                    <button id="btn-session-load" class="btn-load-session btn btn-secondary" onclick="session.showLoadSession()">Load Session</button>
                 </div>
 
                 <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
@@ -91,18 +92,18 @@
                 <div id="requiredFieldsNote" style="font-size: 11px; color: #dc3545; text-align: center; margin-bottom: 10px;">* Fill in the red-outlined fields to create a new session</div>
 
                 <div class="input-group">
-                    <button class="btn-create-session inactive btn-base" onclick="session.handleCreateSession()">Create Session</button>
-                    <button class="btn-new-session btn-base" onclick="session.startNewSession()" style="display: none;">New Session</button>
+                    <button id="btn-session-create" class="btn-create-session inactive btn btn-primary" onclick="session.handleCreateSession()">Create Session</button>
+                    <button id="btn-session-new" class="btn-new-session btn btn-danger" onclick="session.startNewSession()" style="display: none;">New Session</button>
                 </div>
             </div>
         </div>
 
-        <div class="buttons">
-            <button class="btn-add btn-base" onclick="readingsManager.addReading()">+ Add Reading</button>
-            <button class="btn-remove btn-base" onclick="readingsManager.removeReading()">-</button>
+        <div id="container-readings-buttons" class="buttons">
+            <button id="btn-readings-add" class="btn-add btn btn-primary btn-large" onclick="readingsManager.addReading()">+ Add Reading</button>
+            <button id="btn-readings-delete" class="btn-remove btn btn-danger btn-large" onclick="readingsManager.removeReading()">-</button>
         </div>
 
-        <div class="totals">
+        <div id="container-readings-totals" class="totals">
             <table class="totals-table">
                 <tr>
                     <td><i class="fas fa-book-open" style="margin-right: 8px;"></i>Readings:</td>
@@ -120,26 +121,26 @@
             <div class="grand-total"><i class="fas fa-wallet" style="margin-right: 8px;"></i>Total: $<span id="grandTotal">0.00</span></div>
         </div>
 
-        <div class="readings-list">
+        <div id="container-readings-list" class="readings-list">
             <h3>Readings Log</h3>
             <div id="readingsList"></div>
         </div>
 
-        <div class="timer">
+        <div id="container-timer" class="timer">
             <h3>Timer</h3>
             <div class="timer-controls">
-                <button class="arrow-btn" onclick="timer.adjustTime(-1)"><i class="fas fa-minus"></i></button>
+                <button id="btn-timer-decrease" class="arrow-btn btn btn-secondary btn-small" onclick="timer.adjustTime(-1)"><i class="fas fa-minus"></i></button>
                 <input type="number" class="timer-input" id="timerInput" value="15" min="0" max="99" inputmode="numeric">
-                <button class="arrow-btn" onclick="timer.adjustTime(1)"><i class="fas fa-plus"></i></button>
+                <button id="btn-timer-increase" class="arrow-btn btn btn-secondary btn-small" onclick="timer.adjustTime(1)"><i class="fas fa-plus"></i></button>
             </div>
             <div class="timer-canvas-container">
                 <canvas id="timerCanvas" class="timer-canvas" width="300" height="300"></canvas>
             </div>
             <div class="timer-display" id="timerDisplay" style="display: none;">15:00</div>
             <div class="timer-buttons">
-                <button class="timer-btn start-btn" onclick="timer.start()">Start</button>
-                <button class="timer-btn pause-btn" onclick="timer.pause()">Pause</button>
-                <button class="timer-btn reset-btn" onclick="timer.reset()">Reset</button>
+                <button id="btn-timer-start" class="timer-btn start-btn btn btn-primary btn-xlarge" onclick="timer.start()">Start</button>
+                <button id="btn-timer-pause" class="timer-btn pause-btn btn" onclick="timer.pause()">Pause</button>
+                <button id="btn-timer-reset" class="timer-btn reset-btn btn btn-danger" onclick="timer.reset()">Reset</button>
             </div>
         </div>
     </div>
@@ -177,7 +178,7 @@
         </div>
         <div class="session-sheet-content">
             <div id="userList"></div>
-            <button onclick="session.addNewUser()" class="btn-add-user btn-base">+ Add New User</button>
+            <button id="btn-user-add" onclick="session.addNewUser()" class="btn-add-user btn btn-primary">+ Add New User</button>
         </div>
     </div>
 
@@ -202,7 +203,7 @@
         </div>
         <div class="session-sheet-content">
             <div id="paymentMethodsList"></div>
-            <button onclick="settings.addPaymentMethod()" class="add-payment-method btn-base">+ Add Payment Method</button>
+            <button id="btn-payment-add" onclick="settings.addPaymentMethod()" class="add-payment-method btn btn-primary">+ Add Payment Method</button>
         </div>
     </div>
 
@@ -215,7 +216,7 @@
         </div>
         <div class="session-sheet-content">
             <div id="sourcesList"></div>
-            <button onclick="settings.addSource()" class="add-payment-method btn-base">+ Add Source</button>
+            <button id="btn-source-add" onclick="settings.addSource()" class="add-payment-method btn btn-primary">+ Add Source</button>
         </div>
     </div>
 
@@ -237,7 +238,7 @@
         </div>
         <div class="gpsy-input-container">
             <input type="text" id="gpsyInput" placeholder="Ask about your readings..." onkeydown="if(event.key==='Enter') gpsyChat.send()">
-            <button id="gpsySendBtn" onclick="gpsyChat.send()" class="gpsy-send-btn">Send</button>
+            <button id="btn-gpsy-send" onclick="gpsyChat.send()" class="gpsy-send-btn btn btn-primary">Send</button>
         </div>
     </div>
 
@@ -251,7 +252,7 @@
         <div class="settings-drawer-content">
             <!-- ChatGPSY -->
             <div class="settings-section" style="border-bottom: 2px solid #ddd; padding-bottom: 20px; margin-bottom: 20px;">
-                <button class="tracker-buddy-btn" onclick="gpsyChat.open()">
+                <button id="btn-gpsy-open" class="tracker-buddy-btn" onclick="gpsyChat.open()">
                     <div class="gpsy-avatar" style="width: 32px; height: 32px; background: transparent;">
                         <img src="" id="buddyLogo" alt="ChatGPSY">
                     </div>
@@ -313,7 +314,7 @@
                         <div class="setting-label">Available Methods</div>
                         <div class="setting-description">Customize payment options</div>
                     </div>
-                    <button class="settings-button" onclick="settings.customizePaymentMethods()">Customize</button>
+                    <button id="btn-settings-payment-customize" class="settings-button btn btn-secondary btn-small" onclick="settings.customizePaymentMethods()">Customize</button>
                 </div>
             </div>
 
@@ -325,7 +326,7 @@
                         <div class="setting-label">Available Sources</div>
                         <div class="setting-description">Customize source options</div>
                     </div>
-                    <button class="settings-button" onclick="settings.customizeSources()">Customize</button>
+                    <button id="btn-settings-source-customize" class="settings-button btn btn-secondary btn-small" onclick="settings.customizeSources()">Customize</button>
                 </div>
             </div>
 
@@ -337,7 +338,7 @@
                         <div class="setting-label">Export Data</div>
                         <div class="setting-description">Download session data as CSV</div>
                     </div>
-                    <button class="settings-button" onclick="settings.exportData()">Export</button>
+                    <button id="btn-settings-export" class="settings-button btn btn-secondary btn-small" onclick="settings.exportData()">Export</button>
                 </div>
             </div>
 
@@ -389,14 +390,14 @@
                         <div class="setting-label">Check for Updates</div>
                         <div class="setting-description">Manually check for new app versions</div>
                     </div>
-                    <button class="settings-button" onclick="checkForUpdates()">Check</button>
+                    <button id="btn-settings-update" class="settings-button btn btn-secondary btn-small" onclick="checkForUpdates()">Check</button>
                 </div>
                 <div class="setting-item">
                     <div>
                         <div class="setting-label">Clear Cache</div>
                         <div class="setting-description">Clear all cached files and reload</div>
                     </div>
-                    <button class="settings-button" onclick="clearCache()">Clear</button>
+                    <button id="btn-settings-cache" class="settings-button btn btn-secondary btn-small" onclick="clearCache()">Clear</button>
                 </div>
             </div>
         </div>
@@ -717,13 +718,20 @@
         });
         
         // Network status monitoring
-        window.addEventListener('online', () => {
-            handleBackgroundSync();
-        });
+        function updateOnlineStatus() {
+            const indicator = document.getElementById('offlineIndicator');
+            if (!navigator.onLine) {
+                indicator.style.display = 'inline-block';
+                showSnackbar('Offline - changes saved locally', 'error');
+            } else {
+                indicator.style.display = 'none';
+                handleBackgroundSync();
+            }
+        }
         
-        window.addEventListener('offline', () => {
-            registerBackgroundSync();
-        });
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        window.addEventListener('load', updateOnlineStatus);
         
         // Page visibility change - backup data when app goes to background (throttled)
         let lastBackupTime = 0;

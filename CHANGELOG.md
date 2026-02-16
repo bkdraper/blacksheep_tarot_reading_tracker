@@ -1,5 +1,42 @@
 # Changelog
 
+## v3.99.4 - SessionStore Refactoring & Security
+- Refactored SessionStore to consistently use setters for all state changes
+- Split save() into save() (localStorage + DB) and saveToLocalStorage() (localStorage only)
+- Fixed bug where localStorage wasn't updated when loading existing sessions
+- Improved user setter and startOver() to use setters with _loading flag to prevent cascading saves
+- Added Utils.sanitize() method to prevent XSS attacks (removes <, >, ; characters)
+- Applied sanitization to loadUsers(), showLoadSession(), updateReadingsList()
+- Added offline indicator badge in header with red "Offline" display
+- Added updateOnlineStatus() function to monitor network changes and trigger sync
+- Fixed createSession() to check for duplicates BEFORE insert attempt (not after)
+- Added double confirmation to startNewSession() to prevent accidental data loss
+- Fixed selectSession() to accept (sessionId, event) parameters explicitly
+- Removed redundant test notification code from createSession()
+- Network optimization: loadExistingSession() now only updates localStorage, avoiding redundant DB write
+
+## v3.99.3 - CSS Button Consolidation
+- Created base button system with `.btn` class and modifiers
+- Added button variants: `btn-primary`, `btn-secondary`, `btn-danger`, `btn-ghost`, `btn-link`
+- Added size modifiers: `btn-small`, `btn-large`, `btn-xlarge`
+- Consolidated ~150 lines of duplicate CSS into reusable classes
+- Updated all buttons in HTML and JS modules to use new classes
+- Maintained backward compatibility with existing functionality
+
+## v3.99.2 - ID Convention Implementation
+- Added IDs to all unique buttons following {type}-{area}-{purpose} convention
+- Added IDs to all unique containers following same convention
+- Examples: btn-readings-add, btn-timer-start, container-readings-buttons
+- IDs are additive (existing classes unchanged) for backward compatibility
+- No functional changes, all 60 tests pass
+
+## v3.99.1 - Session Creation UI Bug Fix
+- Fixed bug where Add Reading and Delete Reading buttons disappeared after creating new session
+- Added `updateUI()` call after successful session creation in SessionStore
+- Added comprehensive DOM tests to verify button visibility across all session phases
+- Added test for createSession flow that validates UI state changes
+- Tests now check for presence/absence of UI elements (buttons, totals, readings list)
+
 ## v3.99.0 - Utils Module Extraction
 - Extracted Utils class to `modules/utils.js`
 - Removed ~100 lines of duplicate utility functions from index.html

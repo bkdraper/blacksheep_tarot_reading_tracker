@@ -26,13 +26,31 @@ document.body.innerHTML = `
 
 // Mock global functions
 global.showSnackbar = jest.fn();
+global.vibrate = jest.fn();
+global.isDevelopmentMode = jest.fn(() => false);
+global.sendTestNotification = jest.fn();
 global.supabaseClient = {
   from: jest.fn(() => ({
-    update: jest.fn(() => ({ eq: jest.fn() })),
-    select: jest.fn(() => ({ not: jest.fn() }))
+    update: jest.fn(() => ({
+      eq: jest.fn(() => Promise.resolve({ data: null, error: null }))
+    })),
+    select: jest.fn(() => ({ not: jest.fn(() => Promise.resolve({ data: [] })) }))
   }))
 };
 global.registerBackgroundSync = jest.fn();
+
+// Suppress console.error for expected Supabase mock errors
+const originalError = console.error;
+beforeAll(() => {
+  console.error = jest.fn((msg) => {
+    if (!msg.includes('Supabase update error') && !msg.includes('Error details') && !msg.includes('Data being sent')) {
+      originalError(msg);
+    }
+  });
+});
+afterAll(() => {
+  console.error = originalError;
+});
 
 // Load SessionStore class
 const fs = require('fs');
@@ -93,6 +111,80 @@ describe('SessionStore', () => {
       expect(session.sessionPhase).toBe('READY_TO_CREATE');
       session._sessionId = 'test-id';
       expect(session.sessionPhase).toBe('ACTIVE');
+    });
+
+    test('should call updateUI after creating session', async () => {
+      // Mock Supabase for createSession
+      global.supabaseClient.from = jest.fn(() => ({
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                limit: jest.fn(() => Promise.resolve({ data: [] }))
+              }))
+            }))
+          }))
+        })),
+        insert: jest.fn(() => ({
+          select: jest.fn(() => Promise.resolve({ 
+            data: [{ id: 'new-session-id' }] 
+          }))
+        }))
+      }));
+
+      session.user = 'TestUser';
+      session.location = 'Test Location';
+      session.sessionDate = '2025-01-15';
+      session.price = 40;
+
+      const updateUISpy = jest.spyOn(session, 'updateUI');
+      
+      await session.createSession();
+      
+      expect(session.sessionId).toBe('new-session-id');
+      expect(updateUISpy).toHaveBeenCalled();
+      expect(session.sessionPhase).toBe('ACTIVE');
+    });
+
+    test('should show add/delete buttons after creating session', async () => {
+      // Mock Supabase for createSession
+      global.supabaseClient.from = jest.fn(() => ({
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                limit: jest.fn(() => Promise.resolve({ data: [] }))
+              }))
+            }))
+          }))
+        })),
+        insert: jest.fn(() => ({
+          select: jest.fn(() => Promise.resolve({ 
+            data: [{ id: 'new-session-id' }] 
+          }))
+        }))
+      }));
+
+      session.user = 'TestUser';
+      session.location = 'Test Location';
+      session.sessionDate = '2025-01-15';
+      session.price = 40;
+
+      // Before creating - in READY_TO_CREATE phase, buttons start hidden
+      // (updateSections sets display:none when sessionPhase !== 'ACTIVE')
+      session.updateUI();
+      expect(document.querySelector('.buttons').style.display).toBe('none');
+      expect(document.querySelector('.totals').style.display).toBe('none');
+      expect(document.querySelector('.readings-list').style.display).toBe('none');
+      
+      await session.createSession();
+      
+      // After creating - in ACTIVE phase, buttons are visible
+      expect(document.querySelector('.buttons').style.display).toBe('flex');
+      expect(document.querySelector('.totals').style.display).toBe('block');
+      expect(document.querySelector('.readings-list').style.display).toBe('block');
+      expect(document.querySelector('.btn-create-session').style.display).toBe('none');
+      expect(document.querySelector('.btn-new-session').style.display).toBe('block');
     });
   });
 
@@ -196,6 +288,118 @@ describe('SessionStore', () => {
       session.sessionDate = '2025-01-15';
       session.updateSections();
       expect(document.querySelector('.buttons').style.display).toBe('flex');
+    });
+
+    test('should show add/delete buttons when session is active', () => {
+      // SETUP phase - buttons hidden
+      session.updateUI();
+      expect(document.querySelector('.buttons').style.display).toBe('none');
+      expect(document.querySelector('.totals').style.display).toBe('none');
+      expect(document.querySelector('.readings-list').style.display).toBe('none');
+
+      // ACTIVE phase - buttons visible
+      session._sessionId = 'test-id';
+      session.user = 'TestUser';
+      session.location = 'Test Location';
+      session.sessionDate = '2025-01-15';
+      session.updateUI();
+      
+      expect(document.querySelector('.buttons').style.display).toBe('flex');
+      expect(document.querySelector('.totals').style.display).toBe('block');
+      expect(document.querySelector('.readings-list').style.display).toBe('block');
+    });
+
+    test('should show create button in SETUP phase', () => {
+      session.updateUI();
+      const createBtn = document.querySelector('.btn-create-session');
+      const newBtn = document.querySelector('.btn-new-session');
+      
+      expect(createBtn.style.display).toBe('block');
+      expect(createBtn.classList.contains('inactive')).toBe(true);
+      expect(newBtn.style.display).toBe('none');
+    });
+
+    test('should activate create button in READY_TO_CREATE phase', () => {
+      session.user = 'TestUser';
+      session.location = 'Test Location';
+      session.sessionDate = '2025-01-15';
+      session.updateUI();
+      
+      const createBtn = document.querySelector('.btn-create-session');
+      expect(createBtn.style.display).toBe('block');
+      expect(createBtn.classList.contains('active')).toBe(true);
+      expect(createBtn.classList.contains('inactive')).toBe(false);
+    });
+
+    test('should hide create button and show new session button in ACTIVE phase', () => {
+      session._sessionId = 'test-id';
+      session.user = 'TestUser';
+      session.location = 'Test Location';
+      session.sessionDate = '2025-01-15';
+      session.updateUI();
+      
+      const createBtn = document.querySelector('.btn-create-session');
+      const newBtn = document.querySelector('.btn-new-session');
+      
+      expect(createBtn.style.display).toBe('none');
+      expect(newBtn.style.display).toBe('block');
+    });
+
+    test('should highlight required fields in SETUP phase', () => {
+      session.updateUI();
+      
+      const userBtn = document.getElementById('userBtn');
+      const locationInput = document.getElementById('location');
+      const dateInput = document.getElementById('sessionDate');
+      const requiredNote = document.getElementById('requiredFieldsNote');
+      
+      expect(userBtn.classList.contains('required-field')).toBe(true);
+      expect(locationInput.classList.contains('required-field')).toBe(true);
+      expect(dateInput.classList.contains('required-field')).toBe(true);
+      expect(requiredNote.style.display).toBe('block');
+    });
+
+    test('should remove required field highlights when filled', () => {
+      session.user = 'TestUser';
+      session.location = 'Test Location';
+      session.sessionDate = '2025-01-15';
+      session.updateUI();
+      
+      const userBtn = document.getElementById('userBtn');
+      const locationInput = document.getElementById('location');
+      const dateInput = document.getElementById('sessionDate');
+      
+      expect(userBtn.classList.contains('required-field')).toBe(false);
+      expect(locationInput.classList.contains('required-field')).toBe(false);
+      expect(dateInput.classList.contains('required-field')).toBe(false);
+    });
+
+    test('should hide required note when session is active', () => {
+      session._sessionId = 'test-id';
+      session.user = 'TestUser';
+      session.location = 'Test Location';
+      session.sessionDate = '2025-01-15';
+      session.updateUI();
+      
+      const requiredNote = document.getElementById('requiredFieldsNote');
+      expect(requiredNote.style.display).toBe('none');
+    });
+
+    test('should disable load session button without user', () => {
+      session.updateUI();
+      const loadBtn = document.querySelector('.btn-load-session');
+      
+      expect(loadBtn.classList.contains('disabled')).toBe(true);
+      expect(loadBtn.disabled).toBe(true);
+    });
+
+    test('should enable load session button with user', () => {
+      session.user = 'TestUser';
+      session.updateUI();
+      const loadBtn = document.querySelector('.btn-load-session');
+      
+      expect(loadBtn.classList.contains('disabled')).toBe(false);
+      expect(loadBtn.disabled).toBe(false);
     });
   });
 

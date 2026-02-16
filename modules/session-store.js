@@ -48,16 +48,13 @@ class SessionStore {
                 
                 // If switching users during active session, clear session
                 if (wasActiveSession && previousUser && previousUser !== value) {
-                    this._sessionId = null;
-                    this._location = '';
-                    this._sessionDate = '';
-                    this._price = 40;
-                    this._readings = [];
-                    document.getElementById('location').value = '';
-                    document.getElementById('price').value = '40';
-                    document.getElementById('sessionDate').value = '';
-                    this.updateReadingsList();
-                    this.updateTotals();
+                    this._loading = true;
+                    this.sessionId = null;
+                    this.location = '';
+                    this.sessionDate = '';
+                    this.price = 40;
+                    this.readings = [];
+                    this._loading = false;
                     showSnackbar(`Switched to ${value}. Ready to create new session or load existing.`, 'success');
                 }
                 
@@ -110,14 +107,13 @@ class SessionStore {
             }
 
             startOver() {
-                this._sessionId = null;
-                this._location = '';
-                this._sessionDate = '';
-                this._price = 40;
-                this._readings = [];
-                document.getElementById('location').value = '';
-                document.getElementById('price').value = '40';
-                document.getElementById('sessionDate').value = '';
+                this._loading = true;
+                this.sessionId = null;
+                this.location = '';
+                this.sessionDate = '';
+                this.price = 40;
+                this.readings = [];
+                this._loading = false;
                 this.clearUserData();
                 this.updateUI();
             }
@@ -236,7 +232,7 @@ class SessionStore {
                     return `
                     <div class="reading-item" data-index="${index}">
                         <div class="reading-left">
-                            <button class="delete-btn" onclick="readingsManager.deleteReading(${index})">×</button>
+                            <button class="delete-btn btn btn-danger btn-small" onclick="readingsManager.deleteReading(${index})">×</button>
                             <div style="border-left: 2px solid #ddd; padding-left: 10px;">
                                 <span class="index">${index + 1}.</span>
                                 <span class="timestamp">${displayTime}</span>
@@ -265,16 +261,16 @@ class SessionStore {
                             </div>
                             <div class="reading-field">
                                 <span class="field-label">Pay:</span>
-                                <button class="field-button ${reading.payment ? 'selected' : ''}" 
+                                <button class="field-button btn btn-ghost btn-small ${reading.payment ? 'selected' : ''}" 
                                         onclick="readingsManager.openPaymentSheet(${index})">
-                                    ${reading.payment || 'Method'}
+                                    ${Utils.sanitize(reading.payment) || 'Method'}
                                 </button>
                             </div>
                             <div class="reading-field">
                                 <span class="field-label">From:</span>
-                                <button class="field-button ${reading.source ? 'selected' : ''}" 
+                                <button class="field-button btn btn-ghost btn-small ${reading.source ? 'selected' : ''}" 
                                         onclick="readingsManager.openSourceSheet(${index})">
-                                    ${reading.source || 'Source'}
+                                    ${Utils.sanitize(reading.source) || 'Source'}
                                 </button>
                             </div>
                         </div>
@@ -303,17 +299,9 @@ class SessionStore {
             }
 
             async save() {
-                if (!this._user || this._loading) return; // Don't save without user or during loading
+                if (!this._user || this._loading) return;
                 
-                const state = {
-                    sessionId: this._sessionId,
-                    user: this._user,
-                    location: this._location,
-                    sessionDate: this._sessionDate,
-                    price: this._price,
-                    readings: this._readings
-                };
-                localStorage.setItem(`readingTracker_${this._user}`, JSON.stringify(state));
+                this.saveToLocalStorage();
 
                 if (this._sessionId) {
                     try {
@@ -324,7 +312,6 @@ class SessionStore {
                             readings: this._readings
                         };
                         
-                        // Only include session_date if it's not empty
                         if (this._sessionDate && this._sessionDate.trim()) {
                             updateData.session_date = this._sessionDate;
                         }
@@ -343,10 +330,23 @@ class SessionStore {
                             reading_price: this._price,
                             readings: this._readings
                         });
-                        // Register for background sync on network failure
                         registerBackgroundSync();
                     }
                 }
+            }
+
+            saveToLocalStorage() {
+                if (!this._user) return;
+                
+                const state = {
+                    sessionId: this._sessionId,
+                    user: this._user,
+                    location: this._location,
+                    sessionDate: this._sessionDate,
+                    price: this._price,
+                    readings: this._readings
+                };
+                localStorage.setItem(`readingTracker_${this._user}`, JSON.stringify(state));
             }
 
             debouncedSave() {
@@ -392,7 +392,7 @@ class SessionStore {
                     const userList = document.getElementById('userList');
                     if (userList) {
                         userList.innerHTML = uniqueUsers.map(user => `
-                            <div class="user-item" onclick="session.selectUser('${user}')">${user}</div>
+                            <div class="user-item btn btn-ghost" onclick="session.selectUser('${Utils.sanitize(user)}')">${Utils.sanitize(user)}</div>
                         `).join('');
                     }
                     return uniqueUsers;
@@ -482,6 +482,7 @@ class SessionStore {
                 btn.classList.add('loading');
                 
                 try {
+                    // Check for duplicate FIRST
                     const { data } = await supabaseClient
                         .from('blacksheep_reading_tracker_sessions')
                         .select('*')
@@ -493,17 +494,22 @@ class SessionStore {
                     if (data && data[0]) {
                         btn.textContent = originalText;
                         btn.classList.remove('loading');
-                        const message = `${this._location} on ${this._sessionDate} already exists. Load existing session?`;
-                        if (confirm(message)) {
+                        
+                        const message = `${data[0].location} on ${data[0].session_date} already exists`;
+                        showSnackbar(message);
+                        if (confirm(`${message}. Load existing session?`)) {
                             await this.loadExistingSession(data[0]);
+
+
                         } else {
-                            this._location = '';
-                            this._sessionDate = '';
-                            showSnackbar('Location and date must be unique', 'error');
+                            // Clear location and date fields
+                            this.location = '';
+                            this.sessionDate = '';
                         }
                         return;
                     }
                     
+                    // No duplicate, create new
                     const { data: newData } = await supabaseClient
                         .from('blacksheep_reading_tracker_sessions')
                         .insert([{
@@ -516,16 +522,10 @@ class SessionStore {
                         .select();
                     
                     if (newData && newData[0]) {
-                        this._sessionId = newData[0].id;
-                        this._readings = [];
+                        this.sessionId = newData[0].id;
+                        this.readings = [];
                         this.collapseSettings();
                         showSnackbar('Session created successfully!');
-                        
-                        if ('serviceWorker' in navigator && Notification.permission === 'granted' && !isDevelopmentMode()) {
-                            setTimeout(() => {
-                                sendTestNotification();
-                            }, 4 * 60 * 60 * 1000);
-                        }
                     }
                 } catch (error) {
                     showSnackbar('Database error, using offline mode', 'error');
@@ -533,16 +533,19 @@ class SessionStore {
                 } finally {
                     btn.textContent = originalText;
                     btn.classList.remove('loading');
+                    this.updateUI();
                 }
             }
 
             startNewSession() {
                 vibrate([100, 50, 100]);
                 if (confirm('Start a new session? This will unload all current data and start over.')) {
-                    this.startOver();
-                    window.timer.reset();
-                    document.getElementById('timerInput').value = window.settings.get('defaultTimer');
-                    showSnackbar('Ready to create new session', 'success');
+                    if (confirm('Are you sure? All unsaved readings will be lost.')) {
+                        this.startOver();
+                        window.timer.reset();
+                        document.getElementById('timerInput').value = window.settings.get('defaultTimer');
+                        showSnackbar('Ready to create new session', 'success');
+                    }
                 }
             }
 
@@ -575,8 +578,8 @@ class SessionStore {
                             const tipsTotal = sessionData.readings ? sessionData.readings.reduce((sum, reading) => sum + (reading.tip || 0), 0) : 0;
                             const grandTotal = baseTotal + tipsTotal;
                             return `
-                                <div class="session-item" onclick="session.selectSession('${sessionData.id}')">
-                                    <div class="session-info">${sessionData.location || 'No location'} - ${dayOfWeek} ${date}</div>
+                                <div class="session-item" onclick="session.selectSession('${sessionData.id}', event)">
+                                    <div class="session-info">${Utils.sanitize(sessionData.location) || 'No location'} - ${dayOfWeek} ${date}</div>
                                     <div class="session-details">${readingCount} readings  $${grandTotal.toFixed(2)}</div>
                                 </div>
                             `;
@@ -598,7 +601,7 @@ class SessionStore {
                 hideSheet('sessionOverlay', 'sessionSheet');
             }
 
-            async selectSession(sessionId) {
+            async selectSession(sessionId, event) {
                 vibrate([50]);
                 const sessionItem = event.target.closest('.session-item');
                 const originalHTML = sessionItem.innerHTML;
@@ -636,10 +639,10 @@ class SessionStore {
                 this._readings = sessionData.readings || [];
                 this._loading = false;
                 
-                // Update UI after loading
                 this.updateReadingsList();
                 this.updateTotals();
                 this.updateUI();
+                this.saveToLocalStorage();
                 
                 this.collapseSettings();
                 showSnackbar(`Loaded session: ${sessionData.location} on ${sessionData.session_date}`);

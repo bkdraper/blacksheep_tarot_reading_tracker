@@ -56,8 +56,8 @@ class ReadingsManager {
         const paymentOptions = document.getElementById('paymentOptions');
         const methods = window.settings.get('paymentMethods');
         paymentOptions.innerHTML = methods.map(method => 
-            `<button class="payment-option" onclick="readingsManager.selectPaymentMethod('${method}')">${method}</button>`
-        ).join('') + '<button class="payment-option" onclick="readingsManager.selectCustomPayment()">Other</button>';
+            `<button class="payment-option btn btn-ghost btn-small" onclick="readingsManager.selectPaymentMethod('${method}')">${method}</button>`
+        ).join('') + '<button class="payment-option btn btn-ghost btn-small" onclick="readingsManager.selectCustomPayment()">Other</button>';
         
         Utils.showSheet('paymentOverlay', 'paymentSheet');
     }
@@ -95,8 +95,8 @@ class ReadingsManager {
         const sourceOptions = document.getElementById('sourceOptions');
         const sources = window.settings.get('sources');
         sourceOptions.innerHTML = sources.map(source => 
-            `<button class="payment-option" onclick="readingsManager.selectSource('${source}')">${source}</button>`
-        ).join('') + '<button class="payment-option" onclick="readingsManager.selectCustomSource()">Other</button>';
+            `<button class="payment-option btn btn-ghost btn-small" onclick="readingsManager.selectSource('${source}')">${source}</button>`
+        ).join('') + '<button class="payment-option btn btn-ghost btn-small" onclick="readingsManager.selectCustomSource()">Other</button>';
         
         Utils.showSheet('sourceOverlay', 'sourceSheet');
     }

@@ -2,6 +2,12 @@
 // Extracted from index.html for better modularity
 
 class Utils {
+    // Sanitize user input to prevent XSS
+    static sanitize(str) {
+        if (!str) return '';
+        return String(str).replace(/[<>;]/g, '');
+    }
+
     // Date normalization utility
     static normalizeDate(dateStr) {
         if (!dateStr) return null;
