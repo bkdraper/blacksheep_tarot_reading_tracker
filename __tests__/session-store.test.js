@@ -38,6 +38,9 @@ global.supabaseClient = {
   }))
 };
 global.registerBackgroundSync = jest.fn();
+global.Utils = {
+  sanitize: jest.fn((str) => str)
+};
 
 // Suppress console.error for expected Supabase mock errors
 const originalError = console.error;

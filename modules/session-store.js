@@ -42,9 +42,6 @@ class SessionStore {
                 const previousUser = this._user;
                 
                 this._user = value;
-                const userBtn = document.getElementById('userBtn');
-                userBtn.textContent = value || 'Select User...';
-                userBtn.classList.toggle('selected', !!value);
                 
                 // If switching users during active session, clear session
                 if (wasActiveSession && previousUser && previousUser !== value) {
@@ -63,19 +60,16 @@ class SessionStore {
             }
             set location(value) {
                 this._location = value;
-                document.getElementById('location').value = value;
                 this.updateUI();
                 this.debouncedSave();
             }
             set sessionDate(value) {
                 this._sessionDate = value;
-                document.getElementById('sessionDate').value = value;
                 this.updateUI();
                 this.debouncedSave();
             }
             set price(value) {
                 this._price = value;
-                document.getElementById('price').value = value;
                 this.updateUI();
                 this.debouncedSave();
             }
@@ -123,6 +117,28 @@ class SessionStore {
             }
 
             updateUI() {
+                // Sync DOM with internal state (without triggering setters)
+                const userBtn = document.getElementById('userBtn');
+                if (userBtn) {
+                    userBtn.textContent = this._user || 'Select User...';
+                    userBtn.classList.toggle('selected', !!this._user);
+                }
+                
+                const locationInput = document.getElementById('location');
+                if (locationInput && locationInput.value !== this._location) {
+                    locationInput.value = this._location;
+                }
+                
+                const sessionDateInput = document.getElementById('sessionDate');
+                if (sessionDateInput && sessionDateInput.value !== this._sessionDate) {
+                    sessionDateInput.value = this._sessionDate;
+                }
+                
+                const priceInput = document.getElementById('price');
+                if (priceInput && priceInput.value != this._price) {
+                    priceInput.value = this._price;
+                }
+                
                 this.updateButtons();
                 this.updateSections();
             }
@@ -168,9 +184,9 @@ class SessionStore {
                 // Highlight required fields and auto-expand when in setup mode
                 if (this.sessionPhase === 'SETUP') {
                     // Auto-expand settings panel
-                    const content = document.getElementById('settingsContent');
+                    const content = document.getElementById('settings-content');
                     const icon = document.querySelector('.collapse-icon');
-                    if (!content.classList.contains('open')) {
+                    if (content && !content.classList.contains('open')) {
                         content.classList.add('open');
                         icon.classList.add('open');
                     }
@@ -205,9 +221,9 @@ class SessionStore {
                 
                 // Auto-expand settings when create button becomes ready
                 if (this.sessionPhase === 'READY_TO_CREATE') {
-                    const content = document.getElementById('settingsContent');
+                    const content = document.getElementById('settings-content');
                     const icon = document.querySelector('.collapse-icon');
-                    if (!content.classList.contains('open')) {
+                    if (content && !content.classList.contains('open')) {
                         content.classList.add('open');
                         icon.classList.add('open');
                     }
@@ -365,14 +381,6 @@ class SessionStore {
                     this._sessionDate = state.sessionDate || state.selectedDay || '';
                     this._price = state.price || 40;
                     this._readings = state.readings || [];
-                    
-                    // Update DOM without triggering saves
-                    const userBtn = document.getElementById('userBtn');
-                    userBtn.textContent = this._user || 'Select User...';
-                    userBtn.classList.toggle('selected', !!this._user);
-                    document.getElementById('location').value = this._location;
-                    document.getElementById('price').value = this._price;
-                    document.getElementById('sessionDate').value = this._sessionDate;
                     
                     // Update readings display and totals
                     this.updateReadingsList();
@@ -539,13 +547,11 @@ class SessionStore {
 
             startNewSession() {
                 vibrate([100, 50, 100]);
-                if (confirm('Start a new session? This will unload all current data and start over.')) {
-                    if (confirm('Are you sure? All unsaved readings will be lost.')) {
-                        this.startOver();
-                        window.timer.reset();
-                        document.getElementById('timerInput').value = window.settings.get('defaultTimer');
-                        showSnackbar('Ready to create new session', 'success');
-                    }
+                if (confirm('Start a new session? This will unload the current session.')) {
+                    this.startOver();
+                    window.timer.reset();
+                    document.getElementById('timerInput').value = window.settings.get('defaultTimer');
+                    showSnackbar('Ready to create new session', 'success');
                 }
             }
 
@@ -649,17 +655,46 @@ class SessionStore {
             }
 
             collapseSettings() {
-                const content = document.getElementById('settingsContent');
+                const content = document.getElementById('settings-content');
                 const icon = document.querySelector('.collapse-icon');
-                content.classList.remove('open');
-                icon.classList.remove('open');
+                const summary = document.getElementById('session-summary');
+                
+                if (content) {
+                    content.classList.remove('open');
+                    icon.classList.remove('open');
+                    
+                    // Show session summary when collapsed
+                    if (summary && this.hasValidSession) {
+                        const date = new Date(normalizeDate(this._sessionDate)).toLocaleDateString();
+                        summary.textContent = `${this._location} - ${date}`;
+                        summary.style.display = 'block';
+                    }
+                }
+            }
+
+            expandSettings() {
+                const content = document.getElementById('settings-content');
+                const icon = document.querySelector('.collapse-icon');
+                const summary = document.getElementById('session-summary');
+                
+                if (content) {
+                    content.classList.add('open');
+                    icon.classList.add('open');
+                    
+                    // Hide session summary when expanded
+                    if (summary) {
+                        summary.style.display = 'none';
+                    }
+                }
             }
 
             toggleSettings() {
                 vibrate([50]);
-                const content = document.getElementById('settingsContent');
-                const icon = document.querySelector('.collapse-icon');
-                content.classList.toggle('open');
-                icon.classList.toggle('open');
+                const content = document.getElementById('settings-content');
+                if (content && content.classList.contains('open')) {
+                    this.collapseSettings();
+                } else {
+                    this.expandSettings();
+                }
             }
         }

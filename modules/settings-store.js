@@ -283,18 +283,16 @@ class SettingsStore {
 
     // Settings UI functions
     collapseSettings() {
-        const content = document.getElementById('settingsContent');
-        const icon = document.querySelector('.collapse-icon');
-        content.classList.remove('open');
-        icon.classList.remove('open');
+        if (window.session) {
+            window.session.collapseSettings();
+        }
     }
 
     toggleSettings() {
         vibrate([50]);
-        const content = document.getElementById('settingsContent');
-        const icon = document.querySelector('.collapse-icon');
-        content.classList.toggle('open');
-        icon.classList.toggle('open');
+        if (window.session) {
+            window.session.toggleSettings();
+        }
     }
 
     closePaymentMethodsSheet() {

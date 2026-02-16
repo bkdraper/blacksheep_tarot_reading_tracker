@@ -2,7 +2,7 @@
 
 Mobile-optimized single page app for tracking tarot readings and tips. Built with pure HTML/CSS/JS and Supabase cloud database.
 
-## Version: v3.99.4
+## Version: v3.99.5
 
 ## Features
 - Track readings with timestamps, tips, payment methods, sources
@@ -46,7 +46,14 @@ npm start  # Runs on port 8080
 - `mcp-server/`: Data access API
 - See `ARCHITECTURE.md` for technical details
 
-## Recent Changes (v3.99.4)
+## Recent Changes (v3.99.5)
+- Centralized DOM synchronization in updateUI() as single source of truth
+- Removed direct DOM updates from setters (user, location, sessionDate, price)
+- Setters now only update internal state and call updateUI()
+- Eliminates duplication and prevents potential circular update issues
+- All 148 tests pass
+
+## Previous Changes (v3.99.4)
 - Refactored SessionStore to use setters consistently for all state changes
 - Split save() into save() and saveToLocalStorage() to avoid redundant DB writes
 - Fixed localStorage not updating when loading existing sessions

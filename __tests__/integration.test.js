@@ -30,6 +30,9 @@ describe('Integration: index.html + session-store.js', () => {
     global.showSnackbar = jest.fn();
     global.vibrate = jest.fn();
     global.registerBackgroundSync = jest.fn();
+    global.Utils = {
+      sanitize: jest.fn((str) => str)
+    };
 
     // Load session-store.js
     const code = fs.readFileSync(path.join(__dirname, '..', 'modules', 'session-store.js'), 'utf8');

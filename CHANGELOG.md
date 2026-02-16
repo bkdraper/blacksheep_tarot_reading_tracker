@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.99.5 - DOM Synchronization Refactoring
+- Centralized all DOM synchronization in updateUI() as single source of truth
+- Removed direct DOM updates from setters (user, location, sessionDate, price)
+- Setters now only update internal state and call updateUI()
+- updateUI() reads private vars and updates DOM with conditional checks
+- Eliminates duplication between setters and updateUI()
+- Prevents potential circular update issues
+- All 148 tests pass
+
 ## v3.99.4 - SessionStore Refactoring & Security
 - Refactored SessionStore to consistently use setters for all state changes
 - Split save() into save() (localStorage + DB) and saveToLocalStorage() (localStorage only)
