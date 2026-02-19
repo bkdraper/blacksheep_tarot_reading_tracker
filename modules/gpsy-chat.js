@@ -45,7 +45,7 @@ class GpsyChat {
             container.querySelectorAll('.gpsy-example-query').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const prompt = btn.getAttribute('data-prompt');
-                    document.getElementById('gpsyInput').value = prompt;
+                    document.getElementById('gpsy-input').value = prompt;
                     this.send();
                 });
             });
@@ -92,7 +92,7 @@ class GpsyChat {
             btn.onclick = () => {
                 const prompt = btn.getAttribute('data-prompt');
                 if (prompt) {
-                    document.getElementById('gpsyInput').value = prompt;
+                    document.getElementById('gpsy-input').value = prompt;
                     this.send();
                 }
             };
@@ -133,7 +133,7 @@ class GpsyChat {
             this.renderMessages();
         }
         
-        const input = document.getElementById('gpsyInput');
+        const input = document.getElementById('gpsy-input');
         input.addEventListener('focus', () => {
             setTimeout(() => input.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
         });
@@ -148,8 +148,8 @@ class GpsyChat {
     send() {
         window.vibrate([30]);
         
-        const input = document.getElementById('gpsyInput');
-        const sendBtn = document.getElementById('gpsySendBtn');
+        const input = document.getElementById('gpsy-input');
+        const sendBtn = document.getElementById('gpsy-send-btn');
         const message = input.value.trim();
         
         if (!message) return;
