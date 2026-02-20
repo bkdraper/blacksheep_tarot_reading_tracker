@@ -1,6 +1,6 @@
 # Tarot Tracker - Dev Rules
 
-## Version: v3.99.5
+## Version: v3.99.6
 **CRITICAL**: Bump version on EVERY code change (cache-busting)
 
 ## Tech Stack

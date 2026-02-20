@@ -100,8 +100,32 @@ class GpsyChat {
     }
     
     formatContent(content) {
-        // Return HTML directly - onclick handlers will be attached after render
-        return `<div style="max-height: 400px; overflow-y: auto;">${content}</div>`;
+        // Validate HTML before rendering to prevent DOM corruption
+        const sanitized = this.validateHTML(content);
+        return `<div style="max-height: 400px; overflow-y: auto;">${sanitized}</div>`;
+    }
+    
+    validateHTML(html) {
+        // Check for unclosed tags that could corrupt the DOM
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const errors = doc.querySelector('parsererror');
+        
+        if (errors) {
+            console.error('Invalid HTML from Gpsy:', html);
+            return `<div class="bedrock-response"><div class="bedrock-insight" style="color: #dc3545;">⚠️ Response contained invalid HTML and was blocked to prevent chat corruption. Please try again.</div></div>`;
+        }
+        
+        // Check for common unclosed tags
+        const openTags = (html.match(/<(table|tbody|thead|tr|td|th|ul|ol|li|div|span)(?:\s|>)/gi) || []).length;
+        const closeTags = (html.match(/<\/(table|tbody|thead|tr|td|th|ul|ol|li|div|span)>/gi) || []).length;
+        
+        if (openTags !== closeTags) {
+            console.error('Mismatched HTML tags from Gpsy. Open:', openTags, 'Close:', closeTags);
+            return `<div class="bedrock-response"><div class="bedrock-insight" style="color: #dc3545;">⚠️ Response had mismatched HTML tags (${openTags} open, ${closeTags} close) and was blocked. Please try again.</div></div>`;
+        }
+        
+        return html;
     }
     
     showThinking() {

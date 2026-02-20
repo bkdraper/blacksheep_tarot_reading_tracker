@@ -54,14 +54,14 @@ export class TarotTrackerMCPServer {
       },
       {
         name: 'aggregate_readings',
-        description: 'Aggregate readings with dynamic grouping, filtering, and sorting',
+        description: 'Aggregate readings with dynamic grouping, filtering, and sorting. Use day_of_week filter to find events on specific days (e.g., "friday", "saturday"). The server calculates day of week from dates - do not try to calculate this yourself.',
         inputSchema: {
           type: 'object',
           properties: {
             user_name: { type: 'string', description: 'User name' },
             filters: { 
               type: 'object', 
-              description: 'Filters: start_date, end_date, location, payment, source, min_tip, max_tip, min_price, max_price',
+              description: 'Filters: start_date, end_date, location, payment, source, min_tip, max_tip, min_price, max_price, day_of_week (sunday|monday|tuesday|wednesday|thursday|friday|saturday)',
               additionalProperties: true
             },
             options: {
@@ -184,18 +184,56 @@ export class TarotTrackerMCPServer {
   async aggregateReadings(args) {
     const { user_name, filters = {}, options = {}, limit } = args;
     const { group_by = [], aggregate = ['count', 'sum_earnings'], sort_by } = options;
+    const { day_of_week } = filters;
     
-    const { data, error } = await supabase.rpc('query_readings', {
-      p_user_name: user_name,
-      p_group_by: group_by,
-      p_filters: filters,
-      p_aggregate: aggregate,
-      p_sort_by: sort_by,
-      p_limit: limit
-    });
+    // Get all sessions
+    let query = supabase.from('blacksheep_reading_tracker_sessions')
+      .select('*')
+      .ilike('user_name', user_name)
+      .order('session_date', { ascending: false });
     
+    if (filters.start_date) query = query.gte('session_date', filters.start_date);
+    if (filters.end_date) query = query.lte('session_date', filters.end_date);
+    if (filters.location) query = query.ilike('location', `%${filters.location}%`);
+    
+    const { data, error } = await query;
     if (error) throw new Error(`Database error: ${error.message}`);
     
-    return { content: [{ type: 'text', text: JSON.stringify({ results: data || [] }, null, 2) }] };
+    // Filter by day of week if specified
+    let sessions = data;
+    if (day_of_week) {
+      const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+      const targetDay = dayMap[day_of_week.toLowerCase()];
+      if (targetDay !== undefined) {
+        sessions = sessions.filter(s => {
+          const date = new Date(s.session_date + 'T00:00:00');
+          return date.getDay() === targetDay;
+        });
+      }
+    }
+    
+    // Calculate aggregates
+    const results = sessions.map(s => {
+      const readings = s.readings || [];
+      const readingsCount = readings.length;
+      const baseTotal = readings.reduce((sum, r) => sum + (r.price || s.reading_price || 40), 0);
+      const tipsTotal = readings.reduce((sum, r) => sum + (r.tip || 0), 0);
+      const earnings = baseTotal + tipsTotal;
+      
+      return {
+        session_date: s.session_date,
+        location: s.location,
+        readings_count: readingsCount,
+        reading_price: s.reading_price,
+        base_total: baseTotal,
+        tips_total: tipsTotal,
+        total_earnings: earnings
+      };
+    });
+    
+    // Apply limit
+    const limited = limit ? results.slice(0, limit) : results;
+    
+    return { content: [{ type: 'text', text: JSON.stringify({ results: limited }, null, 2) }] };
   }
 }

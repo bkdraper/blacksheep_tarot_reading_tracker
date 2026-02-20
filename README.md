@@ -2,7 +2,7 @@
 
 Mobile-optimized single page app for tracking tarot readings and tips. Built with pure HTML/CSS/JS and Supabase cloud database.
 
-## Version: v3.99.5
+## Version: v3.99.6
 
 ## Features
 - Track readings with timestamps, tips, payment methods, sources
@@ -46,7 +46,15 @@ npm start  # Runs on port 8080
 - `mcp-server/`: Data access API
 - See `ARCHITECTURE.md` for technical details
 
-## Recent Changes (v3.99.5)
+## Recent Changes (v3.99.6)
+- Added HTML validation to ChatGPSY responses to prevent DOM corruption
+- Validates HTML structure using DOMParser before rendering
+- Counts open/close tags to detect incomplete HTML (tables, lists, divs)
+- Shows error message instead of rendering malformed HTML
+- Prevents catastrophic failure where one bad response breaks entire chat
+- Strengthened Bedrock Agent prompt with explicit list formatting rules
+
+## Previous Changes (v3.99.5)
 - Centralized DOM synchronization in updateUI() as single source of truth
 - Removed direct DOM updates from setters (user, location, sessionDate, price)
 - Setters now only update internal state and call updateUI()

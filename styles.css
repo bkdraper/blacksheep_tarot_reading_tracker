@@ -1276,6 +1276,15 @@
         .bedrock-table tr:last-child .bedrock-cell {
             border-bottom: none;
         }
+        .bedrock-table tfoot {
+            background: #f0f0f0;
+            border-top: 3px solid #28a745;
+        }
+        .bedrock-table tfoot td {
+            font-weight: bold;
+            padding: 12px 8px;
+            color: #222;
+        }
         .bedrock-currency {
             font-weight: 500;
             color: #28a745;
@@ -1358,6 +1367,13 @@
             border-color: #555;
             color: #ffffff;
             background: #2d2d2d;
+        }
+        body.dark-mode .bedrock-table tfoot {
+            background: #3d3d3d;
+            border-top-color: #28a745;
+        }
+        body.dark-mode .bedrock-table tfoot td {
+            color: #ffffff;
         }
         body.dark-mode .bedrock-insight {
             background: #3d3d3d;

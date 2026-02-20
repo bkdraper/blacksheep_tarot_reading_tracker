@@ -6,7 +6,16 @@ const convertBedrockParameters = (parameters) => {
   const args = {};
   if (parameters && Array.isArray(parameters)) {
     parameters.forEach(param => {
-      args[param.name] = param.value;
+      let value = param.value;
+      // Parse JSON strings for filters and options
+      if ((param.name === 'filters' || param.name === 'options') && typeof value === 'string') {
+        try {
+          value = JSON.parse(value);
+        } catch (e) {
+          console.warn(`Failed to parse ${param.name} as JSON:`, value);
+        }
+      }
+      args[param.name] = value;
     });
   }
   return args;
