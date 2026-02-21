@@ -54,11 +54,24 @@
 - This is why duration logging is so important
 
 ### Deployment Workflow
-**You zip, Kiro deploys**
+
+**Lambda Deployment: You zip, Kiro deploys**
 - Zip commands don't work in Kiro's bash environment
 - You create lambda.zip locally (includes node_modules)
 - Kiro runs the AWS CLI deployment commands
 - This workflow works, don't try to change it
+
+**Frontend Deployment: Manual zip to Amplify**
+- AWS Amplify is configured for manual deployment (not auto-deploy from GitHub)
+- You create a zip file of frontend files locally
+- Upload zip to Amplify console manually
+- Excludes: mcp-server/, node_modules/, .git/, __tests__/
+
+**Bedrock Agent System Prompt**
+- The file `mcp-server/bedrock-agent-system-prompt.txt` is documentation only
+- Nothing reads this file automatically
+- You manually copy/paste the content into Bedrock Agent config in AWS console
+- Keep the file updated as the source of truth
 
 ### Pain Points Solved
 - **Timezone hell**: YYYY-MM-DD creates UTC dates, MM/DD/YYYY creates local
@@ -209,5 +222,5 @@ Deploy to both lambdas when changing server.js tool definitions
 
 ## Last Updated
 - Date: February 20, 2026
-- Version: v3.99.7
-- By: Kiro (initial creation during workspace migration)
+- Version: v3.99.8
+- By: Kiro (updated deployment workflow and version)
