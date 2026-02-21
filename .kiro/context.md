@@ -18,7 +18,7 @@
 ### Development History
 - Started as massive 3788-line index.html
 - Refactored down to ~1053 lines (72% reduction)
-- Extracted 7 modules, 1 remaining (SettingsUI)
+- Extracted 7 modules (all core functionality modularized)
 - Currently at v3.99.7 with 148 passing tests
 - Staying on v3.x.x until Phase 3 (breaking changes)
 
@@ -112,7 +112,6 @@ Deploy to both lambdas when changing server.js tool definitions
 - **Phase 3**: Context awareness (requires Lambda changes)
 - **Phase 4**: Charts with Apache ECharts
 - **Phase 5**: Accessibility polish
-- **Refactoring**: Extract SettingsUI module (last one)
 
 ### Known Limitations
 - Bedrock doesn't actually stream (buffers entire response)

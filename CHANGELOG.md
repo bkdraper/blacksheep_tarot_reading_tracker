@@ -1,5 +1,20 @@
 # Changelog
 
+## v3.99.8 - Gpsy Personality & Prompt Optimization
+- Refactored Bedrock Agent system prompt for clarity and conciseness (~57% reduction)
+- Added personality section: Gpsy is now a "friendly companion" not just a reporting tool
+- Improved tone with warm, conversational language ("that's a solid day!" vs "total earnings")
+- Strengthened tool-first approach: check for tools before calculating anything
+- Enhanced day-of-week query handling with explicit examples (use `day_of_week` filter)
+- Consolidated repetitive formatting rules into single authoritative sections
+- Added pre-response checklist for accuracy (11 verification points)
+- Updated suggestion buttons to be more conversational ("Show me..." vs terse commands)
+- Added "Common Mistakes" section with side-by-side wrong/correct examples
+- Emphasized HTML-only output (no plain text, RTF, or markdown)
+- Reinforced list formatting rules (never use bullet characters •, -, *)
+- Added warmth check to response validation
+- Improved template examples with encouraging language
+
 ## v3.99.7 - Chat Proxy Lambda Improvements
 - Added structured JSON logging to Chat Proxy Lambda (REQUEST, SUCCESS, ERROR types)
 - Increased Chat Proxy timeout from 30s to 120s for complex queries
