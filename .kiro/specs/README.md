@@ -10,6 +10,7 @@ This directory contains detailed specification files for all major features and 
 - **[timer-system.md](timer-system.md)** - Canvas-based countdown timer with audio alarms and wake lock
 - **[pwa-offline-support.md](pwa-offline-support.md)** - Service worker, caching, offline support, installability
 - **[analytics-notifications.md](analytics-notifications.md)** - Automated insights and notification system
+- **[lambda-architecture.md](lambda-architecture.md)** - Dual Lambda design: MCP (streaming JSONRPC) vs Bedrock (vanilla REST)
 
 ### ChatGPSY Features (AI Assistant)
 - **[chatgpsy-phase2-persistence.md](chatgpsy-phase2-persistence.md)** - Message persistence and error handling
@@ -109,7 +110,10 @@ Bump to v4.0.0 when:
 
 ### Backend
 - Supabase PostgreSQL database
-- AWS Lambda (MCP server, Bedrock integration)
+- AWS Lambda dual architecture:
+  - MCP Lambda: Streaming JSONRPC for MCP hosts (VSCode, Amazon Q)
+  - Bedrock Lambda: Vanilla REST for AWS Bedrock Agent
+  - Shared tool definitions, different protocol adapters
 - AWS Bedrock Agent (AI chat)
 
 ### Deployment

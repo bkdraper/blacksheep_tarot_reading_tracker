@@ -1,6 +1,15 @@
 # Changelog
 
-## v3.99.5 - DOM Synchronization Refactoring
+## v3.99.7 - Chat Proxy Lambda Improvements
+- Added structured JSON logging to Chat Proxy Lambda (REQUEST, SUCCESS, ERROR types)
+- Increased Chat Proxy timeout from 30s to 120s for complex queries
+- Added CloudWatch Logs URL to documentation
+- Documented Bedrock's lack of real streaming (buffers entire response)
+- Added request tracking with requestId, duration, chunkCount, totalBytes
+- Improved error logging with stack traces and AWS response details
+- Created comprehensive Lambda architecture documentation
+
+## v3.99.6 - ChatGPSY HTML Validation
 - Centralized all DOM synchronization in updateUI() as single source of truth
 - Removed direct DOM updates from setters (user, location, sessionDate, price)
 - Setters now only update internal state and call updateUI()

@@ -146,6 +146,7 @@ Add tiny inline trend indicators.
 ### Backend (Lambda)
 - `mcp-server/bedrock-handler.js` - Format chart data
 - `mcp-server/bedrock-agent-system-prompt.txt` - Add chart instructions
+- Note: Both MCP and Bedrock lambdas share tool logic, only response format differs
 
 ## Technical Specifications
 

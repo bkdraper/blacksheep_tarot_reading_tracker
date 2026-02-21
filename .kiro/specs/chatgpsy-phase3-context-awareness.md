@@ -7,6 +7,8 @@ Make ChatGPSY context-aware by injecting current session data and implementing q
 - ChatGPSY uses AWS Bedrock Agent for AI responses
 - Chat Proxy Lambda: `blacksheep_tarot-tracker-bedrock-chat-proxy`
 - Current implementation: `modules/gpsy-chat.js`
+- Dual Lambda architecture: MCP (streaming JSONRPC) and Bedrock (vanilla REST)
+- Both lambdas share the same tool definitions, differ only in response protocol
 - Requires coordination with Lambda function changes
 
 ## Requirements
@@ -151,6 +153,7 @@ Add voice input capability (deferred to later phase).
 ### Backend (Lambda)
 - `mcp-server/blacksheep_tarot-tracker-bedrock-chat-proxy-lambda.js` - Context injection
 - `mcp-server/bedrock-agent-system-prompt.txt` - Update prompt
+- Note: Both MCP and Bedrock lambdas share tool logic, only response format differs
 
 ## Success Metrics
 - Context-aware responses work 90%+ of time

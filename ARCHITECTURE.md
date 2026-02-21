@@ -202,8 +202,12 @@ graph LR
 ### Chat Proxy Lambda
 - Function: `blacksheep_tarot-tracker-bedrock-chat-proxy`
 - URL: https://57h2jhw5tcjn35yzuitv4zjmfu0snuom.lambda-url.us-east-2.on.aws/
+- CloudWatch Logs: https://us-east-2.console.aws.amazon.com/cloudwatch/home?region=us-east-2#logsV2:log-groups/log-group/$252Faws$252Flambda$252Fblacksheep_tarot-tracker-bedrock-chat-proxy
 - User context injection: Prepends `[User context: ${userName}]`
-- Timeout: 30 seconds
+- Timeout: 120 seconds
+- Structured JSON logging (REQUEST, SUCCESS, ERROR)
+- SSE format (ready for when Bedrock supports real streaming)
+- Note: Bedrock currently buffers entire response despite SSE setup
 
 ### Bedrock Agent
 - Agent ID: 0LC3MUMHNN

@@ -4,6 +4,9 @@ import { BedrockAgentRuntimeClient, InvokeAgentCommand } from "@aws-sdk/client-b
 const client = new BedrockAgentRuntimeClient({ region: "us-east-2" });
 
 export const handler = awslambda.streamifyResponse(async (event, responseStream) => {
+  const requestId = event.requestContext?.requestId || 'unknown';
+  const startTime = Date.now();
+  
   const httpResponseMetadata = {
     statusCode: 200,
     headers: {
@@ -25,6 +28,17 @@ export const handler = awslambda.streamifyResponse(async (event, responseStream)
     
     const { message, sessionId, userName } = body;
     
+    // Log incoming request
+    console.log(JSON.stringify({
+      type: 'REQUEST',
+      requestId,
+      timestamp: new Date().toISOString(),
+      userName,
+      sessionId,
+      messageLength: message?.length || 0,
+      messagePreview: message?.substring(0, 100) || ''
+    }));
+    
     const contextualMessage = userName 
       ? `[User context: The user asking this question is ${userName}. When they say "my" or "I", they mean ${userName}'s data.] ${message}`
       : message;
@@ -38,19 +52,56 @@ export const handler = awslambda.streamifyResponse(async (event, responseStream)
     
     const response = await client.send(command);
     
-    // Stream each chunk as it arrives
+    // NOTE: Despite SSE setup, Bedrock Agent doesn't actually stream.
+    // It buffers the entire response and sends one chunk at the end.
+    // This infrastructure is ready for when AWS finally supports real streaming.
+    let chunkCount = 0;  // Will always be 1 until Bedrock supports streaming
+    let totalBytes = 0;
+    
+    // Stream each chunk as it arrives (currently just one chunk from Bedrock)
     for await (const chunk of response.completion) {
       if (chunk.chunk?.bytes) {
         const text = new TextDecoder().decode(chunk.chunk.bytes);
         responseStream.write(`data: ${JSON.stringify({ chunk: text })}\n\n`);
+        chunkCount++;
+        totalBytes += chunk.chunk.bytes.length;
       }
     }
     
     responseStream.write('data: [DONE]\n\n');
     
+    // Log successful completion
+    const duration = Date.now() - startTime;
+    console.log(JSON.stringify({
+      type: 'SUCCESS',
+      requestId,
+      timestamp: new Date().toISOString(),
+      userName,
+      sessionId,
+      duration,
+      chunkCount,
+      totalBytes
+    }));
+    
   } catch (error) {
-    console.error('Chat Proxy Error:', error);
-    console.error('Error $response:', error.$response);
+    const duration = Date.now() - startTime;
+    
+    // Structured error logging
+    console.error(JSON.stringify({
+      type: 'ERROR',
+      requestId,
+      timestamp: new Date().toISOString(),
+      userName: body?.userName,
+      sessionId: body?.sessionId,
+      duration,
+      errorType: error.name || 'Unknown',
+      errorMessage: error.message,
+      errorStack: error.stack,
+      errorResponse: error.$response ? {
+        statusCode: error.$response.statusCode,
+        headers: error.$response.headers
+      } : null
+    }));
     
     let userMessage = 'I had trouble processing that question. ';
     
