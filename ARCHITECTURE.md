@@ -216,6 +216,16 @@ graph LR
 - Region: us-east-2
 - Action Group: TarotDataTools
 
+**CRITICAL - System Prompt Deployment:**
+The file `mcp-server/bedrock-agent-system-prompt.txt` is NOT automatically deployed. It must be manually copy/pasted into the Bedrock Agent configuration in the AWS Console:
+1. Go to AWS Bedrock Console → Agents
+2. Find the tarot tracker agent (ID: 0LC3MUMHNN)
+3. Edit the agent instructions
+4. Copy/paste the entire contents of `bedrock-agent-system-prompt.txt`
+5. Save the agent configuration
+
+Changes to this file do NOT require Lambda redeployment - only manual update in the console.
+
 ## Deployment
 
 ### AWS Amplify
