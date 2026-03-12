@@ -105,20 +105,45 @@ graph TB
 
 ## Database Schema
 
-### Supabase Table: `blacksheep_reading_tracker_sessions`
+### Authentication
+- **Provider**: Supabase Auth with Google OAuth
+- **Client ID**: 622943293890-1iuusaetdtucb1t76vj88802j01j6fb4.apps.googleusercontent.com
+- **Redirect URLs**: localhost:8080, tracker.blacksheep-gypsies.com
+- **Role-Based Access**: Admin users can view all data, regular users see only their own
+
+### Supabase Tables
+
+#### `blacksheep_reading_tracker_sessions`
 - `id` (uuid, PK)
 - `session_date` (date)
 - `location` (text)
 - `reading_price` (numeric)
-- `readings` (jsonb)
-- `user_name` (text, NOT NULL)
+- `readings` (jsonb) - DEPRECATED, migrating to normalized table
+- `user_name` (text, NOT NULL) - Snapshot at session creation
+- `user_id` (uuid) - References auth.users, NULL for legacy data
 - `created_at` (timestamptz)
 - `updated_at` (timestamptz)
+
+#### `blacksheep_reading_tracker_readings` (NEW - Normalized)
+- `id` (uuid, PK)
+- `session_id` (uuid, FK to sessions)
+- `timestamp` (timestamptz, NOT NULL)
+- `tip` (numeric, NOT NULL, default 0)
+- `price` (numeric) - NULL uses session price
+- `payment` (text) - cash|cc|venmo|paypal|cashapp|custom
+- `source` (text) - referral|renu|pog|repeat|custom
+- `created_at` (timestamptz)
+- **Indexes**: session_id, timestamp, LOWER(payment), LOWER(source)
+
+#### `blacksheep_reading_tracker_user_profiles`
+- `user_id` (uuid, PK, FK to auth.users)
+- `role` (text, default 'user') - 'admin' or 'user'
+- `created_at` (timestamptz)
 
 **Connection**:
 - URL: `https://uuindvqgdblkjzvjsyrz.supabase.co`
 - Anon Key: (see index.html)
-- RLS: Disabled (open access)
+- RLS: Enabled with user_id filtering (after migration)
 
 ## MCP Server (Dual Lambda Architecture)
 

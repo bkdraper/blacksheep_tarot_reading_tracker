@@ -273,6 +273,148 @@ All CSS for Phase 1-2 features already exists:
 
 ---
 
+## Phase 6: Authentication & Database Normalization 🚧 IN PROGRESS
+**Goal**: Add Google OAuth, normalize database schema, migrate to SQL-based queries  
+**Status**: Infrastructure complete, implementation pending  
+**Estimated Time**: 20-30 hours
+
+### Database Infrastructure ✅ COMPLETE
+- ✅ Created `blacksheep_reading_tracker_readings` table (normalized)
+- ✅ Added `user_id` column to sessions table
+- ✅ Created `blacksheep_reading_tracker_user_profiles` table (role-based access)
+- ✅ Added indexes for efficient querying (payment_lower, source_lower, session_id, timestamp)
+
+### Authentication Implementation
+**Priority**: High | **Effort**: Large
+
+#### Supabase Console Setup ✅ COMPLETE
+- ✅ Enable Google OAuth provider in Supabase Auth settings
+- ✅ Add authorized redirect URLs (localhost + production)
+- ✅ Configure Google OAuth credentials (Client ID, Secret)
+
+#### Frontend Changes (index.html)
+- [x] Add Supabase Auth initialization
+- [x] Add Google Sign-In button (in login prompt)
+- [x] Add sign-out button (in user profile dropdown)
+- [x] Check auth state on page load
+- [x] Store user_id + role in memory at login
+- [x] Display user's name from auth.user.user_metadata.full_name
+- [x] Created `modules/auth.js` with Auth class (getters/setters, updateUI)
+- [x] Added auth UI elements (profile button, login prompt)
+- [x] Session controls hidden when not authenticated
+- [x] Refactored SessionStore to remove user data storage (Auth is single source of truth)
+- [x] SessionStore reads userId/userName from window.auth via getters
+- [x] Deprecated old user selection methods (showUserSelection, selectUser, etc.)
+- [ ] Remove deprecated user selection UI from index.html (userBtn, userSheet)
+- [ ] Admin UI: Show user selector dropdown if role = 'admin'
+- [ ] Admin UI: Allow viewing any user's data when admin
+
+#### Data Migration
+- [ ] Get Amanda's Google email address
+- [ ] Have Amanda sign in with Google to generate her Supabase user_id
+- [ ] Run migration script to update all Amanda's existing sessions with her user_id
+- [ ] Migrate JSONB readings array to normalized readings table
+- [ ] Set your user profile role to 'admin'
+
+#### Backend Changes (server.js)
+**Complete rewrite of all query logic from JSONB to SQL**
+
+##### Tool Parameter Changes
+- [ ] Update all MCP tools to accept `user_id` + `user_role` instead of `user_name`
+- [ ] Add role-based filtering: if role !== 'admin', add `.eq('user_id', user_id)` to queries
+- [ ] Keep returning `user_name` for display purposes
+
+##### Query Architecture Overhaul
+**Current (JSONB-based)**:
+- Fetches sessions, iterates JSONB arrays in JavaScript
+- Filters payment/source in JavaScript (case-insensitive `.toLowerCase()`)
+- Calculates time_of_day in JavaScript
+- Aggregates in JavaScript
+- Day-of-week filtering in JavaScript
+
+**New (SQL-based)**:
+- Query `readings` table directly with JOINs
+- Use SQL `ILIKE` for case-insensitive filtering
+- Use SQL `EXTRACT(DOW FROM timestamp)` for day-of-week
+- Use SQL `EXTRACT(HOUR FROM timestamp AT TIME ZONE 'tz')` for time_of_day
+- Use SQL `COUNT()`, `SUM()`, `AVG()`, `GROUP BY` for aggregation
+
+##### list_sessions Rewrite
+- [ ] **Current**: Queries sessions, counts JSONB array length
+- [ ] **New**: Query sessions with LEFT JOIN to count readings from readings table
+- [ ] **SQL**: `SELECT s.*, COUNT(r.id) as readings_count FROM sessions s LEFT JOIN readings r ON s.id = r.session_id WHERE s.user_id = $1 GROUP BY s.id`
+
+##### list_readings Rewrite
+- [ ] **Current**: Fetches sessions, unpacks JSONB, filters in JS
+- [ ] **New**: Query readings table directly with JOIN to sessions
+- [ ] **SQL**: All filters (payment, source, date range, day_of_week) in WHERE clause using `ILIKE` and `EXTRACT()`
+- [ ] **Example**: `SELECT r.*, s.location, s.session_date FROM readings r JOIN sessions s ON r.session_id = s.id WHERE s.user_id = $1 AND LOWER(r.payment) ILIKE LOWER($2)`
+
+##### aggregate_readings Rewrite
+- [ ] **Current**: Fetches sessions, unpacks JSONB, aggregates in JS
+- [ ] **New**: Pure SQL aggregation with GROUP BY
+- [ ] **SQL**: `SELECT COUNT(*), SUM(price + tip), AVG(price + tip) FROM readings r JOIN sessions s ON r.session_id = s.id WHERE s.user_id = $1 GROUP BY [time_of_day/location/date]`
+- [ ] **Time of day**: Use `CASE WHEN EXTRACT(HOUR FROM timestamp AT TIME ZONE 'America/New_York') < 12 THEN 'morning' ...`
+
+##### search_locations (No Change)
+- [ ] **Current**: Queries sessions only
+- [ ] **New**: Same (sessions table still has location)
+
+#### Frontend Data Layer Changes
+- [ ] Update SessionStore to write readings to normalized table
+- [ ] Update ReadingsManager to insert into readings table instead of JSONB array
+- [ ] Add reading deletion logic (DELETE FROM readings WHERE id = $1)
+- [ ] Keep JSONB column temporarily for backward compatibility during migration
+
+#### Bedrock Agent Updates
+- [ ] Update all tool definitions to use `user_id` instead of `user_name`
+- [ ] Update system prompt to reference new schema
+- [ ] Update session attributes to include user_id and role
+- [ ] Test all Gpsy queries with new schema
+
+#### Lambda Deployment
+- [ ] Deploy updated server.js to MCP Lambda (`blacksheep_tarot-tracker-mcp-server`)
+- [ ] Deploy updated server.js to Bedrock Lambda (`blacksheep_tarot-tracker-bedrock`)
+- [ ] Update Bedrock Agent configuration in AWS console
+- [ ] Deploy frontend to Amplify (manual zip upload)
+
+#### Testing Checklist
+- [ ] Test Google sign-in flow
+- [ ] Test Amanda can see her migrated data
+- [ ] Test Amanda cannot see other users' data
+- [ ] Test new sessions save with user_id
+- [ ] Test readings write to normalized table
+- [ ] Test admin (you) can see all users' data
+- [ ] Test admin can switch between users in UI
+- [ ] Test Gpsy chat works with authenticated user
+- [ ] Test all MCP queries return correct data
+- [ ] Test payment/source filtering is case-insensitive
+- [ ] Test day-of-week filtering works
+- [ ] Test time-of-day aggregation works
+- [ ] Test sign out and re-authentication
+
+### Architecture Decisions
+
+#### Role-Based Access Control
+- **Approach**: Client-side role check (acceptable risk for 2-3 user app)
+- **Security**: User can fake role in browser, but can't fake user_id (from auth token)
+- **Worst case**: User sees empty results because user_id filter still applies
+- **Rationale**: Simplicity over enterprise-grade security for small internal app
+
+#### User Name Storage
+- **Approach**: Snapshot user_name in sessions table at creation time
+- **Rationale**: Preserves historical accuracy (audit trail), no joins needed
+- **Alternative rejected**: Single source of truth in profiles table (loses historical context)
+
+#### Data Migration Strategy
+- **Phase 1**: Add new tables, keep JSONB column
+- **Phase 2**: Dual-write to both JSONB and normalized table
+- **Phase 3**: Migrate historical data
+- **Phase 4**: Switch queries to normalized table
+- **Phase 5**: Drop JSONB column after verification
+
+---
+
 ## Decision Log
 
 ### Why Apache ECharts?

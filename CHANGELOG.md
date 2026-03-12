@@ -1,5 +1,19 @@
 # Changelog
 
+## v3.99.9 - Profile Menu & RLS Policies
+- Changed profile button from direct logout to dropdown menu
+- Added profile menu with "Sign Out" option
+- Profile button displays Google profile picture (avatar_url) if available
+- Falls back to Font Awesome user icon if no profile picture
+- Added Auth.toggleProfileMenu() method to show/hide dropdown
+- Profile menu closes when clicking outside
+- Added RLS policies to user_profiles table (enable RLS, allow authenticated reads)
+- Fixed infinite recursion in admin RLS policy (simplified to single policy)
+- Admin users see user switcher button in Event Settings
+- Regular users do not see user switcher button (UI-level restriction)
+- Added CSS for profile picture (.user-profile-pic) and dropdown menu (.profile-menu)
+- Auth.updateUI() now manages profile picture visibility and menu state
+
 ## v3.99.8 - Gpsy Personality & Prompt Optimization
 - Refactored Bedrock Agent system prompt for clarity and conciseness (~57% reduction)
 - Added personality section: Gpsy is now a "friendly companion" not just a reporting tool

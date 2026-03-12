@@ -20,6 +20,15 @@ class Utils {
         return dateStr; // Already in MM/DD/YYYY or other format
     }
 
+    // Convert Date to YYYY-MM-DD format in local timezone
+    static toISODate(date = new Date()) {
+        const d = date instanceof Date ? date : new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
     // Development mode detection
     static isDevelopmentMode() {
         return window.location.hostname === 'localhost' || 

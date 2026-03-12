@@ -12,6 +12,7 @@ class GpsyChat {
                 return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
             });
         this.apiEndpoint = 'https://57h2jhw5tcjn35yzuitv4zjmfu0snuom.lambda-url.us-east-2.on.aws/';
+        this.apiToken = 'BSG_TRACKER_AUTH_TOKEN'; // TODO: Move to config/env
     }
     
     addMessage(role, content) {
@@ -280,11 +281,20 @@ class GpsyChat {
         try {
             const response = await fetch(this.apiEndpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.apiToken}`
+                },
                 body: JSON.stringify({
                     message: userMessage,
                     sessionId: this.sessionId,
-                    userName: window.session.user
+                    userName: window.session.user,
+                    sessionAttributes: {
+                        current_date: Utils.toISODate(),
+                        current_user: window.session.user,
+                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        current_loaded_session: window.session.sessionId || null
+                    }
                 })
             });
             

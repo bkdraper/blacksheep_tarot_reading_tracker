@@ -1,15 +1,23 @@
 # Tarot Tracker - Dev Rules
 
-## Version: v3.99.7
+## Version: v3.99.9
 **CRITICAL**: Bump version on EVERY code change (cache-busting)
+
+## Deployment
+**CRITICAL - AMPLIFY IS MANUAL ZIP UPLOAD (NOT GIT-CONNECTED)**
+- Frontend: Manual zip upload to AWS Amplify console
+- Lambda: AWS CLI deployment commands (see below)
+- System Prompt: Manual copy/paste to Bedrock Agent console
 
 ## Tech Stack
 Pure HTML/CSS/JS, Supabase DB, localStorage backup, single-file deployment
 
 ## Core Classes
-SessionStore, Timer, SettingsStore, GpsyChat, ReadingsManager, AnalyticsNotifier, Utils (all in modules/)
+Auth, SessionStore, Timer, SettingsStore, GpsyChat, ReadingsManager, AnalyticsNotifier, Utils (all in modules/)
 
 ## Features Summary
+- Google OAuth authentication (Supabase Auth)
+- Role-based access control (admin/user)
 - Session management (create, load, restore)
 - Reading tracking (add, delete, tip entry)
 - Payment methods (cash, cc, venmo, paypal, cashapp, custom)
@@ -54,28 +62,30 @@ Session: {sessionId, user, location, sessionDate, price, readings, _loading}
 
 ## Lambda Deployment
 
-### Bedrock Lambda (ACTIVE - deploy here most of the time)
-```bash
-aws lambda update-function-code \
-  --function-name blacksheep_tarot-tracker-bedrock \
-  --zip-file fileb://lambda.zip \
-  --region us-east-2
-```
-
-### MCP Lambda (FROZEN - only when adding tools to server.js)
+### MCP Lambda (PRIMARY - Amazon Q IDE integration)
 ```bash
 aws lambda update-function-code \
   --function-name blacksheep_tarot-tracker-mcp-server \
   --zip-file fileb://lambda.zip \
   --region us-east-2
 ```
+Powers @reading_tracker in Amazon Q. Deploy here for tool improvements/fixes.
 
-### Both (when adding new tools)
+### Bedrock Lambda (Gpsy web chat interface)
 ```bash
-# MCP
+aws lambda update-function-code \
+  --function-name blacksheep_tarot-tracker-bedrock \
+  --zip-file fileb://lambda.zip \
+  --region us-east-2
+```
+Powers ChatGPSY in web app. Deploy here for Bedrock-specific changes.
+
+### Both (when changing server.js core logic)
+```bash
+# MCP first
 aws lambda update-function-code --function-name blacksheep_tarot-tracker-mcp-server --zip-file fileb://lambda.zip --region us-east-2
 
-# Bedrock
+# Then Bedrock
 aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock --zip-file fileb://lambda.zip --region us-east-2
 ```
 

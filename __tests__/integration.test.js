@@ -13,18 +13,8 @@ describe('Integration: index.html + session-store.js', () => {
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     document.documentElement.innerHTML = html;
 
-    // Mock Supabase
-    global.supabaseClient = {
-      from: jest.fn(() => ({
-        update: jest.fn(() => ({ eq: jest.fn() })),
-        select: jest.fn(() => ({ 
-          not: jest.fn(),
-          eq: jest.fn(() => ({
-            order: jest.fn(() => ({ order: jest.fn() }))
-          }))
-        }))
-      }))
-    };
+    // Reset mocks (use global mock from jest.setup.js)
+    jest.clearAllMocks();
 
     // Mock global functions from index.html
     global.showSnackbar = jest.fn();
@@ -315,11 +305,7 @@ describe('Integration: index.html + readings-manager.js', () => {
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     document.documentElement.innerHTML = html;
 
-    global.supabaseClient = {
-      from: jest.fn(() => ({
-        update: jest.fn(() => ({ eq: jest.fn() }))
-      }))
-    };
+    jest.clearAllMocks();
     global.Utils = {
       vibrate: jest.fn(),
       showSheet: jest.fn(),
@@ -465,15 +451,7 @@ describe('Integration: index.html + settings-store.js', () => {
     const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     document.documentElement.innerHTML = html;
 
-    global.supabaseClient = {
-      from: jest.fn(() => ({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            order: jest.fn(() => Promise.resolve({ data: [] }))
-          }))
-        }))
-      }))
-    };
+    jest.clearAllMocks();
     global.vibrate = jest.fn();
     global.showSheet = jest.fn();
     global.hideSheet = jest.fn();
@@ -706,6 +684,149 @@ describe('Integration: index.html + timer.js', () => {
     test('initAudio should create audio context', () => {
       timer.initAudio();
       expect(timer._audioContext).toBeTruthy();
+    });
+  });
+});
+
+describe('Integration: index.html + auth.js', () => {
+  let auth;
+
+  beforeEach(() => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    document.documentElement.innerHTML = html;
+
+    global.showSnackbar = jest.fn();
+
+    const Auth = eval(`(function() { ${fs.readFileSync(path.join(__dirname, '..', 'modules', 'auth.js'), 'utf8')}; return Auth; })()`);;
+    auth = new Auth();
+    global.window.auth = auth;
+  });
+
+  describe('DOM Element Existence', () => {
+    test('should find btn-app-settings element', () => {
+      expect(document.getElementById('btn-app-settings')).toBeTruthy();
+    });
+
+    test('should find btn-user-profile element', () => {
+      expect(document.getElementById('btn-user-profile')).toBeTruthy();
+    });
+
+    test('should find text-user-profile-name element', () => {
+      expect(document.getElementById('text-user-profile-name')).toBeTruthy();
+    });
+
+    test('should find container-login-prompt element', () => {
+      expect(document.getElementById('container-login-prompt')).toBeTruthy();
+    });
+
+    test('should find event-settings element', () => {
+      expect(document.getElementById('event-settings')).toBeTruthy();
+    });
+
+    test('should find container-readings-buttons element', () => {
+      expect(document.getElementById('container-readings-buttons')).toBeTruthy();
+    });
+  });
+
+  describe('Authentication Flow', () => {
+    test('should hide authenticated UI when not logged in', () => {
+      auth.updateUI();
+      
+      expect(document.getElementById('btn-app-settings').style.display).toBe('none');
+      expect(document.getElementById('btn-user-profile').style.display).toBe('none');
+      expect(document.getElementById('event-settings').style.display).toBe('none');
+    });
+
+    test('should show authenticated UI when logged in', () => {
+      auth._user = { user_metadata: { full_name: 'Test User' }, email: 'test@example.com' };
+      auth._userId = 'test-id';
+      
+      auth.updateUI();
+      
+      expect(document.getElementById('btn-app-settings').style.display).toBe('flex');
+      expect(document.getElementById('btn-user-profile').style.display).toBe('flex');
+      expect(document.getElementById('text-user-profile-name').textContent).toBe('Test User');
+    });
+
+    test('should update profile name in DOM', () => {
+      auth._user = { user_metadata: { full_name: 'Amanda' }, email: 'amanda@example.com' };
+      auth._userId = 'user-123';
+      
+      auth.updateUI();
+      
+      expect(document.getElementById('text-user-profile-name').textContent).toBe('Amanda');
+    });
+  });
+
+  describe('Session Controls Visibility', () => {
+    test('should hide session controls when not authenticated', () => {
+      auth.updateUI();
+      
+      expect(document.getElementById('event-settings').style.display).toBe('none');
+      expect(document.getElementById('container-readings-buttons').style.display).toBe('none');
+      expect(document.getElementById('container-readings-totals').style.display).toBe('none');
+      expect(document.getElementById('container-readings-list').style.display).toBe('none');
+    });
+
+    test('should show session controls when authenticated', () => {
+      auth._user = { user_metadata: { full_name: 'Test' } };
+      auth._userId = 'test-id';
+      
+      auth.updateUI();
+      
+      expect(document.getElementById('event-settings').style.display).not.toBe('none');
+      expect(document.getElementById('container-readings-buttons').style.display).not.toBe('none');
+      expect(document.getElementById('container-readings-totals').style.display).not.toBe('none');
+      expect(document.getElementById('container-readings-list').style.display).not.toBe('none');
+    });
+  });
+
+  describe('Auth State Management', () => {
+    test('should trigger updateUI when userId changes', () => {
+      const spy = jest.spyOn(auth, 'updateUI');
+      auth.userId = 'new-id';
+      expect(spy).toHaveBeenCalled();
+    });
+
+    test('should clear all state on signOut', async () => {
+      global.supabaseClient.auth.signOut.mockResolvedValue({ error: null });
+      
+      auth._user = { user_metadata: { full_name: 'Test' } };
+      auth._userRole = 'admin';
+      auth._userId = 'test-id';
+      
+      await auth.signOut();
+      
+      expect(auth.user).toBeNull();
+      expect(auth.userId).toBeNull();
+      expect(auth.userRole).toBeNull();
+    });
+  });
+
+  describe('Profile Query Integration', () => {
+    test('should query user_profiles table on checkAuth', async () => {
+      const fromMock = jest.fn(() => ({
+        select: () => ({
+          eq: () => ({
+            single: async () => ({ data: { role: 'user' }, error: null })
+          })
+        }),
+        insert: async () => ({ data: null, error: null })
+      }));
+      
+      global.supabaseClient.auth.getSession.mockResolvedValue({
+        data: {
+          session: {
+            user: { id: 'user-123', email: 'test@example.com', user_metadata: {} }
+          }
+        }
+      });
+      global.supabaseClient.from = fromMock;
+      
+      await auth.checkAuth();
+      
+      expect(fromMock).toHaveBeenCalledWith('blacksheep_reading_tracker_user_profiles');
+      expect(auth.userRole).toBe('user');
     });
   });
 });

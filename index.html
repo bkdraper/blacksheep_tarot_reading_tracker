@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="version" content="v3.99.8">
+    <meta http-equiv="version" content="v3.99.9">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
     <meta name="mobile-web-app-capable" content="yes">
@@ -48,13 +48,33 @@
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
             <span id="offlineIndicator" class="offline-badge" style="display: none;">Offline</span>
-            <span class="version-badge">v3.99.8</span>
-            <button id="btn-app-settings" class="settings-btn" onclick="settings.openDrawer()" title="Settings"><i class="fas fa-cog"></i></button>
+            <span class="version-badge">v3.99.9</span>
+            <button id="btn-user-profile" class="user-profile-btn" onclick="auth.toggleProfileMenu()" style="display: none;">
+                <img id="img-user-profile-pic" class="user-profile-pic" style="display: none;">
+                <i id="icon-user-profile" class="fas fa-user-circle"></i>
+                <span id="text-user-profile-name"></span>
+            </button>
+            <div id="menu-user-profile" class="profile-menu" style="display: none;">
+                <div class="profile-menu-item" onclick="auth.signOut()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sign Out</span>
+                </div>
+            </div>
+            <button id="btn-app-settings" class="settings-btn" onclick="settings.openDrawer()" title="Settings" style="display: none;"><i class="fas fa-cog"></i></button>
         </div>
     </header>
     <div class="container">
-        <div class="event-settings">
-            <div class="settings-header" onclick="settings.toggleSettings()">
+        <!-- Login Prompt (shown when not authenticated) -->
+        <div id="container-login-prompt" class="login-prompt">
+            <p>Please sign in to manage your reading sessions</p>
+            <button class="btn btn-primary" onclick="auth.signIn()">
+                <i class="fab fa-google" style="margin-right: 8px;"></i>
+                Sign in with Google
+            </button>
+        </div>
+
+        <div id="event-settings" class="event-settings">
+            <div class="settings-header" onclick="session.toggleSettings()">
                 <span>Event Settings</span>
                 <span class="collapse-icon"><i class="fas fa-chevron-down"></i></span>
             </div>
@@ -63,7 +83,7 @@
                 <div class="user-section">
                     <div class="input-group">
                         <label for="user">User:</label>
-                        <button id="userBtn" onclick="session.showUserSelection()" class="user-btn">Select User...</button>
+                        <button id="btn-session-user" onclick="session.showUserSelection()" class="user-btn" style="display: none;">Select User...</button>
                     </div>
                     <button id="btn-session-load" class="btn-load-session btn btn-secondary" onclick="session.showLoadSession()">Load Session</button>
                 </div>
@@ -171,14 +191,14 @@
     </div>
 
     <!-- User Selection Sheet -->
-    <div id="userOverlay" class="payment-overlay" onclick="session.hideUserSelection()"></div>
-    <div id="userSheet" class="session-sheet sheet">
+    <div id="overlay-user-selection" class="payment-overlay" onclick="session.hideUserSelection()"></div>
+    <div id="sheet-user-selection" class="session-sheet sheet">
         <div class="session-sheet-header sheet-header">
             <h3>Select User</h3>
             <button class="modal-close" onclick="session.hideUserSelection()"><i class="fas fa-times"></i></button>
         </div>
         <div class="session-sheet-content">
-            <div id="userList"></div>
+            <div id="list-users"></div>
             <button id="btn-user-add" onclick="session.addNewUser()" class="btn-add-user btn btn-primary">+ Add New User</button>
         </div>
     </div>
@@ -674,7 +694,7 @@
             document.getElementById('timerInput').value = defaultMinutes;
             timer.seconds = defaultMinutes * 60;
             
-            // Set buddy logo and header logo
+            // Set logos
             document.getElementById('buddyLogo').src = window.APP_LOGO;
             document.getElementById('gpsyHeaderLogo').src = window.APP_LOGO;
         });
@@ -694,6 +714,10 @@
 
         // Check for saved session on page load
         window.addEventListener('load', async function() {
+            // Check auth first
+            const isAuthenticated = await auth.checkAuth();
+            if (!isAuthenticated) return;
+
             const saved = localStorage.getItem('readingTracker');
             if (saved) {
                 const state = JSON.parse(saved);
@@ -753,6 +777,7 @@
     </script>
     
     <script src="modules/utils.js"></script>
+    <script src="modules/auth.js"></script>
     <script src="modules/timer.js"></script>
     <script src="modules/session-store.js"></script>
     <script src="modules/settings-store.js"></script>
@@ -763,6 +788,7 @@
     <script>
         // ========================================
         // INITIALIZATION
+        const auth = new Auth();
         const settings = new SettingsStore();
         const session = new SessionStore();
         const timer = new Timer();
@@ -771,6 +797,7 @@
         const analyticsNotifier = new AnalyticsNotifier();
         
         // Expose globally for inline handlers
+        window.auth = auth;
         window.session = session;
         window.timer = timer;
         window.gpsyChat = gpsyChat;
@@ -791,3 +818,12 @@
 </html>
 
 
+
+/* Close menu on outside click */
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('menu-user-profile');
+    const btn = document.getElementById('btn-user-profile');
+    if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.style.display = 'none';
+    }
+});

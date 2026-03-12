@@ -2,6 +2,7 @@
 import { BedrockAgentRuntimeClient, InvokeAgentCommand } from "@aws-sdk/client-bedrock-agent-runtime";
 
 const client = new BedrockAgentRuntimeClient({ region: "us-east-2" });
+const API_TOKEN = process.env.API_TOKEN; // Set in Lambda environment variables
 
 export const handler = awslambda.streamifyResponse(async (event, responseStream) => {
   const requestId = event.requestContext?.requestId || 'unknown';
@@ -19,6 +20,21 @@ export const handler = awslambda.streamifyResponse(async (event, responseStream)
   responseStream = awslambda.HttpResponseStream.from(responseStream, httpResponseMetadata);
   
   try {
+    // Bearer token validation
+    const authHeader = event.headers?.authorization || event.headers?.Authorization;
+    if (!authHeader || authHeader !== `Bearer ${API_TOKEN}`) {
+      console.warn(JSON.stringify({
+        type: 'BLOCKED_UNAUTHORIZED',
+        requestId,
+        timestamp: new Date().toISOString(),
+        ip: event.requestContext?.http?.sourceIp,
+        authHeader: authHeader ? 'present' : 'missing'
+      }));
+      responseStream.write(`data: ${JSON.stringify({ chunk: 'Unauthorized - invalid or missing token' })}\n\n`);
+      responseStream.write('data: [DONE]\n\n');
+      responseStream.end();
+      return;
+    }
     let body;
     if (event.body) {
       body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
@@ -26,7 +42,7 @@ export const handler = awslambda.streamifyResponse(async (event, responseStream)
       body = event;
     }
     
-    const { message, sessionId, userName } = body;
+    const { message, sessionId, userName, sessionAttributes } = body;
     
     // Log incoming request
     console.log(JSON.stringify({
@@ -36,7 +52,8 @@ export const handler = awslambda.streamifyResponse(async (event, responseStream)
       userName,
       sessionId,
       messageLength: message?.length || 0,
-      messagePreview: message?.substring(0, 100) || ''
+      messagePreview: message?.substring(0, 100) || '',
+      sessionAttributes: sessionAttributes || null
     }));
     
     const contextualMessage = userName 
@@ -47,7 +64,10 @@ export const handler = awslambda.streamifyResponse(async (event, responseStream)
       agentId: "0LC3MUMHNN",
       agentAliasId: "CYVKITJVFL",
       sessionId: sessionId,
-      inputText: contextualMessage
+      inputText: contextualMessage,
+      sessionState: sessionAttributes ? {
+        promptSessionAttributes: sessionAttributes
+      } : undefined
     });
     
     const response = await client.send(command);

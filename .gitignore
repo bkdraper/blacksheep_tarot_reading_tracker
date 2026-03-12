@@ -6,6 +6,9 @@ npm-debug.log*
 .env
 .env.local
 
+# Secrets and credentials
+google oauth client secrets.json
+
 # IDE files
 .vscode/
 .idea/

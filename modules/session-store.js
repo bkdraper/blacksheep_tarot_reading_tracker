@@ -1,7 +1,6 @@
 class SessionStore {
             constructor() {
                 this._sessionId = null;
-                this._user = '';
                 this._location = '';
                 this._sessionDate = '';
                 this._price = 40;
@@ -10,9 +9,10 @@ class SessionStore {
                 this._loading = false;
             }
 
-            // Getters
+            // Getters - read from auth
             get sessionId() { return this._sessionId; }
-            get user() { return this._user; }
+            get userId() { return window.auth?.userId || null; }
+            get userName() { return window.auth?.getUserName() || ''; }
             get location() { return this._location; }
             get sessionDate() { return this._sessionDate; }
             get price() { return this._price; }
@@ -20,10 +20,10 @@ class SessionStore {
 
             // Computed properties
             get canCreateSession() {
-                return this._user.trim() && this._location.trim() && this._sessionDate && this._price;
+                return this.userId && this._location.trim() && this._sessionDate && this._price;
             }
             get hasValidSession() {
-                return this._sessionId && this._user.trim() && this._location.trim() && this._sessionDate;
+                return this._sessionId && this.userId && this._location.trim() && this._sessionDate;
             }
             get sessionPhase() {
                 if (this.hasValidSession) return 'ACTIVE';
@@ -36,27 +36,6 @@ class SessionStore {
                 this._sessionId = value;
                 this.updateUI();
                 this.save();
-            }
-            set user(value) {
-                const wasActiveSession = this.hasValidSession;
-                const previousUser = this._user;
-                
-                this._user = value;
-                
-                // If switching users during active session, clear session
-                if (wasActiveSession && previousUser && previousUser !== value) {
-                    this._loading = true;
-                    this.sessionId = null;
-                    this.location = '';
-                    this.sessionDate = '';
-                    this.price = 40;
-                    this.readings = [];
-                    this._loading = false;
-                    showSnackbar(`Switched to ${value}. Ready to create new session or load existing.`, 'success');
-                }
-                
-                this.updateUI();
-                this.debouncedSave();
             }
             set location(value) {
                 this._location = value;
@@ -117,13 +96,32 @@ class SessionStore {
             }
 
             updateUI() {
-                // Sync DOM with internal state (without triggering setters)
-                const userBtn = document.getElementById('userBtn');
-                if (userBtn) {
-                    userBtn.textContent = this._user || 'Select User...';
-                    userBtn.classList.toggle('selected', !!this._user);
+                // Only update if authenticated
+                if (!this.userId) {
+                    const eventSettings = document.getElementById('event-settings');
+                    const readingsButtons = document.getElementById('container-readings-buttons');
+                    const readingsTotals = document.getElementById('container-readings-totals');
+                    const readingsList = document.getElementById('container-readings-list');
+                    
+                    if (eventSettings) eventSettings.style.setProperty('display', 'none');
+                    if (readingsButtons) readingsButtons.style.setProperty('display', 'none');
+                    if (readingsTotals) readingsTotals.style.setProperty('display', 'none');
+                    if (readingsList) readingsList.style.setProperty('display', 'none');
+                    return;
                 }
                 
+                // Show session controls when authenticated
+                const eventSettings = document.getElementById('event-settings');
+                const readingsButtons = document.getElementById('container-readings-buttons');
+                const readingsTotals = document.getElementById('container-readings-totals');
+                const readingsList = document.getElementById('container-readings-list');
+                
+                if (eventSettings) eventSettings.style.removeProperty('display');
+                if (readingsButtons) readingsButtons.style.removeProperty('display');
+                if (readingsTotals) readingsTotals.style.removeProperty('display');
+                if (readingsList) readingsList.style.removeProperty('display');
+                
+                // Sync DOM with internal state
                 const locationInput = document.getElementById('location');
                 if (locationInput && locationInput.value !== this._location) {
                     locationInput.value = this._location;
@@ -153,7 +151,7 @@ class SessionStore {
                 
                 // Load Session button - disabled if no user
                 if (loadBtn) {
-                    if (!this._user.trim()) {
+                    if (!this.userId) {
                         loadBtn.classList.add('disabled');
                         loadBtn.disabled = true;
                     } else {
@@ -191,13 +189,6 @@ class SessionStore {
                         icon.classList.add('open');
                     }
                     
-                    const userBtn = document.getElementById('userBtn');
-                    if (!this._user.trim()) {
-                        userBtn.classList.add('required-field');
-                    } else {
-                        userBtn.classList.remove('required-field');
-                    }
-                    
                     if (!this._location.trim()) {
                         locationInput.classList.add('required-field');
                     } else {
@@ -210,8 +201,6 @@ class SessionStore {
                         sessionDateInput.classList.remove('required-field');
                     }
                 } else {
-                    const userBtn = document.getElementById('userBtn');
-                    userBtn.classList.remove('required-field');
                     locationInput.classList.remove('required-field');
                     sessionDateInput.classList.remove('required-field');
                 }
@@ -231,14 +220,16 @@ class SessionStore {
             }
 
             updateSections() {
+                if (!this.userId) return;
+                
                 const buttonsDiv = document.querySelector('.buttons');
                 const totalsDiv = document.querySelector('.totals');
                 const readingsDiv = document.querySelector('.readings-list');
                 
                 const showSections = this.sessionPhase === 'ACTIVE';
-                buttonsDiv.style.display = showSections ? 'flex' : 'none';
-                totalsDiv.style.display = showSections ? 'block' : 'none';
-                readingsDiv.style.display = showSections ? 'block' : 'none';
+                if (buttonsDiv) buttonsDiv.style.display = showSections ? 'flex' : 'none';
+                if (totalsDiv) totalsDiv.style.display = showSections ? 'block' : 'none';
+                if (readingsDiv) readingsDiv.style.display = showSections ? 'block' : 'none';
             }
 
             updateReadingsList() {
@@ -315,14 +306,15 @@ class SessionStore {
             }
 
             async save() {
-                if (!this._user || this._loading) return;
+                if (!this.userId || this._loading) return;
                 
                 this.saveToLocalStorage();
 
                 if (this._sessionId) {
                     try {
                         const updateData = {
-                            user_name: this._user,
+                            user_id: this.userId,
+                            user_name: this.userName,
                             location: this._location,
                             reading_price: this._price,
                             readings: this._readings
@@ -338,31 +330,22 @@ class SessionStore {
                             .eq('id', this._sessionId);
                     } catch (error) {
                         console.error('Supabase update error:', error);
-                        console.error('Error details:', error.details, error.hint, error.code);
-                        console.error('Data being sent:', {
-                            user_name: this._user,
-                            location: this._location,
-                            session_date: this._sessionDate,
-                            reading_price: this._price,
-                            readings: this._readings
-                        });
                         registerBackgroundSync();
                     }
                 }
             }
 
             saveToLocalStorage() {
-                if (!this._user) return;
+                if (!this.userId) return;
                 
                 const state = {
                     sessionId: this._sessionId,
-                    user: this._user,
                     location: this._location,
                     sessionDate: this._sessionDate,
                     price: this._price,
                     readings: this._readings
                 };
-                localStorage.setItem(`readingTracker_${this._user}`, JSON.stringify(state));
+                localStorage.setItem(`readingTracker_${this.userId}`, JSON.stringify(state));
             }
 
             debouncedSave() {
@@ -371,9 +354,9 @@ class SessionStore {
             }
 
             loadFromStorage() {
-                if (!this._user) return;
+                if (!this.userId) return;
                 
-                const saved = localStorage.getItem(`readingTracker_${this._user}`);
+                const saved = localStorage.getItem(`readingTracker_${this.userId}`);
                 if (saved) {
                     const state = JSON.parse(saved);
                     this._sessionId = state.sessionId || null;
@@ -382,95 +365,54 @@ class SessionStore {
                     this._price = state.price || 40;
                     this._readings = state.readings || [];
                     
-                    // Update readings display and totals
                     this.updateReadingsList();
                     this.updateTotals();
                     this.updateUI();
                 }
             }
             
-            async loadUsers() {
-                try {
-                    const { data } = await supabaseClient
-                        .from('blacksheep_reading_tracker_sessions')
-                        .select('user_name')
-                        .not('user_name', 'is', null);
-                    
-                    const uniqueUsers = [...new Set(data?.map(row => row.user_name) || [])];
-                    const userList = document.getElementById('userList');
-                    if (userList) {
-                        userList.innerHTML = uniqueUsers.map(user => `
-                            <div class="user-item btn btn-ghost" onclick="session.selectUser('${Utils.sanitize(user)}')">${Utils.sanitize(user)}</div>
-                        `).join('');
-                    }
-                    return uniqueUsers;
-                } catch (error) {
-                    return [];
-                }
-            }
-            
             clearUserData() {
-                if (this._user) {
-                    localStorage.removeItem(`readingTracker_${this._user}`);
+                if (this.userId) {
+                    localStorage.removeItem(`readingTracker_${this.userId}`);
                 }
             }
             
-            // UI Methods
-            showUserSelection() {
-                vibrate([30]);
-                showSheet('userOverlay', 'userSheet');
+            // Admin user switching
+            async showUserSelection() {
+                if (!window.auth?.isAdmin()) return;
                 
-                const userList = document.getElementById('userList');
-                userList.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div></div>';
+                vibrate([50]);
+                const { data } = await supabaseClient
+                    .from('blacksheep_reading_tracker_user_profiles')
+                    .select('user_id, user_name, role')
+                    .order('user_name', { ascending: true });
                 
-                this.loadUsers();
+                if (data && data.length > 0) {
+                    const userList = document.getElementById('list-users');
+                    userList.innerHTML = data.map(profile => `
+                        <div class="session-item" onclick="auth.setActiveUser('${profile.user_id}'); session.hideUserSelection();">
+                            <div class="session-info">${Utils.sanitize(profile.user_name || profile.user_id)}</div>
+                            <div class="session-details">${profile.role}</div>
+                        </div>
+                    `).join('');
+                    showSheet('overlay-user-selection', 'sheet-user-selection');
+                }
             }
             
             hideUserSelection() {
                 vibrate([30]);
-                hideSheet('userOverlay', 'userSheet');
+                hideSheet('overlay-user-selection', 'sheet-user-selection');
             }
             
-            selectUser(userName) {
-                vibrate([50]);
-                
-                // Check if switching users during active session
-                if (this.hasValidSession && this._user && this._user !== userName) {
-                    const message = `Switching users will unload the current session (${this._location} on ${this._sessionDate}). Continue?`;
-                    if (!confirm(message)) {
-                        return;
-                    }
-                }
-                
-                // Overwrite localStorage with clean user object
-                localStorage.setItem(`readingTracker_${userName}`, JSON.stringify({
-                    user: userName,
-                    sessionId: null,
-                    location: '',
-                    selectedDay: null,
-                    price: 40,
-                    readings: []
-                }));
-                
-                this.user = userName;
-                this.loadFromStorage();
-                this.hideUserSelection();
-            }
-            
-            addNewUser() {
-                vibrate([50]);
-                const userName = prompt('Enter new user name:');
-                if (userName && userName.trim()) {
-                    const trimmedName = userName.trim();
-                    this.user = trimmedName;
-                    this.hideUserSelection();
-                }
-            }
+            // Deprecated methods
+            selectUser() {}
+            addNewUser() {}
+            loadUsers() { return []; }
             
             handleCreateSession() {
                 const createBtn = document.querySelector('.btn-create-session');
                 if (createBtn.classList.contains('inactive')) {
-                    showSnackbar('User, location and date are required', 'error');
+                    showSnackbar('Location and date are required', 'error');
                     vibrate([50]);
                 } else {
                     this.createSession();
@@ -479,7 +421,7 @@ class SessionStore {
 
             async createSession() {
                 if (!this.canCreateSession) {
-                    showSnackbar('User, location and date are required', 'error');
+                    showSnackbar('Location and date are required', 'error');
                     return;
                 }
                 
@@ -490,12 +432,11 @@ class SessionStore {
                 btn.classList.add('loading');
                 
                 try {
-                    // Check for duplicate FIRST
                     const { data } = await supabaseClient
                         .from('blacksheep_reading_tracker_sessions')
                         .select('*')
                         .eq('session_date', this._sessionDate)
-                        .eq('user_name', this._user)
+                        .eq('user_id', this.userId)
                         .eq('location', this._location)
                         .limit(1);
                     
@@ -507,22 +448,19 @@ class SessionStore {
                         showSnackbar(message);
                         if (confirm(`${message}. Load existing session?`)) {
                             await this.loadExistingSession(data[0]);
-
-
                         } else {
-                            // Clear location and date fields
                             this.location = '';
                             this.sessionDate = '';
                         }
                         return;
                     }
                     
-                    // No duplicate, create new
                     const { data: newData } = await supabaseClient
                         .from('blacksheep_reading_tracker_sessions')
                         .insert([{
                             session_date: this._sessionDate,
-                            user_name: this._user,
+                            user_id: this.userId,
+                            user_name: this.userName,
                             location: this._location,
                             reading_price: this._price,
                             readings: this._readings
@@ -556,9 +494,7 @@ class SessionStore {
             }
 
             async showLoadSession() {
-                if (!this._user) {
-                    return;
-                }
+                if (!this.userId) return;
                 
                 vibrate([50]);
                 const btn = document.querySelector('.btn-load-session');
@@ -567,10 +503,10 @@ class SessionStore {
                 btn.classList.add('loading');
                 
                 try {
-                    const { data, error } = await supabaseClient
+                    const { data } = await supabaseClient
                         .from('blacksheep_reading_tracker_sessions')
                         .select('*')
-                        .eq('user_name', this._user)
+                        .eq('user_id', this.userId)
                         .order('session_date', { ascending: false })
                         .order('created_at', { ascending: false });
                     
@@ -615,7 +551,7 @@ class SessionStore {
                 sessionItem.style.pointerEvents = 'none';
                 
                 try {
-                    const { data, error } = await supabaseClient
+                    const { data } = await supabaseClient
                         .from('blacksheep_reading_tracker_sessions')
                         .select('*')
                         .eq('id', sessionId)
@@ -638,7 +574,6 @@ class SessionStore {
             async loadExistingSession(sessionData) {
                 this._loading = true;
                 this._sessionId = sessionData.id;
-                this._user = sessionData.user_name || '';
                 this._location = sessionData.location || '';
                 this._sessionDate = sessionData.session_date || '';
                 this._price = sessionData.reading_price || 40;
@@ -663,7 +598,6 @@ class SessionStore {
                     content.classList.remove('open');
                     icon.classList.remove('open');
                     
-                    // Show session summary when collapsed
                     if (summary && this.hasValidSession) {
                         const date = new Date(normalizeDate(this._sessionDate)).toLocaleDateString();
                         summary.textContent = `${this._location} - ${date}`;
@@ -681,7 +615,6 @@ class SessionStore {
                     content.classList.add('open');
                     icon.classList.add('open');
                     
-                    // Hide session summary when expanded
                     if (summary) {
                         summary.style.display = 'none';
                     }

@@ -15,6 +15,11 @@ global.navigator.vibrate = jest.fn();
 
 // Mock Supabase - Comprehensive mock to prevent any live DB calls
 const mockSupabaseClient = {
+  auth: {
+    signInWithOAuth: jest.fn(() => Promise.resolve({ error: null })),
+    signOut: jest.fn(() => Promise.resolve({ error: null })),
+    getSession: jest.fn(() => Promise.resolve({ data: { session: null } }))
+  },
   from: jest.fn((table) => ({
     select: jest.fn((columns) => ({
       eq: jest.fn((column, value) => ({

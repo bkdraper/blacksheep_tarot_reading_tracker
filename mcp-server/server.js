@@ -24,17 +24,22 @@ export class TarotTrackerMCPServer {
       },
       {
         name: 'list_readings',
-        description: 'List individual reading records with full details',
+        description: 'List individual reading records with full details including local time conversion',
         inputSchema: {
           type: 'object',
           properties: {
             user_name: { type: 'string', description: 'User name' },
             filters: { 
               type: 'object', 
-              description: 'Filters: start_date, end_date, location, payment, source',
+              description: 'Filters: start_date, end_date, location, payment, source, day_of_week (sunday|monday|tuesday|wednesday|thursday|friday|saturday)',
               additionalProperties: true
             },
-            limit: { type: 'number', description: 'Max results', default: 100 }
+            timezone: { 
+              type: 'string', 
+              description: 'IANA timezone (e.g., America/New_York, America/Chicago). Defaults to America/New_York',
+              default: 'America/New_York'
+            },
+            limit: { type: 'number', description: 'Max results (optional - returns all if not specified)' }
           },
           required: ['user_name']
         }
@@ -140,10 +145,15 @@ export class TarotTrackerMCPServer {
   }
 
   async listReadings(args) {
-    const { user_name, filters = {}, limit = 100 } = args;
-    const { start_date, end_date, location, payment, source } = filters;
+    const { user_name, filters = {}, limit, timezone = 'America/New_York' } = args;
+    const { start_date, end_date, location, payment, source, day_of_week } = filters;
     
-    let query = supabase.from('blacksheep_reading_tracker_sessions').select('*').ilike('user_name', user_name).order('session_date', { ascending: false });
+    let query = supabase.from('blacksheep_reading_tracker_sessions')
+      .select('*')
+      .ilike('user_name', user_name)
+      .order('session_date', { ascending: false })
+      .limit(10000);  // Explicit large limit to override Supabase default
+    
     if (start_date) query = query.gte('session_date', start_date);
     if (end_date) query = query.lte('session_date', end_date);
     if (location) query = query.ilike('location', `%${location}%`);
@@ -151,15 +161,38 @@ export class TarotTrackerMCPServer {
     const { data, error } = await query;
     if (error) throw new Error(`Database error: ${error.message}`);
     
+    // Filter by day of week if specified
+    let sessions = data;
+    if (day_of_week) {
+      const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+      const targetDay = dayMap[day_of_week.toLowerCase()];
+      if (targetDay !== undefined) {
+        sessions = sessions.filter(s => {
+          const date = new Date(s.session_date + 'T00:00:00');
+          return date.getDay() === targetDay;
+        });
+      }
+    }
+    
     const readings = [];
-    data.forEach(s => {
+    sessions.forEach(s => {
       (s.readings || []).forEach(r => {
-        if (payment && r.payment !== payment) return;
-        if (source && r.source !== source) return;
+        if (payment && r.payment?.toLowerCase() !== payment.toLowerCase()) return;
+        if (source && r.source?.toLowerCase() !== source.toLowerCase()) return;
+        
+        // Parse UTC timestamp and convert to local time
+        const utcDate = new Date(r.timestamp);
+        const localTime = new Date(utcDate.toLocaleString('en-US', { timeZone: timezone }));
+        const hour = localTime.getHours();
+        const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+        
         readings.push({
           session_date: s.session_date,
           location: s.location,
-          timestamp: r.timestamp,
+          timestamp_utc: r.timestamp,
+          timestamp_local: localTime.toISOString().slice(0, 19).replace('T', ' '),
+          hour_local: hour,
+          time_of_day: timeOfDay,
           price: r.price || s.reading_price || 40,
           tip: r.tip || 0,
           payment: r.payment,
@@ -168,7 +201,10 @@ export class TarotTrackerMCPServer {
       });
     });
     
-    return { content: [{ type: 'text', text: JSON.stringify({ readings: readings.slice(0, limit) }, null, 2) }] };
+    // Apply limit only if specified (no default limit)
+    const finalReadings = limit ? readings.slice(0, limit) : readings;
+    
+    return { content: [{ type: 'text', text: JSON.stringify({ readings: finalReadings, timezone }, null, 2) }] };
   }
 
   async searchLocations(args) {
@@ -182,15 +218,16 @@ export class TarotTrackerMCPServer {
   }
 
   async aggregateReadings(args) {
-    const { user_name, filters = {}, options = {}, limit } = args;
+    const { user_name, filters = {}, options = {}, limit, timezone = 'America/New_York' } = args;
     const { group_by = [], aggregate = ['count', 'sum_earnings'], sort_by } = options;
-    const { day_of_week } = filters;
+    const { day_of_week, payment, source } = filters;
     
     // Get all sessions
     let query = supabase.from('blacksheep_reading_tracker_sessions')
       .select('*')
       .ilike('user_name', user_name)
-      .order('session_date', { ascending: false });
+      .order('session_date', { ascending: false })
+      .limit(10000);
     
     if (filters.start_date) query = query.gte('session_date', filters.start_date);
     if (filters.end_date) query = query.lte('session_date', filters.end_date);
@@ -212,7 +249,68 @@ export class TarotTrackerMCPServer {
       }
     }
     
-    // Calculate aggregates
+    // If no grouping, return overall totals
+    if (group_by.length === 0) {
+      let totalReadings = 0;
+      let totalEarnings = 0;
+      
+      sessions.forEach(s => {
+        (s.readings || []).forEach(r => {
+          if (payment && r.payment?.toLowerCase() !== payment.toLowerCase()) return;
+          if (source && r.source?.toLowerCase() !== source.toLowerCase()) return;
+          
+          totalReadings++;
+          totalEarnings += (r.price || s.reading_price || 40) + (r.tip || 0);
+        });
+      });
+      
+      return { content: [{ type: 'text', text: JSON.stringify({ 
+        count: totalReadings,
+        sum_earnings: totalEarnings,
+        avg_earnings: totalReadings > 0 ? totalEarnings / totalReadings : 0
+      }, null, 2) }] };
+    }
+    
+    // Check if grouping by time_of_day - if so, expand to reading level
+    if (group_by.includes('time_of_day')) {
+      const readings = [];
+      sessions.forEach(s => {
+        (s.readings || []).forEach(r => {
+          if (payment && r.payment?.toLowerCase() !== payment.toLowerCase()) return;
+          if (source && r.source?.toLowerCase() !== source.toLowerCase()) return;
+          
+          const utcDate = new Date(r.timestamp);
+          const localTime = new Date(utcDate.toLocaleString('en-US', { timeZone: timezone }));
+          const hour = localTime.getHours();
+          const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+          
+          readings.push({
+            time_of_day: timeOfDay,
+            price: r.price || s.reading_price || 40,
+            tip: r.tip || 0,
+            earnings: (r.price || s.reading_price || 40) + (r.tip || 0)
+          });
+        });
+      });
+      
+      // Group by time_of_day
+      const grouped = {};
+      readings.forEach(r => {
+        if (!grouped[r.time_of_day]) grouped[r.time_of_day] = [];
+        grouped[r.time_of_day].push(r);
+      });
+      
+      const results = Object.entries(grouped).map(([time_of_day, items]) => ({
+        time_of_day,
+        count: items.length,
+        sum_earnings: items.reduce((sum, r) => sum + r.earnings, 0),
+        avg_earnings: items.reduce((sum, r) => sum + r.earnings, 0) / items.length
+      }));
+      
+      return { content: [{ type: 'text', text: JSON.stringify({ results }, null, 2) }] };
+    }
+    
+    // Session-level aggregation (original logic)
     const results = sessions.map(s => {
       const readings = s.readings || [];
       const readingsCount = readings.length;
@@ -231,9 +329,7 @@ export class TarotTrackerMCPServer {
       };
     });
     
-    // Apply limit
     const limited = limit ? results.slice(0, limit) : results;
-    
     return { content: [{ type: 'text', text: JSON.stringify({ results: limited }, null, 2) }] };
   }
 }
