@@ -193,9 +193,9 @@ class GpsyChat {
     async sendMessage(userMessage) {
         if (!userMessage.trim()) return;
         
-        if (!window.session.user) {
+        if (!window.auth?.isAuthenticated) {
             this.addMessage('user', userMessage);
-            this.addMessage('assistant', 'Please select a user first before asking questions.');
+            this.addMessage('assistant', 'Please sign in first before asking questions.');
             return;
         }
         
@@ -288,10 +288,11 @@ class GpsyChat {
                 body: JSON.stringify({
                     message: userMessage,
                     sessionId: this.sessionId,
-                    userName: window.session.user,
+                    userName: window.session.userName,
                     sessionAttributes: {
                         current_date: Utils.toISODate(),
-                        current_user: window.session.user,
+                        current_user: window.session.userName,
+                        current_user_id: window.auth.userId,
                         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                         current_loaded_session: window.session.sessionId || null
                     }

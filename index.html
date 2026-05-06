@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="version" content="v3.99.9">
+    <meta http-equiv="version" content="v4.0.1">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#28a745">
     <meta name="mobile-web-app-capable" content="yes">
@@ -48,7 +48,7 @@
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
             <span id="offlineIndicator" class="offline-badge" style="display: none;">Offline</span>
-            <span class="version-badge">v3.99.9</span>
+            <span class="version-badge">v4.0.1</span>
             <button id="btn-user-profile" class="user-profile-btn" onclick="auth.toggleProfileMenu()" style="display: none;">
                 <img id="img-user-profile-pic" class="user-profile-pic" style="display: none;">
                 <i id="icon-user-profile" class="fas fa-user-circle"></i>
@@ -81,9 +81,12 @@
             <div id="session-summary" class="text-small text-muted" style="display: none; padding: 8px 15px; border-bottom: 1px solid #eee;"></div>
             <div class="settings-content" id="settings-content">
                 <div class="user-section">
-                    <div class="input-group">
-                        <label for="user">User:</label>
-                        <button id="btn-session-user" onclick="session.showUserSelection()" class="user-btn" style="display: none;">Select User...</button>
+                    <div id="admin-user-display" style="display: none;">
+                        <div class="input-group">
+                            <label>Viewing:</label>
+                            <span id="text-admin-active-user" style="font-size: 14px; font-weight: 600; color: #333;"></span>
+                        </div>
+                        <button id="btn-session-user" onclick="session.showUserSelection()" class="btn btn-secondary btn-small" style="margin-bottom: 8px;">Switch User</button>
                     </div>
                     <button id="btn-session-load" class="btn-load-session btn btn-secondary" onclick="session.showLoadSession()">Load Session</button>
                 </div>
@@ -190,7 +193,7 @@
         </div>
     </div>
 
-    <!-- User Selection Sheet -->
+    <!-- User Selection Sheet (admin only) -->
     <div id="overlay-user-selection" class="payment-overlay" onclick="session.hideUserSelection()"></div>
     <div id="sheet-user-selection" class="session-sheet sheet">
         <div class="session-sheet-header sheet-header">
@@ -199,7 +202,6 @@
         </div>
         <div class="session-sheet-content">
             <div id="list-users"></div>
-            <button id="btn-user-add" onclick="session.addNewUser()" class="btn-add-user btn btn-primary">+ Add New User</button>
         </div>
     </div>
 
@@ -498,11 +500,67 @@
         
         // Background sync handler
         async function handleBackgroundSync() {
+            if (!session.sessionId || !session.userId) return;
+            
             try {
-                if (session.sessionId && session.readings.length > 0) {
-                    await session.save();
+                // Fetch current DB state
+                const { data: dbReadings } = await supabaseClient
+                    .from('blacksheep_reading_tracker_readings')
+                    .select('*')
+                    .eq('session_id', session.sessionId);
+                
+                const dbIds = new Set((dbReadings || []).map(r => r.id));
+                const localIds = new Set(session.readings.filter(r => r.id).map(r => r.id));
+                
+                // INSERT new readings (no id)
+                const newReadings = session.readings.filter(r => !r.id);
+                if (newReadings.length > 0) {
+                    const { data } = await supabaseClient
+                        .from('blacksheep_reading_tracker_readings')
+                        .insert(newReadings.map(r => ({
+                            session_id: session.sessionId,
+                            timestamp: r.timestamp,
+                            tip: r.tip || 0,
+                            price: r.price,
+                            payment: r.payment,
+                            source: r.source
+                        })))
+                        .select();
+                    
+                    // Update local readings with returned IDs
+                    if (data) {
+                        data.forEach((dbReading, i) => {
+                            newReadings[i].id = dbReading.id;
+                        });
+                    }
                 }
-            } catch (error) {}
+                
+                // UPDATE existing readings
+                for (const reading of session.readings.filter(r => r.id)) {
+                    await supabaseClient
+                        .from('blacksheep_reading_tracker_readings')
+                        .update({
+                            tip: reading.tip || 0,
+                            price: reading.price,
+                            payment: reading.payment,
+                            source: reading.source
+                        })
+                        .eq('id', reading.id);
+                }
+                
+                // DELETE readings removed offline
+                const deletedIds = [...dbIds].filter(id => !localIds.has(id));
+                if (deletedIds.length > 0) {
+                    await supabaseClient
+                        .from('blacksheep_reading_tracker_readings')
+                        .delete()
+                        .in('id', deletedIds);
+                }
+                
+                session.saveToLocalStorage();
+            } catch (error) {
+                console.error('Background sync failed:', error);
+            }
         }
         
         // Background backup handler
@@ -816,14 +874,3 @@
     </script>
 </body>
 </html>
-
-
-
-/* Close menu on outside click */
-document.addEventListener('click', (e) => {
-    const menu = document.getElementById('menu-user-profile');
-    const btn = document.getElementById('btn-user-profile');
-    if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
-        menu.style.display = 'none';
-    }
-});

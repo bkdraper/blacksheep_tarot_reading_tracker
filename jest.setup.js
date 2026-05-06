@@ -1,3 +1,7 @@
+// Suppress noisy console output from expected error paths
+jest.spyOn(console, 'error').mockImplementation(() => {});
+jest.spyOn(console, 'warn').mockImplementation(() => {});
+
 // Polyfill TextEncoder/TextDecoder for JSDOM
 const { TextEncoder, TextDecoder } = require('util');
 global.TextEncoder = TextEncoder;
@@ -20,30 +24,34 @@ const mockSupabaseClient = {
     signOut: jest.fn(() => Promise.resolve({ error: null })),
     getSession: jest.fn(() => Promise.resolve({ data: { session: null } }))
   },
-  from: jest.fn((table) => ({
-    select: jest.fn((columns) => ({
-      eq: jest.fn((column, value) => ({
-        single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+  from: jest.fn((table) => {
+    const eqChain = () => ({
+      single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+      maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
+      order: jest.fn(() => Promise.resolve({ data: [], error: null })),
+      limit: jest.fn(() => Promise.resolve({ data: [], error: null })),
+      eq: jest.fn(() => eqChain())
+    });
+    return {
+      select: jest.fn(() => ({
+        eq: jest.fn(() => eqChain()),
+        not: jest.fn(() => Promise.resolve({ data: [], error: null })),
+        ilike: jest.fn(() => ({ order: jest.fn(() => Promise.resolve({ data: [], error: null })) })),
         order: jest.fn(() => Promise.resolve({ data: [], error: null })),
         limit: jest.fn(() => Promise.resolve({ data: [], error: null }))
       })),
-      not: jest.fn((column, operator, value) => Promise.resolve({ data: [], error: null })),
-      gte: jest.fn((column, value) => ({
-        order: jest.fn(() => Promise.resolve({ data: [], error: null }))
+      insert: jest.fn(() => ({
+        select: jest.fn(() => Promise.resolve({ data: [{ id: 'mock-id' }], error: null }))
       })),
-      order: jest.fn(() => Promise.resolve({ data: [], error: null })),
-      limit: jest.fn(() => Promise.resolve({ data: [], error: null }))
-    })),
-    insert: jest.fn((data) => ({
-      select: jest.fn(() => Promise.resolve({ data: [{ id: 'mock-id', ...data[0] }], error: null }))
-    })),
-    update: jest.fn((data) => ({
-      eq: jest.fn((column, value) => Promise.resolve({ data: null, error: null }))
-    })),
-    delete: jest.fn(() => ({
-      eq: jest.fn((column, value) => Promise.resolve({ data: null, error: null }))
-    }))
-  }))
+      update: jest.fn(() => ({
+        eq: jest.fn(() => Promise.resolve({ data: null, error: null }))
+      })),
+      delete: jest.fn(() => ({
+        eq: jest.fn(() => Promise.resolve({ data: null, error: null })),
+        in: jest.fn(() => Promise.resolve({ data: null, error: null }))
+      }))
+    };
+  })
 };
 
 // Mock the Supabase library

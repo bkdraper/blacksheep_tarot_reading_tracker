@@ -27,7 +27,11 @@
     "@reading_tracker/list_sessions",
     "@reading_tracker/list_readings",
     "@reading_tracker/search_locations",
-    "@reading_tracker/aggregate_readings"
+    "@reading_tracker/aggregate_readings",
+    "@reading_tracker/list_sessions_v2",
+    "@reading_tracker/list_readings_v2",
+    "@reading_tracker/get_session_details_v2",
+    "@reading_tracker/get_user_summary_v2"
   ],
   "toolsSettings": {
     "use_aws": {

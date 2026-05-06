@@ -4,6 +4,7 @@ class Auth {
         this._user = null;
         this._userId = null;
         this._userRole = null;
+        this._activeUserName = null;
     }
 
     get userId() {
@@ -43,12 +44,12 @@ class Auth {
         return this._userRole === 'admin';
     }
 
-    async setActiveUser(userId) {
+    async setActiveUser(userId, userName) {
         if (!this.isAdmin()) return;
+        localStorage.removeItem(`readingTracker_${userId}`);
         this._userId = userId;
-        if (window.session) {
-            window.session.loadFromStorage();
-        }
+        this._activeUserName = userName || userId;
+        if (window.session) window.session.startOver();
         this.updateUI();
     }
 
@@ -70,9 +71,12 @@ class Auth {
         if (error) {
             showSnackbar('Sign out failed: ' + error.message, 'error');
         } else {
+            // Clear localStorage on explicit logout
+            if (this._userId) localStorage.removeItem(`readingTracker_${this._userId}`);
             this._user = null;
             this._userRole = null;
-            this.userId = null; // Triggers updateUI
+            this._activeUserName = null;
+            this.userId = null;
             if (window.session) {
                 window.session.startOver();
             }
@@ -96,7 +100,7 @@ class Auth {
             .from('blacksheep_reading_tracker_user_profiles')
             .select('role')
             .eq('user_id', session.user.id)
-            .single();
+            .maybeSingle();
 
         this._userRole = profile?.role || 'user';
 
@@ -137,8 +141,9 @@ class Auth {
             const profilePic = document.getElementById('img-user-profile-pic');
             const profileIcon = document.getElementById('icon-user-profile');
             const loginPrompt = document.getElementById('container-login-prompt');
-            const userBtn = document.getElementById('btn-session-user');
-            
+            const adminDisplay = document.getElementById('admin-user-display');
+            const adminUserLabel = document.getElementById('text-admin-active-user');
+
             if (settingsBtn) settingsBtn.style.setProperty('display', 'flex');
             if (profileBtn) profileBtn.style.setProperty('display', 'flex');
             if (profileName) profileName.textContent = this.getUserName();
@@ -146,7 +151,13 @@ class Auth {
             
             const avatarUrl = this._user?.user_metadata?.avatar_url;
             if (avatarUrl && profilePic && profileIcon) {
-                profilePic.src = avatarUrl;
+                if (profilePic.src !== avatarUrl) {
+                    profilePic.onerror = () => {
+                        profilePic.style.display = 'none';
+                        profileIcon.style.display = 'block';
+                    };
+                    profilePic.src = avatarUrl;
+                }
                 profilePic.style.display = 'block';
                 profileIcon.style.display = 'none';
             } else if (profileIcon) {
@@ -154,22 +165,20 @@ class Auth {
                 if (profilePic) profilePic.style.display = 'none';
             }
 
-            if (userBtn) {
-                userBtn.style.display = this.isAdmin() ? 'block' : 'none';
-                if (this.isAdmin()) {
-                    userBtn.textContent = this.getUserName();
-                }
+            if (adminDisplay) adminDisplay.style.display = this.isAdmin() ? 'block' : 'none';
+            if (adminUserLabel && this.isAdmin()) {
+                adminUserLabel.textContent = this._activeUserName || this.getUserName();
             }
         } else {
             const settingsBtn = document.getElementById('btn-app-settings');
             const profileBtn = document.getElementById('btn-user-profile');
             const loginPrompt = document.getElementById('container-login-prompt');
-            const userBtn = document.getElementById('btn-session-user');
+            const adminDisplay = document.getElementById('admin-user-display');
             
             if (settingsBtn) settingsBtn.style.setProperty('display', 'none');
             if (profileBtn) profileBtn.style.setProperty('display', 'none');
             if (loginPrompt) loginPrompt.style.removeProperty('display');
-            if (userBtn) userBtn.style.display = 'none';
+            if (adminDisplay) adminDisplay.style.display = 'none';
         }
         
         if (window.session) {

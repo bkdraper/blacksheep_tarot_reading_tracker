@@ -60,23 +60,75 @@ class SessionStore {
             }
 
             // Methods
-            addReading(reading) {
+            async addReading(reading) {
                 this._readings.push(reading);
                 this.updateReadingsList();
                 this.updateTotals();
-                this.save();
+                
+                if (this._sessionId) {
+                    try {
+                        const { data } = await supabaseClient
+                            .from('blacksheep_reading_tracker_readings')
+                            .insert([{
+                                session_id: this._sessionId,
+                                timestamp: reading.timestamp,
+                                tip: reading.tip || 0,
+                                price: reading.price,
+                                payment: reading.payment,
+                                source: reading.source
+                            }])
+                            .select();
+                        
+                        if (data && data[0]) {
+                            reading.id = data[0].id;
+                        }
+                    } catch (error) {
+                        console.error('Failed to insert reading:', error);
+                        registerBackgroundSync();
+                    }
+                }
+                
+                this.saveToLocalStorage();
             }
-            removeReading(index) {
+            async removeReading(index) {
+                const reading = this._readings[index];
+                
+                if (reading.id) {
+                    try {
+                        await supabaseClient
+                            .from('blacksheep_reading_tracker_readings')
+                            .delete()
+                            .eq('id', reading.id);
+                    } catch (error) {
+                        console.error('Failed to delete reading:', error);
+                        registerBackgroundSync();
+                    }
+                }
+                
                 this._readings.splice(index, 1);
                 this.updateReadingsList();
                 this.updateTotals();
-                this.save();
+                this.saveToLocalStorage();
             }
-            updateReading(index, field, value) {
+            async updateReading(index, field, value) {
                 this._readings[index][field] = value;
                 this.updateReadingsList();
                 this.updateTotals();
-                this.debouncedSave();
+                
+                const reading = this._readings[index];
+                if (reading.id) {
+                    try {
+                        await supabaseClient
+                            .from('blacksheep_reading_tracker_readings')
+                            .update({ [field]: value })
+                            .eq('id', reading.id);
+                    } catch (error) {
+                        console.error('Failed to update reading:', error);
+                        registerBackgroundSync();
+                    }
+                }
+                
+                this.debouncedSaveToLocalStorage();
             }
 
             startOver() {
@@ -316,8 +368,7 @@ class SessionStore {
                             user_id: this.userId,
                             user_name: this.userName,
                             location: this._location,
-                            reading_price: this._price,
-                            readings: this._readings
+                            reading_price: this._price
                         };
                         
                         if (this._sessionDate && this._sessionDate.trim()) {
@@ -351,6 +402,11 @@ class SessionStore {
             debouncedSave() {
                 clearTimeout(this.saveTimeout);
                 this.saveTimeout = setTimeout(() => this.save(), 500);
+            }
+            
+            debouncedSaveToLocalStorage() {
+                clearTimeout(this.saveTimeout);
+                this.saveTimeout = setTimeout(() => this.saveToLocalStorage(), 500);
             }
 
             loadFromStorage() {
@@ -390,7 +446,7 @@ class SessionStore {
                 if (data && data.length > 0) {
                     const userList = document.getElementById('list-users');
                     userList.innerHTML = data.map(profile => `
-                        <div class="session-item" onclick="auth.setActiveUser('${profile.user_id}'); session.hideUserSelection();">
+                        <div class="session-item" onclick="auth.setActiveUser('${profile.user_id}', '${Utils.sanitize(profile.user_name || profile.user_id)}'); session.hideUserSelection();">
                             <div class="session-info">${Utils.sanitize(profile.user_name || profile.user_id)}</div>
                             <div class="session-details">${profile.role}</div>
                         </div>
@@ -462,8 +518,7 @@ class SessionStore {
                             user_id: this.userId,
                             user_name: this.userName,
                             location: this._location,
-                            reading_price: this._price,
-                            readings: this._readings
+                            reading_price: this._price
                         }])
                         .select();
                     
@@ -504,7 +559,7 @@ class SessionStore {
                 
                 try {
                     const { data } = await supabaseClient
-                        .from('blacksheep_reading_tracker_sessions')
+                        .from('session_summaries')
                         .select('*')
                         .eq('user_id', this.userId)
                         .order('session_date', { ascending: false })
@@ -513,12 +568,10 @@ class SessionStore {
                     if (data && data.length > 0) {
                         const sessionsList = document.getElementById('sessionsList');
                         sessionsList.innerHTML = data.map(sessionData => {
-                            const readingCount = sessionData.readings ? sessionData.readings.length : 0;
+                            const readingCount = sessionData.readings_count || 0;
                             const date = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString();
                             const dayOfWeek = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString('en-US', { weekday: 'short' });
-                            const baseTotal = sessionData.readings ? sessionData.readings.reduce((sum, r) => sum + (r.price || sessionData.reading_price || 0), 0) : 0;
-                            const tipsTotal = sessionData.readings ? sessionData.readings.reduce((sum, reading) => sum + (reading.tip || 0), 0) : 0;
-                            const grandTotal = baseTotal + tipsTotal;
+                            const grandTotal = sessionData.total_earnings || 0;
                             return `
                                 <div class="session-item" onclick="session.selectSession('${sessionData.id}', event)">
                                     <div class="session-info">${Utils.sanitize(sessionData.location) || 'No location'} - ${dayOfWeek} ${date}</div>
@@ -577,7 +630,20 @@ class SessionStore {
                 this._location = sessionData.location || '';
                 this._sessionDate = sessionData.session_date || '';
                 this._price = sessionData.reading_price || 40;
-                this._readings = sessionData.readings || [];
+                
+                try {
+                    const { data: readings } = await supabaseClient
+                        .from('blacksheep_reading_tracker_readings')
+                        .select('*')
+                        .eq('session_id', sessionData.id)
+                        .order('timestamp', { ascending: true });
+                    
+                    this._readings = readings || [];
+                } catch (error) {
+                    console.error('Failed to load readings:', error);
+                    this._readings = [];
+                }
+                
                 this._loading = false;
                 
                 this.updateReadingsList();

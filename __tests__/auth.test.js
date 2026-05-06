@@ -181,18 +181,18 @@ describe('Auth', () => {
           }
         }
       });
-      
-      global.supabaseClient.from.mockReturnValue({
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: { role: 'admin' }, error: null })
-          })
-        }),
-        insert: async () => ({ data: null, error: null })
-      });
-      
+
+      global.supabaseClient.from.mockImplementation(() => ({
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            maybeSingle: jest.fn(() => Promise.resolve({ data: { role: 'admin' }, error: null }))
+          }))
+        })),
+        insert: jest.fn(() => Promise.resolve({ data: null, error: null }))
+      }));
+
       const result = await auth.checkAuth();
-      
+
       expect(result).toBe(true);
       expect(auth.userId).toBe('user-123');
       expect(auth.user.email).toBe('test@example.com');
@@ -200,8 +200,8 @@ describe('Auth', () => {
     });
 
     test('should create profile when none exists', async () => {
-      const insertMock = jest.fn().mockResolvedValue({ data: null, error: null });
-      
+      const insertMock = jest.fn(() => Promise.resolve({ data: null, error: null }));
+
       global.supabaseClient.auth.getSession.mockResolvedValue({
         data: {
           session: {
@@ -213,19 +213,19 @@ describe('Auth', () => {
           }
         }
       });
-      
-      global.supabaseClient.from.mockReturnValue({
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: null, error: null })
-          })
-        }),
+
+      global.supabaseClient.from.mockImplementation(() => ({
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null }))
+          }))
+        })),
         insert: insertMock
-      });
-      
+      }));
+
       await auth.checkAuth();
-      
-      expect(insertMock).toHaveBeenCalledWith({ user_id: 'user-123', role: 'user' });
+
+      expect(insertMock).toHaveBeenCalledWith({ user_id: 'user-123', role: 'user', user_name: 'test@example.com' });
       expect(auth.userRole).toBe('user');
     });
   });
@@ -245,24 +245,21 @@ describe('Auth', () => {
 
     test('should show unauthenticated UI when logged out', () => {
       auth._userId = null;
-      
+
       auth.updateUI();
-      
+
       expect(document.getElementById('btn-app-settings').style.display).toBe('none');
       expect(document.getElementById('btn-user-profile').style.display).toBe('none');
-      expect(document.getElementById('event-settings').style.display).toBe('none');
       expect(document.getElementById('container-login-prompt').style.display).not.toBe('none');
     });
 
-    test('should hide session controls when not authenticated', () => {
+    test('should call window.session.updateUI when not authenticated', () => {
       auth._userId = null;
-      
+      global.window.session = { updateUI: jest.fn() };
+
       auth.updateUI();
-      
-      expect(document.getElementById('event-settings').style.display).toBe('none');
-      expect(document.getElementById('container-readings-buttons').style.display).toBe('none');
-      expect(document.getElementById('container-readings-totals').style.display).toBe('none');
-      expect(document.getElementById('container-readings-list').style.display).toBe('none');
+
+      expect(global.window.session.updateUI).toHaveBeenCalled();
     });
 
     test('should show session controls when authenticated', () => {

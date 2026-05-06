@@ -1,5 +1,19 @@
 # Changelog
 
+## v4.0.1 - Gpsy Lambda Chain Fix & mcp-server Cleanup
+- Fixed Gpsy AI chat broken since v4.0.0 day_of_week changes
+- Root cause: `bedrock.js` (actual Lambda entrypoint `bedrock.handler`) was never updated - all fixes were going to `bedrock-handler.js` which was never in the call chain
+- Fixed `responseState: 'SUCCESS'` - not a valid Bedrock value, caused deserialization errors on every tool response
+- Fixed `body` variable scoped inside `try` block in proxy - caused `ReferenceError` in catch handler
+- Removed REPROMPT guard on missing `user_name` - Bedrock agent passes `user_id` not `user_name`, so every 2nd+ tool call was getting REPROMPT and returning empty
+- Added `sessionUserCache` to inject `user_id` on 2nd+ tool calls when `promptSessionAttributes` is empty (Bedrock only populates it on first call per turn)
+- Renamed Lambda files: `index.js` → `mcp_lambda.js`, `bedrock.js` → `bedrock_lambda.js`, `blacksheep_tarot-tracker-bedrock-chat-proxy-lambda.js` → `proxy_lambda.js`
+- Updated all three Lambda handler configs in AWS (`mcp_lambda.handler`, `bedrock_lambda.handler`, `proxy_lambda.handler`)
+- Added full decision-point logging to `bedrock_lambda.js`, `proxy_lambda.js`, and all v2 methods in `server.js`
+- Removed 10 extraneous files: `mcp-handler.js`, `deprecated-bedrock-handler.js`, 4 stale test files, `test-body.json`, `proxy-package.json`, temp log files
+- Renamed test files: `test-e2e-bedrock.mjs` → `test-e2e.mjs`, `test-v2-tools.js` → `test-tools.js`, `test-v2-thorough.js` → `test-thorough.js`
+- Added `test-e2e.mjs` - full end-to-end test simulating FE → Proxy → Agent → Lambda including warm-instance multi-call scenario (31 assertions)
+
 ## v3.99.9 - Profile Menu & RLS Policies
 - Changed profile button from direct logout to dropdown menu
 - Added profile menu with "Sign Out" option

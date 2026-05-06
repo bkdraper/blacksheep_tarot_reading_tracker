@@ -1,6 +1,6 @@
 # Tarot Tracker - Dev Rules
 
-## Version: v3.99.9
+## Version: v4.0.1
 **CRITICAL**: Bump version on EVERY code change (cache-busting)
 
 ## Deployment
@@ -62,34 +62,53 @@ Session: {sessionId, user, location, sessionDate, price, readings, _loading}
 
 ## Lambda Deployment
 
-### MCP Lambda (PRIMARY - Amazon Q IDE integration)
-```bash
-aws lambda update-function-code \
-  --function-name blacksheep_tarot-tracker-mcp-server \
-  --zip-file fileb://lambda.zip \
-  --region us-east-2
-```
-Powers @reading_tracker in Amazon Q. Deploy here for tool improvements/fixes.
-
-### Bedrock Lambda (Gpsy web chat interface)
+### Bedrock Lambda (action group handler)
 ```bash
 aws lambda update-function-code \
   --function-name blacksheep_tarot-tracker-bedrock \
   --zip-file fileb://lambda.zip \
   --region us-east-2
 ```
-Powers ChatGPSY in web app. Deploy here for Bedrock-specific changes.
+Handler: `bedrock_lambda.handler` | Powers Gpsy tool calls.
 
-### Both (when changing server.js core logic)
+### MCP Lambda (Amazon Q IDE integration)
 ```bash
-# MCP first
-aws lambda update-function-code --function-name blacksheep_tarot-tracker-mcp-server --zip-file fileb://lambda.zip --region us-east-2
-
-# Then Bedrock
-aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock --zip-file fileb://lambda.zip --region us-east-2
+aws lambda update-function-code \
+  --function-name blacksheep_tarot-tracker-mcp-server \
+  --zip-file fileb://lambda.zip \
+  --region us-east-2
 ```
+Handler: `mcp_lambda.handler` | Powers @reading_tracker in Amazon Q.
+
+### Chat Proxy Lambda (Gpsy web chat interface)
+```bash
+aws lambda update-function-code \
+  --function-name blacksheep_tarot-tracker-bedrock-chat-proxy \
+  --zip-file fileb://lambda.zip \
+  --region us-east-2
+```
+Handler: `proxy_lambda.handler` | Powers ChatGPSY in web app.
+
+### All three (always deploy all three together)
+```bash
+aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock --zip-file fileb://lambda.zip --region us-east-2
+aws lambda update-function-code --function-name blacksheep_tarot-tracker-mcp-server --zip-file fileb://lambda.zip --region us-east-2
+aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock-chat-proxy --zip-file fileb://lambda.zip --region us-east-2
+```
+Bedrock Agent ID: 0LC3MUMHNN | Alias: 3T7P4GYJYK (v39)
+
+## mcp-server File Structure
+- `mcp_lambda.js`: MCP Lambda handler (`mcp_lambda.handler`)
+- `bedrock_lambda.js`: Bedrock action group Lambda handler (`bedrock_lambda.handler`)
+- `proxy_lambda.js`: Chat proxy Lambda handler (`proxy_lambda.handler`)
+- `server.js`: Core tool logic (v2 tools hit normalized DB views)
+- `test-e2e.mjs`: End-to-end handler test (31 assertions, run before deploy)
+- `test-tools.js`: Quick v2 tool smoke test
+- `test-thorough.js`: Deep regression test for v2 tools
+- `docs/BEARER-TOKEN-SETUP.md`: Bearer token setup guide
+- `docs/ONE-TIME-CONFIG.md`: One-time configuration guide
 
 ## Reference Docs
-- Architecture/deployment: See ARCHITECTURE.md
-- Version history: See CHANGELOG.md
-- User guide: See README.md
+- Architecture/deployment: See docs/ARCHITECTURE.md
+- Version history: See docs/CHANGELOG.md
+- User guide: See docs/README.md

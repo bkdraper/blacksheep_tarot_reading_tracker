@@ -31,8 +31,19 @@ graph TB
 
 ### Core Classes
 
+#### Auth (`modules/auth.js`)
+- Google OAuth via Supabase Auth
+- Role-based access control (admin/user)
+- Single source of truth for userId and userName
+- `checkAuth()` restores session on page load, queries user_profiles for role
+- `updateUI()` controls own elements only; delegates session control visibility to `window.session.updateUI()`
+- `signOut()` clears all auth state and calls `window.session.startOver()`
+
 #### SessionStore (`modules/session-store.js`)
-- Manages session state and readings array
+- Manages session state; reads userId/userName from `window.auth` (not stored internally)
+- Reads/writes individual readings to normalized `blacksheep_reading_tracker_readings` table
+- `save()` updates session metadata only (no JSONB writes)
+- `loadExistingSession()` fetches readings from normalized table
 - Handles database sync with debouncing
 - Computed properties: `canCreateSession`, `hasValidSession`, `sessionPhase`
 - Auto-save on every state change
@@ -79,9 +90,10 @@ graph TB
 
 ## Data Structure
 
-### Reading Object
+### Reading Object (in-memory + normalized DB table)
 ```javascript
 {
+  id: "uuid",                              // Set after DB insert; null for unsaved
   timestamp: "2025-01-15T14:30:00.000Z",  // ISO datetime
   tip: 10,                                 // Numeric
   price: 40,                               // Null uses session price
@@ -94,12 +106,12 @@ graph TB
 ```javascript
 {
   sessionId: "uuid",
-  user: "Amanda",
   location: "Denver Fall 25",
   sessionDate: "2025-01-15",  // YYYY-MM-DD
   price: 40,
   readings: [],
   _loading: false  // Prevents saves during restoration
+  // userId and userName come from window.auth, not stored here
 }
 ```
 
@@ -118,13 +130,13 @@ graph TB
 - `session_date` (date)
 - `location` (text)
 - `reading_price` (numeric)
-- `readings` (jsonb) - DEPRECATED, migrating to normalized table
+- `readings` (jsonb) - legacy column, no longer written to
 - `user_name` (text, NOT NULL) - Snapshot at session creation
-- `user_id` (uuid) - References auth.users, NULL for legacy data
+- `user_id` (uuid) - References auth.users
 - `created_at` (timestamptz)
 - `updated_at` (timestamptz)
 
-#### `blacksheep_reading_tracker_readings` (NEW - Normalized)
+#### `blacksheep_reading_tracker_readings` (Normalized)
 - `id` (uuid, PK)
 - `session_id` (uuid, FK to sessions)
 - `timestamp` (timestamptz, NOT NULL)
@@ -140,6 +152,34 @@ graph TB
 - `role` (text, default 'user') - 'admin' or 'user'
 - `created_at` (timestamptz)
 
+### Database Views
+
+#### `session_summaries`
+JOINs sessions + readings, pre-aggregates per session:
+- `readings_count`, `base_total`, `tips_total`, `total_earnings`, `avg_tip`, `avg_price`
+- `first_reading_time`, `last_reading_time`
+- Used by `list_sessions_v2`
+
+#### `readings_with_context`
+JOINs readings + sessions, enriches each reading with:
+- `location`, `user_name`, `user_id`, `session_date`
+- `effective_price` (COALESCE reading price / session default price)
+- `total_earnings` (effective_price + tip)
+- `time_of_day_et` (morning/afternoon/evening via ET timezone)
+- `hour_local_et`, `day_of_week_num`, `day_of_week_name`
+- Used by `list_readings_v2`
+
+### Database Functions
+
+#### `get_session_with_readings(session_uuid)`
+- Returns complete session + all its readings in one RPC call
+- Used by `get_session_details_v2`
+
+#### `get_user_summary(p_user_name, p_start_date, p_end_date)`
+- Returns aggregate stats across all sessions for a user
+- Optional date range filtering
+- Used by `get_user_summary_v2`
+
 **Connection**:
 - URL: `https://uuindvqgdblkjzvjsyrz.supabase.co`
 - Anon Key: (see index.html)
@@ -149,23 +189,26 @@ graph TB
 
 ### Lambda Functions
 
-**MCP Lambda** (PROTECTED):
+**MCP Lambda**:
 - Name: `blacksheep_tarot-tracker-mcp-server`
-- Handler: `index.handler` (streaming)
+- Handler: `mcp_lambda.handler` (streaming)
 - URL: https://fjmqe5vx4n6r6tklpsiyzey6ea0zuzgo.lambda-url.us-east-2.on.aws/
-- Status: FROZEN - only deploy when adding tools
 
-**Bedrock Lambda** (ACTIVE):
+**Bedrock Lambda**:
 - Name: `blacksheep_tarot-tracker-bedrock`
-- Handler: `bedrock.handler` (direct response)
+- Handler: `bedrock_lambda.handler` (direct response)
 - ARN: arn:aws:lambda:us-east-2:944012085152:function:blacksheep_tarot-tracker-bedrock
-- Status: ACTIVE - deploy here for experiments
 
 ### Available Tools
-1. **list_sessions**: Session summaries with date, location, count, earnings
-2. **list_readings**: Individual reading records with full details
-3. **search_locations**: Partial name search for locations
-4. **aggregate_readings**: Universal aggregation with grouping/filtering/sorting
+
+**V2 (normalized table-based, active):**
+1. **list_sessions_v2**: Queries `session_summaries` view — faster, pre-aggregated
+2. **list_readings_v2**: Queries `readings_with_context` view — full filter support
+3. **get_session_details_v2**: Calls `get_session_with_readings()` RPC
+4. **get_user_summary_v2**: Calls `get_user_summary()` RPC
+
+**Legacy (JSONB-based, still in server.js but not used by Bedrock Agent):**
+5. **list_sessions**, **list_readings**, **search_locations**, **aggregate_readings**
 
 ### Bedrock Agent Response Format
 
@@ -228,7 +271,7 @@ graph LR
 - Function: `blacksheep_tarot-tracker-bedrock-chat-proxy`
 - URL: https://57h2jhw5tcjn35yzuitv4zjmfu0snuom.lambda-url.us-east-2.on.aws/
 - CloudWatch Logs: https://us-east-2.console.aws.amazon.com/cloudwatch/home?region=us-east-2#logsV2:log-groups/log-group/$252Faws$252Flambda$252Fblacksheep_tarot-tracker-bedrock-chat-proxy
-- User context injection: Prepends `[User context: ${userName}]`
+- User context injection: Prepends `[Context: user_id=..., user_name=..., today=..., timezone=..., loaded_session=...]` to every message - guaranteed on every tool invocation
 - Timeout: 120 seconds
 - Structured JSON logging (REQUEST, SUCCESS, ERROR)
 - SSE format (ready for when Bedrock supports real streaming)
@@ -236,10 +279,10 @@ graph LR
 
 ### Bedrock Agent
 - Agent ID: 0LC3MUMHNN
-- Alias: CYVKITJVFL (version 2, "live")
+- Alias: 3T7P4GYJYK (version 39, "live")
 - Model: Claude 3.5 Haiku
 - Region: us-east-2
-- Action Group: TarotDataTools
+- Action Group: TarotDataTools (v2 tools - list_sessions_v2, list_readings_v2, get_session_details_v2, get_user_summary_v2)
 
 **CRITICAL - System Prompt Deployment:**
 The file `mcp-server/bedrock-agent-system-prompt.txt` is NOT automatically deployed. It must be manually copy/pasted into the Bedrock Agent configuration in the AWS Console:
@@ -279,27 +322,11 @@ Type: CNAME
 
 ## Lambda Deployment
 
-**Bedrock Only** (most common):
+**All three Lambdas** (always deploy together):
 ```bash
-aws lambda update-function-code \
-  --function-name blacksheep_tarot-tracker-bedrock \
-  --zip-file fileb://lambda.zip \
-  --region us-east-2
-```
-
-**Both Functions** (when adding tools):
-```bash
-# MCP Lambda
-aws lambda update-function-code \
-  --function-name blacksheep_tarot-tracker-mcp-server \
-  --zip-file fileb://lambda.zip \
-  --region us-east-2
-
-# Bedrock Lambda
-aws lambda update-function-code \
-  --function-name blacksheep_tarot-tracker-bedrock \
-  --zip-file fileb://lambda.zip \
-  --region us-east-2
+aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock --zip-file fileb://lambda.zip --region us-east-2
+aws lambda update-function-code --function-name blacksheep_tarot-tracker-mcp-server --zip-file fileb://lambda.zip --region us-east-2
+aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock-chat-proxy --zip-file fileb://lambda.zip --region us-east-2
 ```
 
 ## Testing

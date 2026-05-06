@@ -1,5 +1,5 @@
 const SERVICE_WORKER_VERSION = 'v7.2';
-const CACHE_NAME = 'app:v3.99.9-service:v7.2'; // Updated by pre-push hook
+const CACHE_NAME = 'app:v4.0.1-service:v7.2'; // Updated by pre-push hook
 const urlsToCache = [
   '/manifest.json',
   '/logo192.png',
@@ -33,10 +33,11 @@ self.addEventListener('activate', (event) => {
 // Fetch event - network first for everything, cache fallback for static assets only
 self.addEventListener('fetch', (event) => {
   // Skip service worker for Supabase API calls
-  if (event.request.url.includes('supabase.co')) {
-    return;
-  }
-  
+  if (event.request.url.includes('supabase.co')) return;
+
+  // Skip external domains entirely (CDNs, Google APIs, etc.)
+  if (!event.request.url.startsWith(self.location.origin)) return;
+
   // Never cache HTML - always fetch from network
   if (event.request.url.endsWith('/') || event.request.url.endsWith('.html')) {
     return; // Let browser handle normally

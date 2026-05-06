@@ -1,48 +1,5 @@
-// Mock DOM and globals
-global.document = {
-  getElementById: jest.fn(() => ({ 
-    value: '', 
-    classList: { add: jest.fn(), remove: jest.fn() },
-    style: { display: '' },
-    textContent: '',
-    innerHTML: ''
-  })),
-  querySelector: jest.fn(() => ({ style: { display: '' } })),
-  querySelectorAll: jest.fn(() => []),
-  createElement: jest.fn(() => ({
-    className: '',
-    textContent: '',
-    style: {},
-    remove: jest.fn()
-  })),
-  body: {
-    appendChild: jest.fn()
-  }
-};
-
-global.localStorage = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn()
-};
-
-global.supabaseClient = {
-  from: jest.fn(() => ({
-    select: jest.fn(() => ({
-      eq: jest.fn(() => ({
-        order: jest.fn(() => Promise.resolve({ data: [], error: null }))
-      })),
-      gte: jest.fn(() => ({
-        order: jest.fn(() => Promise.resolve({ data: [], error: null }))
-      }))
-    }))
-  }))
-};
-
-global.window = {
-  Notification: { permission: 'default' },
-  navigator: { serviceWorker: { ready: Promise.resolve({ showNotification: jest.fn() }) } }
-};
+global.window = global.window || {};
+global.window.Notification = { permission: 'default' };
 
 const fs = require('fs');
 const path = require('path');

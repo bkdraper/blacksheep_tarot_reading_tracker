@@ -9,25 +9,6 @@ describe('GpsyChat Integration with Real HTML', () => {
   let chat;
 
   beforeEach(() => {
-    // Mock Supabase BEFORE loading HTML
-    global.supabaseClient = {
-      from: jest.fn(() => ({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            order: jest.fn(() => ({
-              order: jest.fn(() => Promise.resolve({ data: [], error: null }))
-            }))
-          }))
-        })),
-        insert: jest.fn(() => ({
-          select: jest.fn(() => Promise.resolve({ data: [], error: null }))
-        })),
-        update: jest.fn(() => ({
-          eq: jest.fn(() => Promise.resolve({ data: null, error: null }))
-        }))
-      }))
-    };
-    
     // Mock other globals BEFORE loading HTML
     global.vibrate = jest.fn();
     global.window.vibrate = jest.fn();

@@ -24,6 +24,9 @@ describe('Integration: index.html + session-store.js', () => {
       sanitize: jest.fn((str) => str)
     };
 
+    // Mock auth for userId
+    global.window.auth = { userId: 'user-123', getUserName: jest.fn(() => 'Amanda') };
+
     // Load session-store.js
     const code = fs.readFileSync(path.join(__dirname, '..', 'modules', 'session-store.js'), 'utf8');
     const SessionStore = eval(`(function() { ${code}; return SessionStore; })()`);
@@ -35,15 +38,8 @@ describe('Integration: index.html + session-store.js', () => {
   });
 
   describe('User Selection Flow', () => {
-    test('should update DOM when user is set', () => {
-      session.user = 'Amanda';
-      expect(document.getElementById('userBtn').textContent).toBe('Amanda');
-      expect(document.getElementById('userBtn').classList.contains('selected')).toBe(true);
-    });
-
     test('should enable Load Session button when user is set', () => {
       const loadBtn = document.querySelector('.btn-load-session');
-      session.user = 'Amanda';
       session.updateUI();
       expect(loadBtn.classList.contains('disabled')).toBe(false);
     });
@@ -52,14 +48,12 @@ describe('Integration: index.html + session-store.js', () => {
   describe('Session Creation Flow', () => {
     test('should highlight required fields in SETUP phase', () => {
       session.updateUI();
-      expect(document.getElementById('userBtn').classList.contains('required-field')).toBe(true);
       expect(document.getElementById('location').classList.contains('required-field')).toBe(true);
     });
 
     test('should activate Create Session button when ready', () => {
-      session.user = 'Amanda';
-      session.location = 'Test Location';
-      session.sessionDate = '2025-01-15';
+      session._location = 'Test Location';
+      session._sessionDate = '2025-01-15';
       session.updateUI();
       const createBtn = document.querySelector('.btn-create-session');
       expect(createBtn.classList.contains('inactive')).toBe(false);
@@ -67,9 +61,8 @@ describe('Integration: index.html + session-store.js', () => {
 
     test('should show New Session button in ACTIVE phase', () => {
       session._sessionId = 'test-id';
-      session.user = 'Amanda';
-      session.location = 'Test Location';
-      session.sessionDate = '2025-01-15';
+      session._location = 'Test Location';
+      session._sessionDate = '2025-01-15';
       session.updateUI();
       const newBtn = document.querySelector('.btn-new-session');
       expect(newBtn.style.display).toBe('block');
@@ -79,28 +72,27 @@ describe('Integration: index.html + session-store.js', () => {
   describe('Reading Management Flow', () => {
     beforeEach(() => {
       session._sessionId = 'test-id';
-      session.user = 'Amanda';
-      session.location = 'Test Location';
-      session.sessionDate = '2025-01-15';
-      session.price = 40;
+      session._location = 'Test Location';
+      session._sessionDate = '2025-01-15';
+      session._price = 40;
     });
 
-    test('should render reading in DOM with delete button', () => {
-      session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
+    test('should render reading in DOM with delete button', async () => {
+      await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
       const readingsList = document.getElementById('readingsList');
       expect(readingsList.innerHTML).toContain('delete-btn');
       expect(readingsList.innerHTML).toContain('1.');
     });
 
-    test('should render tip input with correct value', () => {
-      session.addReading({ timestamp: new Date().toISOString(), tip: 7.5, price: 40 });
+    test('should render tip input with correct value', async () => {
+      await session.addReading({ timestamp: new Date().toISOString(), tip: 7.5, price: 40 });
       const readingsList = document.getElementById('readingsList');
       expect(readingsList.innerHTML).toContain('value="7.5"');
     });
 
-    test('should call global deleteReading function', () => {
+    test('should call global deleteReading function', async () => {
       global.readingsManager = { deleteReading: jest.fn() };
-      session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
+      await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
       const readingsList = document.getElementById('readingsList');
       expect(readingsList.innerHTML).toContain('onclick="readingsManager.deleteReading(0)"');
     });
@@ -109,12 +101,11 @@ describe('Integration: index.html + session-store.js', () => {
   describe('Totals Display Flow', () => {
     beforeEach(() => {
       session._sessionId = 'test-id';
-      session.user = 'Amanda';
-      session.price = 40;
+      session._price = 40;
     });
 
-    test('should update all total elements in DOM', () => {
-      session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
+    test('should update all total elements in DOM', async () => {
+      await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
       expect(document.getElementById('readingCount').textContent).toBe('1');
       expect(document.getElementById('baseTotal').textContent).toBe('40.00');
       expect(document.getElementById('tipsTotal').textContent).toBe('5.00');
@@ -132,9 +123,8 @@ describe('Integration: index.html + session-store.js', () => {
 
     test('should show sections in ACTIVE phase', () => {
       session._sessionId = 'test-id';
-      session.user = 'Amanda';
-      session.location = 'Test Location';
-      session.sessionDate = '2025-01-15';
+      session._location = 'Test Location';
+      session._sessionDate = '2025-01-15';
       session.updateUI();
       expect(document.querySelector('.buttons').style.display).toBe('flex');
       expect(document.querySelector('.totals').style.display).toBe('block');
@@ -161,27 +151,23 @@ describe('Integration: index.html + session-store.js', () => {
 
   describe('localStorage Integration', () => {
     test('should save to user-specific localStorage key', () => {
-      session.user = 'Amanda';
-      session.location = 'Test Location';
-      session.save();
-      const saved = localStorage.getItem('readingTracker_Amanda');
+      session._location = 'Test Location';
+      session.saveToLocalStorage();
+      const saved = localStorage.getItem('readingTracker_user-123');
       expect(saved).toBeTruthy();
       const data = JSON.parse(saved);
-      expect(data.user).toBe('Amanda');
       expect(data.location).toBe('Test Location');
     });
 
     test('should load from user-specific localStorage key', () => {
       const state = {
         sessionId: 'test-id',
-        user: 'Amanda',
         location: 'Test Location',
         sessionDate: '2025-01-15',
         price: 40,
         readings: []
       };
-      localStorage.setItem('readingTracker_Amanda', JSON.stringify(state));
-      session.user = 'Amanda';
+      localStorage.setItem('readingTracker_user-123', JSON.stringify(state));
       session.loadFromStorage();
       expect(session.location).toBe('Test Location');
       expect(document.getElementById('location').value).toBe('Test Location');
@@ -189,16 +175,6 @@ describe('Integration: index.html + session-store.js', () => {
   });
 
   describe('Global Function Calls', () => {
-    test('should call showSnackbar on user switch', () => {
-      session._sessionId = 'test-id';
-      session.user = 'Amanda';
-      session.location = 'Test';
-      session.sessionDate = '2025-01-15';
-      global.showSnackbar.mockClear();
-      session.user = 'Bob';
-      expect(global.showSnackbar).toHaveBeenCalled();
-    });
-
     test('should call registerBackgroundSync on save error', async () => {
       global.supabaseClient.from = jest.fn(() => ({
         update: jest.fn(() => ({ 
@@ -206,7 +182,6 @@ describe('Integration: index.html + session-store.js', () => {
         }))
       }));
       session._sessionId = 'test-id';
-      session.user = 'Amanda';
       global.registerBackgroundSync.mockClear();
       await session.save();
       expect(global.registerBackgroundSync).toHaveBeenCalled();
@@ -219,28 +194,9 @@ describe('Integration: index.html + session-store.js', () => {
       global.hideSheet = jest.fn();
     });
 
-    test('showUserSelection should call showSheet', () => {
-      session.showUserSelection();
-      expect(global.showSheet).toHaveBeenCalledWith('userOverlay', 'userSheet');
-      expect(document.getElementById('userList').innerHTML).toContain('spinner');
-    });
-
     test('hideUserSelection should call hideSheet', () => {
       session.hideUserSelection();
-      expect(global.hideSheet).toHaveBeenCalledWith('userOverlay', 'userSheet');
-    });
-
-    test('selectUser should update user and call hideUserSelection', () => {
-      session.selectUser('TestUser');
-      expect(session.user).toBe('TestUser');
-      expect(global.hideSheet).toHaveBeenCalled();
-    });
-
-    test('addNewUser should prompt and set user', () => {
-      global.prompt = jest.fn(() => 'NewUser');
-      session.addNewUser();
-      expect(session.user).toBe('NewUser');
-      expect(global.hideSheet).toHaveBeenCalled();
+      expect(global.hideSheet).toHaveBeenCalledWith('overlay-user-selection', 'sheet-user-selection');
     });
   });
 
@@ -248,13 +204,13 @@ describe('Integration: index.html + session-store.js', () => {
     test('handleCreateSession should show error when inactive', () => {
       global.showSnackbar.mockClear();
       session.handleCreateSession();
-      expect(global.showSnackbar).toHaveBeenCalledWith('User, location and date are required', 'error');
+      expect(global.showSnackbar).toHaveBeenCalledWith('Location and date are required', 'error');
     });
 
     test('handleCreateSession should call createSession when ready', async () => {
-      session.user = 'Amanda';
-      session.location = 'Test';
-      session.sessionDate = '2025-01-15';
+      session._location = 'Test';
+      session._sessionDate = '2025-01-15';
+      session.updateUI();
       session.createSession = jest.fn();
       session.handleCreateSession();
       expect(session.createSession).toHaveBeenCalled();
@@ -270,7 +226,6 @@ describe('Integration: index.html + session-store.js', () => {
     });
 
     test('showLoadSession should populate sessionsList', async () => {
-      session.user = 'Amanda';
       global.normalizeDate = jest.fn((date) => date);
       global.supabaseClient.from = jest.fn(() => ({
         select: jest.fn(() => ({
@@ -315,13 +270,18 @@ describe('Integration: index.html + readings-manager.js', () => {
     };
     global.window.handleBackgroundBackup = jest.fn();
 
+    // Supabase mock with readings table support — use global mock from jest.setup
+    jest.clearAllMocks();
+
     const SessionStore = eval(`(function() { ${fs.readFileSync(path.join(__dirname, '..', 'modules', 'session-store.js'), 'utf8')}; return SessionStore; })()`);
     const ReadingsManager = eval(`(function() { ${fs.readFileSync(path.join(__dirname, '..', 'modules', 'readings-manager.js'), 'utf8')}; return ReadingsManager; })()`);
 
     session = new SessionStore();
     session._sessionId = 'test-id';
-    session.user = 'Amanda';
-    session.price = 40;
+    session._location = 'Test';
+    session._sessionDate = '2025-01-15';
+    session._price = 40;
+    global.window.auth = { userId: 'user-123', getUserName: jest.fn(() => 'Amanda') };
     global.window.session = session;
     global.window.settings = { get: jest.fn(() => ['Cash', 'CC', 'Venmo']) };
 
@@ -398,45 +358,48 @@ describe('Integration: index.html + readings-manager.js', () => {
       expect(session.readings[0].tip).toBe(0);
     });
 
-    test('removeReading should prompt and remove last reading', () => {
+    test('removeReading should prompt and remove last reading', async () => {
       global.confirm = jest.fn(() => true);
-      session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
+      await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
       readingsManager.removeReading();
+      // removeReading is async but confirm triggers it
+      await new Promise(r => setTimeout(r, 0));
       expect(session.readings.length).toBe(0);
     });
 
-    test('deleteReading should prompt and remove specific reading', () => {
+    test('deleteReading should prompt and remove specific reading', async () => {
       global.confirm = jest.fn(() => true);
-      session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
+      await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
       readingsManager.deleteReading(0);
+      await new Promise(r => setTimeout(r, 0));
       expect(session.readings.length).toBe(0);
     });
 
-    test('selectPaymentMethod should update reading payment', () => {
-      session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
+    test('selectPaymentMethod should update reading payment', async () => {
+      await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
       readingsManager.currentPaymentIndex = 0;
       readingsManager.selectPaymentMethod('Venmo');
       expect(session.readings[0].payment).toBe('Venmo');
     });
 
-    test('selectCustomPayment should prompt and update payment', () => {
+    test('selectCustomPayment should prompt and update payment', async () => {
       global.prompt = jest.fn(() => 'Custom Payment');
-      session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
+      await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
       readingsManager.currentPaymentIndex = 0;
       readingsManager.selectCustomPayment();
       expect(session.readings[0].payment).toBe('Custom Payment');
     });
 
-    test('selectSource should update reading source', () => {
-      session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
+    test('selectSource should update reading source', async () => {
+      await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
       readingsManager.currentSourceIndex = 0;
       readingsManager.selectSource('Referral');
       expect(session.readings[0].source).toBe('Referral');
     });
 
-    test('selectCustomSource should prompt and update source', () => {
+    test('selectCustomSource should prompt and update source', async () => {
       global.prompt = jest.fn(() => 'Custom Source');
-      session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
+      await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
       readingsManager.currentSourceIndex = 0;
       readingsManager.selectCustomSource();
       expect(session.readings[0].source).toBe('Custom Source');
@@ -700,6 +663,8 @@ describe('Integration: index.html + auth.js', () => {
     const Auth = eval(`(function() { ${fs.readFileSync(path.join(__dirname, '..', 'modules', 'auth.js'), 'utf8')}; return Auth; })()`);;
     auth = new Auth();
     global.window.auth = auth;
+    // Auth calls window.session.updateUI - provide a stub
+    global.window.session = { updateUI: jest.fn(), startOver: jest.fn(), loadFromStorage: jest.fn() };
   });
 
   describe('DOM Element Existence', () => {
@@ -729,12 +694,12 @@ describe('Integration: index.html + auth.js', () => {
   });
 
   describe('Authentication Flow', () => {
+    // Auth hides its own buttons; session controls are hidden via window.session.updateUI()
     test('should hide authenticated UI when not logged in', () => {
       auth.updateUI();
-      
+
       expect(document.getElementById('btn-app-settings').style.display).toBe('none');
       expect(document.getElementById('btn-user-profile').style.display).toBe('none');
-      expect(document.getElementById('event-settings').style.display).toBe('none');
     });
 
     test('should show authenticated UI when logged in', () => {
@@ -759,13 +724,10 @@ describe('Integration: index.html + auth.js', () => {
   });
 
   describe('Session Controls Visibility', () => {
-    test('should hide session controls when not authenticated', () => {
+    // Session controls visibility is managed by window.session.updateUI(), not auth directly
+    test('should call window.session.updateUI when not authenticated', () => {
       auth.updateUI();
-      
-      expect(document.getElementById('event-settings').style.display).toBe('none');
-      expect(document.getElementById('container-readings-buttons').style.display).toBe('none');
-      expect(document.getElementById('container-readings-totals').style.display).toBe('none');
-      expect(document.getElementById('container-readings-list').style.display).toBe('none');
+      expect(global.window.session.updateUI).toHaveBeenCalled();
     });
 
     test('should show session controls when authenticated', () => {
@@ -805,15 +767,6 @@ describe('Integration: index.html + auth.js', () => {
 
   describe('Profile Query Integration', () => {
     test('should query user_profiles table on checkAuth', async () => {
-      const fromMock = jest.fn(() => ({
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: { role: 'user' }, error: null })
-          })
-        }),
-        insert: async () => ({ data: null, error: null })
-      }));
-      
       global.supabaseClient.auth.getSession.mockResolvedValue({
         data: {
           session: {
@@ -821,11 +774,18 @@ describe('Integration: index.html + auth.js', () => {
           }
         }
       });
-      global.supabaseClient.from = fromMock;
-      
+      global.supabaseClient.from.mockImplementationOnce(() => ({
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            maybeSingle: jest.fn(() => Promise.resolve({ data: { role: 'user' }, error: null }))
+          }))
+        })),
+        insert: jest.fn(() => Promise.resolve({ data: null, error: null }))
+      }));
+
       await auth.checkAuth();
-      
-      expect(fromMock).toHaveBeenCalledWith('blacksheep_reading_tracker_user_profiles');
+
+      expect(global.supabaseClient.from).toHaveBeenCalledWith('blacksheep_reading_tracker_user_profiles');
       expect(auth.userRole).toBe('user');
     });
   });

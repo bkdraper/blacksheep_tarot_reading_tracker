@@ -2,7 +2,7 @@
 
 Mobile-optimized single page app for tracking tarot readings and tips. Built with pure HTML/CSS/JS and Supabase cloud database.
 
-## Version: v3.99.9
+## Version: v4.0.1
 
 ## Architecture Overview
 
@@ -170,7 +170,29 @@ npm start  # Runs on port 8080
 - `mcp-server/`: Data access API
 - See `ARCHITECTURE.md` for technical details
 
-## Recent Changes (v3.99.9)
+## Recent Changes (v4.0.1)
+- Fixed Gpsy AI chat - was broken due to multiple bugs in mcp-server Lambda chain
+- Root cause: `bedrock.js` (actual Lambda entrypoint) was never updated - all fixes were going to `bedrock-handler.js` which was never in the call chain
+- Fixed `responseState: 'SUCCESS'` - not a valid Bedrock value, caused deserialization errors on every response (omitting it is correct for success)
+- Fixed `body` variable scoped inside `try` block - caused `ReferenceError` in proxy catch handler
+- Removed REPROMPT on missing `user_name` - agent passes `user_id` not `user_name`, killing every 2nd+ tool call
+- Renamed Lambda files to normalized convention: `mcp_lambda.js`, `bedrock_lambda.js`, `proxy_lambda.js`
+- Updated all three Lambda handler configs in AWS to match renamed files
+- Added full decision-point logging to all three Lambdas and server.js v2 methods
+- Consolidated and cleaned up mcp-server: removed 10 extraneous files, renamed 6 test files
+- Added e2e test (`test-e2e.mjs`) that simulates full FE → Proxy → Agent → Lambda chain including warm-instance multi-call scenario
+
+## Recent Changes (v4.0.0)
+- Bumped to v4.0.0 - major version for Google Auth + normalized DB + v2 tools
+- Updated Bedrock Agent action group to v2 tools only (list_sessions_v2, list_readings_v2, get_session_details_v2, get_user_summary_v2)
+- Rewrote Bedrock Agent system prompt in XML format for better Claude comprehension
+- Fixed gpsy-chat.js window.session.user references to use window.auth.isAuthenticated and window.session.userName
+- Fixed showLoadSession to query session_summaries view instead of raw sessions table
+- Removed orphaned JavaScript snippet outside closing HTML tag
+- Migrated 80 new Amanda readings to normalized table (Cincinnati Spring 26, Denver Spring 26, San Marcos Spring 26, Seraph, Wolf & Honey)
+- Backfilled user_id on all 44 Amanda sessions
+
+## Previous Changes (v3.99.9)
 - Added profile dropdown menu with Sign Out option (replaces direct logout button)
 - Profile button now displays Google profile picture if available
 - Added RLS policies to user_profiles table for secure access
@@ -244,8 +266,8 @@ npm start  # Runs on port 8080
 - Reduced index.html from 1153 to 1053 lines (9% reduction)
 
 ## Documentation
-- `ARCHITECTURE.md`: Technical architecture and deployment
-- `CHANGELOG.md`: Version history
+- `docs/ARCHITECTURE.md`: Technical architecture and deployment
+- `docs/CHANGELOG.md`: Version history
 - `.amazonq/rules/`: Development guidelines
 
 ## Browser Support
