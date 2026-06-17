@@ -12,8 +12,7 @@ document.body.innerHTML = `
   <span id="baseTotal">0.00</span>
   <span id="tipsTotal">0.00</span>
   <span id="grandTotal">0.00</span>
-  <div id="settingsContent"></div>
-  <span class="collapse-icon"></span>
+
   <div id="requiredFieldsNote"></div>
   <button class="btn-create-session"></button>
   <button class="btn-new-session"></button>
@@ -21,6 +20,12 @@ document.body.innerHTML = `
   <div class="buttons"></div>
   <div class="totals"></div>
   <div class="readings-list"></div>
+
+  <input id="session-search" />
+  <div id="sessionsList"></div>
+  <button class="session-filter-btn" data-filter="all">All</button>
+  <button class="session-filter-btn" data-filter="event">Events</button>
+  <button class="session-filter-btn" data-filter="private">Private</button>
 `;
 
 global.showSnackbar = jest.fn();
@@ -31,6 +36,17 @@ global.Utils = { sanitize: jest.fn((str) => str) };
 global.window.auth = {
   userId: 'user-123',
   getUserName: jest.fn(() => 'TestUser')
+};
+
+// normalizeDate is a global function defined in index.html, needed by filterLoadedSessions
+global.normalizeDate = function(dateStr) {
+  if (!dateStr) return null;
+  if (dateStr.match(/^\d{2,4}-\d{2}-\d{2}$/)) {
+    let [year, month, day] = dateStr.split('-');
+    if (year.length === 2) year = '20' + year;
+    return `${parseInt(month)}/${parseInt(day)}/${year}`;
+  }
+  return dateStr;
 };
 
 const originalError = console.error;
@@ -463,22 +479,6 @@ describe('SessionStore', () => {
       session.location = 'New Location';
       expect(spy).toHaveBeenCalled();
     });
-
-    test('should update DOM input when location set', () => {
-      session.location = 'Test Location';
-      expect(document.getElementById('location').value).toBe('Test Location');
-    });
-
-    test('should update DOM input when price set', () => {
-      document.getElementById('price').value = '99';
-      session.price = 50;
-      expect(document.getElementById('price').value).toBe('50');
-    });
-
-    test('should update DOM input when sessionDate set', () => {
-      session.sessionDate = '2025-01-15';
-      expect(document.getElementById('sessionDate').value).toBe('2025-01-15');
-    });
   });
 
   describe('Timestamp Formatting', () => {
@@ -607,6 +607,84 @@ describe('SessionStore', () => {
       const html = document.getElementById('readingsList').innerHTML;
       expect(html).toContain('1.');
       expect(html).toContain('2.');
+    });
+  });
+
+  describe('Load Session Filtering and Search', () => {
+    const mockSessions = [
+      { id: 'sess-1', location: 'Renaissance Festival', session_date: '2025-01-10', type: 'event', readings_count: 5, total_earnings: 200 },
+      { id: 'sess-2', location: 'Home Office', session_date: '2025-01-11', type: 'private', readings_count: 2, total_earnings: 120 },
+      { id: 'sess-3', location: 'Comic Convention', session_date: '2025-01-12', type: 'event', readings_count: 8, total_earnings: 320 },
+      { id: 'sess-4', location: 'Private Studio', session_date: '2025-01-13', type: 'private', readings_count: 1, total_earnings: 60 },
+    ];
+
+    beforeEach(() => {
+      session._loadedSessions = mockSessions;
+      session._sessionFilter = 'all';
+      document.getElementById('session-search').value = '';
+    });
+
+    test('type filter "event" shows only event sessions', () => {
+      session.filterLoadedSessions('event');
+      const html = document.getElementById('sessionsList').innerHTML;
+      expect(html).toContain('Renaissance Festival');
+      expect(html).toContain('Comic Convention');
+      expect(html).not.toContain('Home Office');
+      expect(html).not.toContain('Private Studio');
+    });
+
+    test('type filter "private" shows only private sessions', () => {
+      session.filterLoadedSessions('private');
+      const html = document.getElementById('sessionsList').innerHTML;
+      expect(html).toContain('Home Office');
+      expect(html).toContain('Private Studio');
+      expect(html).not.toContain('Renaissance Festival');
+      expect(html).not.toContain('Comic Convention');
+    });
+
+    test('type filter "all" shows both types', () => {
+      session.filterLoadedSessions('all');
+      const html = document.getElementById('sessionsList').innerHTML;
+      expect(html).toContain('Renaissance Festival');
+      expect(html).toContain('Home Office');
+      expect(html).toContain('Comic Convention');
+      expect(html).toContain('Private Studio');
+    });
+
+    test('search filters by location substring (case-insensitive)', () => {
+      document.getElementById('session-search').value = 'festival';
+      session.filterLoadedSessions();
+      const html = document.getElementById('sessionsList').innerHTML;
+      expect(html).toContain('Renaissance Festival');
+      expect(html).not.toContain('Home Office');
+      expect(html).not.toContain('Comic Convention');
+      expect(html).not.toContain('Private Studio');
+    });
+
+    test('combined filter + search works correctly', () => {
+      document.getElementById('session-search').value = 'studio';
+      session.filterLoadedSessions('private');
+      const html = document.getElementById('sessionsList').innerHTML;
+      expect(html).toContain('Private Studio');
+      expect(html).not.toContain('Home Office');
+      expect(html).not.toContain('Renaissance Festival');
+      expect(html).not.toContain('Comic Convention');
+    });
+
+    test('empty results show "No matching sessions" message', () => {
+      document.getElementById('session-search').value = 'zzz_no_match';
+      session.filterLoadedSessions();
+      const html = document.getElementById('sessionsList').innerHTML;
+      expect(html).toContain('No matching sessions');
+    });
+
+    test('type badge displays correct icon for each type', () => {
+      session.filterLoadedSessions('all');
+      const html = document.getElementById('sessionsList').innerHTML;
+      expect(html).toContain('fa-store');
+      expect(html).toContain('fa-user');
+      expect(html).toContain('session-type-event');
+      expect(html).toContain('session-type-private');
     });
   });
 });

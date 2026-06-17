@@ -279,9 +279,10 @@ graph LR
 
 ### Bedrock Agent
 - Agent ID: 0LC3MUMHNN
-- Alias: 3T7P4GYJYK (version 39, "live")
-- Model: Claude 3.5 Haiku
+- Alias: 3T7P4GYJYK (version 42, "live")
+- Model: Claude Haiku 4.5 (US inference profile: `us.anthropic.claude-haiku-4-5-20251001-v1:0`)
 - Region: us-east-2
+- Execution Role: `AmazonBedrockExecutionRoleForAgents_KWCJTGJ4UR`
 - Action Group: TarotDataTools (v2 tools - list_sessions_v2, list_readings_v2, get_session_details_v2, get_user_summary_v2)
 
 **CRITICAL - System Prompt Deployment:**
@@ -293,6 +294,14 @@ The file `mcp-server/bedrock-agent-system-prompt.txt` is NOT automatically deplo
 5. Save the agent configuration
 
 Changes to this file do NOT require Lambda redeployment - only manual update in the console.
+
+**Model Configuration Notes (June 2026 migration from Haiku 3.5 → 4.5):**
+- Haiku 4.5 requires an inference profile — bare model ID invocation is not supported
+- Must select "US inference" (not "Global inference") in agent model config
+- Global inference passes bare model ID which causes 403; US inference uses the proper profile ARN
+- First invocation auto-subscribes via AWS Marketplace (requires `aws-marketplace:Subscribe` permission on invoking IAM user)
+- The Marketplace subscription is token-based billing, not an additional flat fee
+- Agent execution role IAM policies must include inference profile ARNs (`arn:aws:bedrock:*:ACCOUNT:inference-profile/*`)
 
 ## Deployment
 

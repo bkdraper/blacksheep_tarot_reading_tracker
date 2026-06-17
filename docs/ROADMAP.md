@@ -58,7 +58,7 @@ Consolidated roadmap for ChatGPSY UX improvements and code refactoring. Focus on
 
 ## Phase 3: Advanced Features
 **Goal**: Context awareness and quick actions (6-8 hours)  
-**Status**: 0/4 features complete
+**Status**: 3/4 features complete
 
 ### ✅ #8: Context Awareness
 **Priority**: High | **Effort**: Medium
@@ -74,12 +74,14 @@ Consolidated roadmap for ChatGPSY UX improvements and code refactoring. Focus on
 - Bedrock Agent maintains context via sessionId
 - No code changes needed (verify it works)
 
-### ✅ #6: Quick Actions
+### ⚠️ #6: Quick Actions
 **Priority**: Low | **Effort**: Medium
 - Context-aware action chips below input
 - "Today's total", "This weekend", "Best location"
 - Update based on conversation context
 - Implement `updateQuickActions()` method
+
+**Note**: HTML container (`#gpsyQuickActions`) and CSS exist. The `updateQuickActions()` method is a stub (placeholder, returns without action). Not functionally complete.
 
 ### #7: Voice Input
 **Priority**: Low | **Effort**: Large
@@ -145,7 +147,7 @@ Consolidated roadmap for ChatGPSY UX improvements and code refactoring. Focus on
 
 ## Refactoring: Module Extraction
 **Goal**: Reduce index.html from 3788 lines to < 2500 lines  
-**Status**: 7/8 modules complete
+**Status**: 8/8 core modules complete (index.html now 876 lines)
 
 ### ✅ Completed Modules
 - `modules/session-store.js` - SessionStore class
@@ -155,9 +157,11 @@ Consolidated roadmap for ChatGPSY UX improvements and code refactoring. Focus on
 - `modules/utils.js` - Utility functions
 - `modules/analytics-notifier.js` - AnalyticsNotifier class
 - `modules/readings-manager.js` - ReadingsManager class
+- `modules/auth.js` - Auth class (Google OAuth, role-based access)
 
-### Remaining
-- Extract settings UI functions → `modules/settings-ui.js`
+### Remaining (Optional)
+- Extract app-update/notification/sync functions → `modules/app-lifecycle.js`
+- index.html is already at 876 lines (well below target)
 
 ### Testing Checklist
 - [ ] Timer starts/pauses/resets correctly
@@ -189,10 +193,10 @@ All other features are frontend-only!
 
 ## Progress Summary
 
-### ChatGPSY Features: 3/16 complete (19%)
+### ChatGPSY Features: 7/16 complete (44%)
 - Phase 1: ✅ 3/3 complete
 - Phase 2: 1/3 complete
-- Phase 3: 4/4 complete
+- Phase 3: 3/4 complete
 - Phase 4: 0/2 complete
 - Phase 5: 0/4 complete
 
@@ -366,6 +370,55 @@ All CSS for Phase 1-2 features already exists:
 
 ---
 
+## Phase 6.5: Session UX Redesign ✅ COMPLETE
+**Goal**: Replace collapsible Event Settings panel with session bar, hamburger menu, and bottom sheet
+**Status**: Complete as of v4.1.4
+
+### Session Bar ✅ COMPLETE
+- ✅ Slim read-only bar showing location, price, date
+- ✅ Emoji prefixes (📍 event, 👤 private)
+- ✅ Edit pencil opens session sheet
+- ✅ No-session state with opacity styling
+
+### Hamburger Menu ✅ COMPLETE
+- ✅ Four actions: New Event, New Private Reading, Load Session, End Session
+- ✅ Confirmation dialog on End Session
+- ✅ Disabled state when no active session
+
+### Session Creation/Edit Sheet ✅ COMPLETE
+- ✅ Bottom sheet with type-driven fields (event vs private)
+- ✅ Validation with visual error indicators
+- ✅ Edit mode pre-fills from current session
+- ✅ Price presets for private readings
+
+### Session Types ✅ COMPLETE
+- ✅ Database `type` column with 'event'/'private' values
+- ✅ Type-driven source filtering (scope: event/private/all)
+- ✅ Type persistence in localStorage and Supabase
+- ✅ Type badge in Load Session sheet
+
+### Load Session Enhancements ✅ COMPLETE
+- ✅ Search input for filtering by location
+- ✅ Type filter toggles (All/Events/Private)
+- ✅ Type badges with Font Awesome icons
+
+### Legacy Panel Removal ✅ COMPLETE
+- ✅ Removed #event-settings HTML and CSS
+- ✅ Removed toggleSettings/collapseSettings/expandSettings methods
+- ✅ Moved Switch User to profile menu (admin only)
+
+### SettingsStore Updates ✅ COMPLETE
+- ✅ Unified sources with scope (event/private/all)
+- ✅ Legacy flat string[] migration
+- ✅ Private price presets customization
+- ✅ Sources customization UI with scope dropdowns
+
+### Test Coverage ✅ COMPLETE
+- ✅ 223 tests passing across 8 suites
+- ✅ Unit tests for session bar, hamburger menu, session sheet, source filtering, app mode behavior
+
+---
+
 ## Phase 7: Gpsy Enhancements
 **Goal**: Improve Gpsy reliability, context awareness, and response quality
 **Status**: 0/4 complete
@@ -386,6 +439,30 @@ All CSS for Phase 1-2 features already exists:
 ### Response quality
 - Audit system prompt against real query failures
 - Add more example queries to empty state
+
+---
+
+## Phase 8: Operations & Reliability
+**Goal**: Protect production data and ensure operational health
+**Status**: 0/2 complete
+
+### Database Backup Strategy
+**Priority**: High | **Effort**: Small (one-time setup, then recurring)
+- Free plan has no downloadable backups — must self-manage
+- Use `supabase db dump` CLI commands (split into roles, schema, data)
+- Store dumps off-site (local disk, S3, or Google Drive)
+- Storage bucket files NOT included in db dump — separate backup if needed
+- Commands:
+  ```
+  supabase db dump --db-url "[CONNECTION_STRING]" -f roles.sql --role-only
+  supabase db dump --db-url "[CONNECTION_STRING]" -f schema.sql
+  supabase db dump --db-url "[CONNECTION_STRING]" -f data.sql --use-copy --data-only
+  ```
+- Consider: automate with a scheduled script or GitHub Action
+
+### Supabase Keepalive
+- ✅ Already have `.github/workflows/supabase-keepalive.yml`
+- Free projects pause after 7 days of inactivity
 
 ---
 

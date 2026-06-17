@@ -7,7 +7,7 @@ document.body.innerHTML = `
   <div id="btn-app-settings"></div>
   <div id="btn-user-profile"></div>
   <div id="text-user-profile-name"></div>
-  <div id="event-settings"></div>
+  <div id="session-bar"></div>
   <div id="container-readings-buttons"></div>
   <div id="container-readings-totals"></div>
   <div id="container-readings-list"></div>
@@ -268,7 +268,7 @@ describe('Auth', () => {
       
       auth.updateUI();
       
-      expect(document.getElementById('event-settings').style.display).not.toBe('none');
+      expect(document.getElementById('session-bar').style.display).not.toBe('none');
       expect(document.getElementById('container-readings-buttons').style.display).not.toBe('none');
       expect(document.getElementById('container-readings-totals').style.display).not.toBe('none');
       expect(document.getElementById('container-readings-list').style.display).not.toBe('none');

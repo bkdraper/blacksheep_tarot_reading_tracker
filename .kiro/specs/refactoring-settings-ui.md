@@ -4,10 +4,11 @@
 Extract settings UI functions from index.html to `modules/settings-ui.js` to complete the modularization effort.
 
 ## Context
-- Current index.html: ~1053 lines (down from 3788)
-- 7/8 modules complete (SessionStore, Timer, GpsyChat, SettingsStore, ReadingsManager, AnalyticsNotifier, Utils)
-- Settings UI functions still in index.html
-- Goal: Reduce index.html to < 1000 lines
+- Current index.html: **876 lines** (down from 3788; much smaller than previous estimates)
+- 8 modules complete (SessionStore, Timer, GpsyChat, SettingsStore, ReadingsManager, AnalyticsNotifier, Utils, Auth)
+- Most settings UI already lives in SettingsStore (`openDrawer()`, `closeDrawer()`, `toggleSetting()`, `customizePaymentMethods()`, `customizeSources()`, payment/source CRUD)
+- Remaining in index.html: `checkForUpdates()`, `clearCache()`, `showUpdateNotification()`, `updateApp()`, notification test functions, background sync handlers, and initialization code
+- Goal: Extract remaining utility functions (app updates, notifications) to complete modularization
 
 ## Current State
 
@@ -19,17 +20,20 @@ Extract settings UI functions from index.html to `modules/settings-ui.js` to com
 - ✅ `modules/utils.js` - Utility functions
 - ✅ `modules/analytics-notifier.js` - AnalyticsNotifier class
 - ✅ `modules/readings-manager.js` - ReadingsManager class
+- ✅ `modules/auth.js` - Auth class (Google OAuth, role-based access, profile menu) — added v3.99.7
 
 ### Remaining in index.html
-Settings UI functions that need extraction:
-- `showSettings()` - Open settings drawer
-- `closeSettings()` - Close settings drawer
-- `toggleDarkMode()` - Dark mode toggle
-- `updatePaymentMethods()` - Update payment method list
-- `updateSources()` - Update source list
-- Payment method management functions
-- Source management functions
-- Settings drawer event handlers
+App-level functions that could be extracted (NOT settings UI — those are already in SettingsStore):
+- `checkForUpdates()` - Service worker update check
+- `clearCache()` - Cache clear + reload
+- `showUpdateNotification()` - Update available bar
+- `updateApp()` - Skip waiting + reload
+- `registerBackgroundSync()` - Background sync registration
+- `handleBackgroundSync()` - Sync readings to DB
+- `handleBackgroundBackup()` - Backup to localStorage
+- `sendTestNotification()` / `showTestNotification()` - Dev test functions
+- `updateOnlineStatus()` - Network status handler
+- Initialization code (event listeners, instance creation)
 
 ## Requirements
 

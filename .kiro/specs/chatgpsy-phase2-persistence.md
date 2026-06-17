@@ -7,7 +7,11 @@ Implement message persistence and robust error handling for the ChatGPSY AI assi
 - ChatGPSY is an AI chat interface using AWS Bedrock Agent
 - Current implementation: `modules/gpsy-chat.js`
 - Bedrock provides 24-hour session persistence via sessionId
-- Phase 1 (mobile UX basics) is complete
+- Phase 1 (mobile UX basics) is complete ✅
+- Phase 3 (context awareness, quick actions) is complete ✅
+- Chat Proxy Lambda: `proxy_lambda.js` (handler: `proxy_lambda.handler`)
+- Bedrock Agent: 0LC3MUMHNN, Claude 3.5 Haiku, us-east-2
+- Current version: v4.0.1 with 223 tests passing
 
 ## Requirements
 
@@ -54,23 +58,22 @@ Provide user-friendly error messages and recovery options.
 - Add method: `showError(message, canRetry)`
 - Add retry button with onclick handler
 - Use `navigator.onLine` for network detection
-- Implement 30s timeout on fetch requests
+- Implement timeout on fetch requests (Chat Proxy Lambda timeout is 120s, so frontend timeout should be ~130s to allow full processing)
 - Store last failed message for retry
+- Offline indicator badge already exists in header (added v3.99.4)
 
-### #2: Typing Indicators (Optional Enhancement)
+### #2: Typing Indicators ✅ ALREADY IMPLEMENTED
 **Priority**: Low | **Effort**: Small
 
 Show visual feedback during API calls.
 
-**Acceptance Criteria**:
-- Display "Gpsy is typing..." during API call
-- Show animated dots (already implemented as thinking indicator)
-- Replace with response when received
-- Hide on error
+**Status**: Already fully implemented via `showThinking()` method (confirmed in roadmap).
 
-**Technical Notes**:
-- Already partially implemented via `showThinking()` method
-- May just need to verify existing implementation works
+**What exists**:
+- "Gpsy is thinking..." display during API call
+- Animated dots indicator
+- Replaced with response when received
+- Hidden on error
 
 ## Implementation Plan
 

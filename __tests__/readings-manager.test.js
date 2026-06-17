@@ -16,10 +16,19 @@ global.window = {
     addReading: jest.fn(() => Promise.resolve()),
     removeReading: jest.fn(() => Promise.resolve()),
     readings: [],
-    price: 40
+    price: 40,
+    type: 'event'
   },
   settings: {
-    get: jest.fn(() => ['Cash', 'CC'])
+    get: jest.fn((key) => {
+      if (key === 'sources') return [
+        { name: 'Referral', scope: 'event' },
+        { name: 'Repeat', scope: 'all' },
+        { name: 'Phone', scope: 'private' }
+      ];
+      if (key === 'paymentMethods') return ['Cash', 'CC'];
+      return ['Cash', 'CC'];
+    })
   },
   vibrate: jest.fn(),
   showSnackbar: jest.fn(),
@@ -56,7 +65,19 @@ describe('ReadingsManager', () => {
       removeReading: jest.fn(() => Promise.resolve()),
       updateReading: jest.fn(() => Promise.resolve()),
       readings: [],
-      price: 40
+      price: 40,
+      type: 'event'
+    };
+    global.window.settings = {
+      get: jest.fn((key) => {
+        if (key === 'sources') return [
+          { name: 'Referral', scope: 'event' },
+          { name: 'Repeat', scope: 'all' },
+          { name: 'Phone', scope: 'private' }
+        ];
+        if (key === 'paymentMethods') return ['Cash', 'CC'];
+        return ['Cash', 'CC'];
+      })
     };
   });
 
@@ -121,5 +142,91 @@ describe('ReadingsManager', () => {
     manager.currentSourceIndex = 0;
     manager.selectSource('referral');
     expect(global.window.session.updateReading).toHaveBeenCalledWith(0, 'source', 'referral');
+  });
+
+  describe('Source picker filtering', () => {
+    let mockSourceOptions;
+
+    beforeEach(() => {
+      mockSourceOptions = { innerHTML: '' };
+      global.document.getElementById = jest.fn((id) => {
+        if (id === 'sourceOptions') return mockSourceOptions;
+        return { value: '', classList: { add: jest.fn(), remove: jest.fn() }, style: { display: '' }, textContent: '', innerHTML: '' };
+      });
+    });
+
+    test('event session shows only event + all scoped sources', () => {
+      global.window.session.type = 'event';
+      global.window.settings.get = jest.fn((key) => {
+        if (key === 'sources') return [
+          { name: 'Referral', scope: 'event' },
+          { name: 'Repeat', scope: 'all' },
+          { name: 'Phone', scope: 'private' }
+        ];
+        return [];
+      });
+
+      manager.openSourceSheet(0);
+
+      expect(mockSourceOptions.innerHTML).toContain('Referral');
+      expect(mockSourceOptions.innerHTML).toContain('Repeat');
+      expect(mockSourceOptions.innerHTML).not.toContain('Phone');
+    });
+
+    test('private session shows only private + all scoped sources', () => {
+      global.window.session.type = 'private';
+      global.window.settings.get = jest.fn((key) => {
+        if (key === 'sources') return [
+          { name: 'Referral', scope: 'event' },
+          { name: 'Repeat', scope: 'all' },
+          { name: 'Phone', scope: 'private' }
+        ];
+        return [];
+      });
+
+      manager.openSourceSheet(0);
+
+      expect(mockSourceOptions.innerHTML).toContain('Phone');
+      expect(mockSourceOptions.innerHTML).toContain('Repeat');
+      expect(mockSourceOptions.innerHTML).not.toContain('Referral');
+    });
+
+    test('empty filtered result shows "no sources" message', () => {
+      global.window.session.type = 'private';
+      global.window.settings.get = jest.fn((key) => {
+        if (key === 'sources') return [
+          { name: 'EventOnly', scope: 'event' }
+        ];
+        return [];
+      });
+
+      manager.openSourceSheet(0);
+
+      expect(mockSourceOptions.innerHTML).toContain('No sources configured');
+      expect(mockSourceOptions.innerHTML).not.toContain('<button');
+    });
+
+    test('source order preserved from settings array', () => {
+      global.window.session.type = 'event';
+      global.window.settings.get = jest.fn((key) => {
+        if (key === 'sources') return [
+          { name: 'Zebra', scope: 'event' },
+          { name: 'Alpha', scope: 'all' },
+          { name: 'PrivateOnly', scope: 'private' },
+          { name: 'Middle', scope: 'event' }
+        ];
+        return [];
+      });
+
+      manager.openSourceSheet(0);
+
+      const zebraPos = mockSourceOptions.innerHTML.indexOf('Zebra');
+      const alphaPos = mockSourceOptions.innerHTML.indexOf('Alpha');
+      const middlePos = mockSourceOptions.innerHTML.indexOf('Middle');
+
+      expect(zebraPos).toBeLessThan(alphaPos);
+      expect(alphaPos).toBeLessThan(middlePos);
+      expect(mockSourceOptions.innerHTML).not.toContain('PrivateOnly');
+    });
   });
 });

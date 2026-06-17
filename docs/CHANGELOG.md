@@ -1,5 +1,113 @@
 # Changelog
 
+## v4.3.2 - Load Session: Search, Filters & Type Badges
+- Added search input to Load Session sheet for filtering by location (case-insensitive)
+- Added type filter toggle buttons (All / Events / Private) with one-active-at-a-time behavior
+- Added type badges to session tiles using Font Awesome icons (fa-store for Event, fa-user for Private)
+- Stored fetched sessions in `_loadedSessions` for client-side filtering
+- Added `filterLoadedSessions()` method combining type filter + search
+- Shows "No matching sessions" when filtered results are empty
+- Light gray background on Load Session sheet to distinguish session cards
+- Unit tests for filtering, search, combined filter+search, badge display
+
+## v4.3.1 - Impersonation Display & Switch User in Profile Menu
+- Admin impersonation now shows "(as Username)" below profile button when viewing another user's data
+- Moved "Switch User" from legacy event settings panel to profile dropdown menu (admin-only)
+- Switch User item hidden for non-admin users (same `auth.isAdmin()` check)
+- Updates on user switch via `showUserSelection()` flow
+
+## v4.3.0 - Legacy Event Settings Panel Removal
+- Removed entire `#event-settings` HTML block and associated CSS
+- Removed `toggleSettings`, `collapseSettings`, `expandSettings` methods from SessionStore
+- Removed all event listener bindings and onclick references to removed methods
+- Updated `updateUI()` to no longer reference `#event-settings` elements
+- Cleaned all remaining references across codebase (no runtime errors from dangling refs)
+
+## v4.2.9 - Source Picker Type-Driven Filtering
+- Updated `openSourceSheet()` in ReadingsManager to filter by session type scope
+- Sources filtered: `scope === sessionType || scope === 'all'`
+- Empty filtered result shows "No sources configured" message
+- Source order preserved from settings array
+- Unit tests for event/private/empty filtering scenarios
+
+## v4.2.8 - App Mode Behavior (Readings Section Visibility)
+- No active session: readings section hidden (add button, totals, readings log)
+- Active session: readings section visible
+- Timer section always visible regardless of session state
+- Wired to `updateUI()` — triggers on session create, load, and end
+- On app load with persisted session: show readings section immediately
+- Unit tests for mode transitions
+
+## v4.2.7 - SessionStore Type Property & Persistence
+- Added `_type` property with getter/setter (default 'event')
+- Setter normalizes: only 'private' stays, everything else → 'event'
+- Updated `saveToLocalStorage()` to include type field
+- Updated `loadFromStorage()` to read/normalize type from localStorage
+- Updated `createSession()` to accept and persist type parameter
+- Updated `loadExistingSession()` to read type from DB record
+- Invalid type values default to 'event' with console log
+
+## v4.2.6 - End Session & Hamburger Menu Tests
+- Implemented `endSession()` with confirmation dialog
+- On confirm: clears sessionId, location, readings, type; updates bar; hides readings
+- On cancel: closes dialog, no action
+- Unit tests: menu item order, disabled state, overlay close, action routing
+
+## v4.2.5 - Hamburger Popup Menu
+- Added `#btn-hamburger` in header upper-left
+- Four menu items: New Event, New Private Reading, Load Session, End Session
+- Positioned popup (not full-screen drawer) with overlay
+- `toggleHamburgerMenu()`, `closeHamburgerMenu()`, action methods
+- End Session disabled when no active session
+- Overlay click closes without triggering actions
+- Touch targets 44px, fonts 16px+
+
+## v4.2.4 - Session Creation/Editing Bottom Sheet
+- Added session sheet HTML (overlay + sheet + dynamic fields + save button)
+- `openSessionSheet(mode, type)` renders fields dynamically by type
+- Event: Location, Date, Price input; Private: Client Name, Date, Price presets, Source toggles
+- Edit mode pre-fills from current session, locks type
+- `saveSessionSheet()` with validation (≥1 non-whitespace char, valid date)
+- Visual error indicators (red border) on invalid fields
+- `closeSessionCreationSheet()` hides sheet and clears errors
+
+## v4.2.3 - Session Bar Component
+- Added `#session-bar` with location, price, date spans and edit button
+- Flex layout with CSS overflow truncation on location
+- No-session state: opacity 0.5, hides price/date/edit
+- Event: "📍 {location}" · ${price} · MM/DD
+- Private: "👤 {clientName}" · ${price} · MM/DD
+- Edit pencil opens session sheet in edit mode
+- `updateSessionBar()` method in SessionStore
+
+## v4.2.2 - SettingsStore Sources Customization & Private Presets
+- Sources settings UI with scope dropdowns (Event/Private/All)
+- Private price presets customization UI (add/edit/delete)
+- `showPrivatePricePresetsSheet()`, `updatePrivatePricePreset()`, etc.
+- Removed `toggleSettings` and `collapseSettings` wrapper methods
+
+## v4.2.1 - SettingsStore Unified Sources & Migration
+- Refactored sources default from string[] to object[] with `{name, scope}`
+- Default sources: Referral (event), Renu (event), POG (event), Repeat (all), Phone (private), In-Person (private)
+- Added `privatePricePresets` default: [60, 120, 150]
+- `migrateSources()` converts legacy flat arrays to scoped objects
+- Unit tests for defaults, migration, add/edit/delete
+
+## v4.2.0 - Session UX Redesign Begins (DB Migration)
+- Added `type` text column to `blacksheep_reading_tracker_sessions`
+- DEFAULT 'event', backfilled existing rows, NOT NULL constraint
+- No CHECK constraint (per design spec)
+- SQL migration file for manual execution in Supabase SQL editor
+
+## v4.1.4 - Bedrock Model Migration (Haiku 3.5 → 4.5)
+- Migrated Bedrock Agent from Claude Haiku 3.5 (deprecated) to Claude Haiku 4.5
+- Must use US inference profile — bare model ID and "Global inference" both fail with 403
+- Haiku 4.5 requires AWS Marketplace auto-subscription (needs `aws-marketplace:Subscribe` IAM permission)
+- Added `AWSMarketplaceManageSubscriptions` policy to `serverless-admin` IAM user
+- Agent alias 3T7P4GYJYK updated to version 42 (Haiku 4.5 US inference)
+- No code changes required — proxy_lambda.js agent/alias IDs unchanged
+- Pricing: ~$1.00/million input, $5.00/million output (25% more than Haiku 3.5)
+
 ## v4.0.1 - Gpsy Lambda Chain Fix & mcp-server Cleanup
 - Fixed Gpsy AI chat broken since v4.0.0 day_of_week changes
 - Root cause: `bedrock.js` (actual Lambda entrypoint `bedrock.handler`) was never updated - all fixes were going to `bedrock-handler.js` which was never in the call chain
@@ -128,4 +236,4 @@
 ## Version Management Rules
 - **CRITICAL**: Version MUST be bumped on every code change
 - Version displayed in header bar for cache-busting
-- Update version in: index.html, README.md, .amazonq/rules/tarot-tracker-rules.md
+- Update version in: index.html, docs/README.md, .amazonq/rules/tarot-tracker-rules.md, .kiro/steering/development-rules.md

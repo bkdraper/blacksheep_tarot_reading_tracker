@@ -1,6 +1,6 @@
 # Session UX Redesign Spec
 
-## Status: BRAINSTORM / PRE-IMPLEMENTATION
+## Status: ✅ COMPLETE (v4.1.4)
 
 ---
 

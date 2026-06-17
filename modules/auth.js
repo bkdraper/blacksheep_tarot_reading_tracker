@@ -117,7 +117,7 @@ class Auth {
         this.userId = session.user.id;
         
         if (window.session) {
-            window.session.loadFromStorage();
+            window.session.promptRestoreSession();
         }
         
         return true;
@@ -126,7 +126,24 @@ class Auth {
     toggleProfileMenu() {
         const menu = document.getElementById('menu-user-profile');
         if (menu) {
-            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            const isOpen = menu.style.display === 'block';
+            if (isOpen) {
+                menu.style.display = 'none';
+                document.removeEventListener('click', this._closeProfileMenuHandler);
+            } else {
+                menu.style.display = 'block';
+                // Close on outside click (defer so this click doesn't immediately close it)
+                setTimeout(() => {
+                    this._closeProfileMenuHandler = (e) => {
+                        const profileBtn = document.getElementById('btn-user-profile');
+                        if (!menu.contains(e.target) && !profileBtn.contains(e.target)) {
+                            menu.style.display = 'none';
+                            document.removeEventListener('click', this._closeProfileMenuHandler);
+                        }
+                    };
+                    document.addEventListener('click', this._closeProfileMenuHandler);
+                }, 0);
+            }
         }
     }
 
@@ -141,13 +158,25 @@ class Auth {
             const profilePic = document.getElementById('img-user-profile-pic');
             const profileIcon = document.getElementById('icon-user-profile');
             const loginPrompt = document.getElementById('container-login-prompt');
-            const adminDisplay = document.getElementById('admin-user-display');
-            const adminUserLabel = document.getElementById('text-admin-active-user');
+            const switchUserItem = document.getElementById('menu-switch-user');
+            const impersonatedLabel = document.getElementById('text-impersonated-user');
 
             if (settingsBtn) settingsBtn.style.setProperty('display', 'flex');
             if (profileBtn) profileBtn.style.setProperty('display', 'flex');
             if (profileName) profileName.textContent = this.getUserName();
             if (loginPrompt) loginPrompt.style.setProperty('display', 'none');
+            
+            // Show impersonated user label when admin is viewing as another user
+            if (impersonatedLabel) {
+                const isImpersonating = this.isAdmin() && this._user && this._user.id !== this._userId;
+                if (isImpersonating && this._activeUserName) {
+                    impersonatedLabel.textContent = `(as ${this._activeUserName})`;
+                    impersonatedLabel.style.display = 'inline';
+                } else {
+                    impersonatedLabel.textContent = '';
+                    impersonatedLabel.style.display = 'none';
+                }
+            }
             
             const avatarUrl = this._user?.user_metadata?.avatar_url;
             if (avatarUrl && profilePic && profileIcon) {
@@ -165,20 +194,17 @@ class Auth {
                 if (profilePic) profilePic.style.display = 'none';
             }
 
-            if (adminDisplay) adminDisplay.style.display = this.isAdmin() ? 'block' : 'none';
-            if (adminUserLabel && this.isAdmin()) {
-                adminUserLabel.textContent = this._activeUserName || this.getUserName();
-            }
+            if (switchUserItem) switchUserItem.style.display = this.isAdmin() ? 'flex' : 'none';
         } else {
             const settingsBtn = document.getElementById('btn-app-settings');
             const profileBtn = document.getElementById('btn-user-profile');
             const loginPrompt = document.getElementById('container-login-prompt');
-            const adminDisplay = document.getElementById('admin-user-display');
+            const switchUserItem = document.getElementById('menu-switch-user');
             
             if (settingsBtn) settingsBtn.style.setProperty('display', 'none');
             if (profileBtn) profileBtn.style.setProperty('display', 'none');
             if (loginPrompt) loginPrompt.style.removeProperty('display');
-            if (adminDisplay) adminDisplay.style.display = 'none';
+            if (switchUserItem) switchUserItem.style.display = 'none';
         }
         
         if (window.session) {

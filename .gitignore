@@ -28,3 +28,6 @@ build/
 # Test coverage
 coverage/
 .nyc_output/
+
+# Kiro settings (user-level has tokens, but workspace mcp.json is safe)
+# .kiro/settings/

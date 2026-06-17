@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "tarot-tracker": {
+      "url": "https://fjmqe5vx4n6r6tklpsiyzey6ea0zuzgo.lambda-url.us-east-2.on.aws/",
+      "disabled": false,
+      "timeout": 60000
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "chrome-devtools-mcp@latest"
+      ],
+      "disabled": true
+    }
+  }
+}

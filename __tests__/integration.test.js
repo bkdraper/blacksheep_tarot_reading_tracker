@@ -37,37 +37,7 @@ describe('Integration: index.html + session-store.js', () => {
     localStorage.clear();
   });
 
-  describe('User Selection Flow', () => {
-    test('should enable Load Session button when user is set', () => {
-      const loadBtn = document.querySelector('.btn-load-session');
-      session.updateUI();
-      expect(loadBtn.classList.contains('disabled')).toBe(false);
-    });
-  });
 
-  describe('Session Creation Flow', () => {
-    test('should highlight required fields in SETUP phase', () => {
-      session.updateUI();
-      expect(document.getElementById('location').classList.contains('required-field')).toBe(true);
-    });
-
-    test('should activate Create Session button when ready', () => {
-      session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
-      session.updateUI();
-      const createBtn = document.querySelector('.btn-create-session');
-      expect(createBtn.classList.contains('inactive')).toBe(false);
-    });
-
-    test('should show New Session button in ACTIVE phase', () => {
-      session._sessionId = 'test-id';
-      session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
-      session.updateUI();
-      const newBtn = document.querySelector('.btn-new-session');
-      expect(newBtn.style.display).toBe('block');
-    });
-  });
 
   describe('Reading Management Flow', () => {
     beforeEach(() => {
@@ -132,22 +102,7 @@ describe('Integration: index.html + session-store.js', () => {
     });
   });
 
-  describe('Input Synchronization Flow', () => {
-    test('should sync location input with session state', () => {
-      session.location = 'Denver Fall 25';
-      expect(document.getElementById('location').value).toBe('Denver Fall 25');
-    });
 
-    test('should sync price input with session state', () => {
-      session.price = 50;
-      expect(document.getElementById('price').value).toBe('50');
-    });
-
-    test('should sync sessionDate input with session state', () => {
-      session.sessionDate = '2025-01-15';
-      expect(document.getElementById('sessionDate').value).toBe('2025-01-15');
-    });
-  });
 
   describe('localStorage Integration', () => {
     test('should save to user-specific localStorage key', () => {
@@ -170,7 +125,6 @@ describe('Integration: index.html + session-store.js', () => {
       localStorage.setItem('readingTracker_user-123', JSON.stringify(state));
       session.loadFromStorage();
       expect(session.location).toBe('Test Location');
-      expect(document.getElementById('location').value).toBe('Test Location');
     });
   });
 
@@ -201,21 +155,6 @@ describe('Integration: index.html + session-store.js', () => {
   });
 
   describe('Session Management Functions (onclick handlers)', () => {
-    test('handleCreateSession should show error when inactive', () => {
-      global.showSnackbar.mockClear();
-      session.handleCreateSession();
-      expect(global.showSnackbar).toHaveBeenCalledWith('Location and date are required', 'error');
-    });
-
-    test('handleCreateSession should call createSession when ready', async () => {
-      session._location = 'Test';
-      session._sessionDate = '2025-01-15';
-      session.updateUI();
-      session.createSession = jest.fn();
-      session.handleCreateSession();
-      expect(session.createSession).toHaveBeenCalled();
-    });
-
     test('startNewSession should call startOver on confirm', () => {
       global.confirm = jest.fn(() => true);
       global.window.timer = { reset: jest.fn() };
@@ -283,7 +222,16 @@ describe('Integration: index.html + readings-manager.js', () => {
     session._price = 40;
     global.window.auth = { userId: 'user-123', getUserName: jest.fn(() => 'Amanda') };
     global.window.session = session;
-    global.window.settings = { get: jest.fn(() => ['Cash', 'CC', 'Venmo']) };
+    global.window.session.type = 'event';
+    global.window.settings = { get: jest.fn((key) => {
+      if (key === 'sources') return [
+        { name: 'Referral', scope: 'event' },
+        { name: 'Repeat', scope: 'all' },
+        { name: 'Phone', scope: 'private' }
+      ];
+      if (key === 'paymentMethods') return ['Cash', 'CC', 'Venmo'];
+      return ['Cash', 'CC', 'Venmo'];
+    }) };
 
     readingsManager = new ReadingsManager();
     global.window.readingsManager = readingsManager;
@@ -334,7 +282,9 @@ describe('Integration: index.html + readings-manager.js', () => {
     test('should populate sourceOptions when opened', () => {
       readingsManager.openSourceSheet(0);
       const options = document.getElementById('sourceOptions');
-      expect(options.innerHTML).toContain('Cash');
+      expect(options.innerHTML).toContain('Referral');
+      expect(options.innerHTML).toContain('Repeat');
+      expect(options.innerHTML).not.toContain('Phone');
       expect(options.innerHTML).toContain('Other');
     });
 
@@ -423,7 +373,7 @@ describe('Integration: index.html + settings-store.js', () => {
     const SettingsStore = eval(`(function() { ${fs.readFileSync(path.join(__dirname, '..', 'modules', 'settings-store.js'), 'utf8')}; return SettingsStore; })()`);
     settings = new SettingsStore();
     global.window.settings = settings;
-    global.window.session = { user: 'Amanda', collapseSettings: jest.fn(), toggleSettings: jest.fn() };
+    global.window.session = { user: 'Amanda' };
     localStorage.clear();
   });
 
@@ -556,8 +506,8 @@ describe('Integration: index.html + settings-store.js', () => {
     });
 
     test('updateSource should update source at index', () => {
-      settings.updateSource(0, 'Updated Source');
-      expect(settings.get('sources')[0]).toBe('Updated Source');
+      settings.updateSource(0, 'name', 'Updated Source');
+      expect(settings.get('sources')[0].name).toBe('Updated Source');
     });
 
     test('deleteSource should remove source at index', () => {
@@ -664,7 +614,7 @@ describe('Integration: index.html + auth.js', () => {
     auth = new Auth();
     global.window.auth = auth;
     // Auth calls window.session.updateUI - provide a stub
-    global.window.session = { updateUI: jest.fn(), startOver: jest.fn(), loadFromStorage: jest.fn() };
+    global.window.session = { updateUI: jest.fn(), startOver: jest.fn(), loadFromStorage: jest.fn(), promptRestoreSession: jest.fn() };
   });
 
   describe('DOM Element Existence', () => {
@@ -684,8 +634,8 @@ describe('Integration: index.html + auth.js', () => {
       expect(document.getElementById('container-login-prompt')).toBeTruthy();
     });
 
-    test('should find event-settings element', () => {
-      expect(document.getElementById('event-settings')).toBeTruthy();
+    test('should find session-bar element (replaced event-settings)', () => {
+      expect(document.getElementById('session-bar')).toBeTruthy();
     });
 
     test('should find container-readings-buttons element', () => {
@@ -736,7 +686,7 @@ describe('Integration: index.html + auth.js', () => {
       
       auth.updateUI();
       
-      expect(document.getElementById('event-settings').style.display).not.toBe('none');
+      expect(document.getElementById('session-bar').style.display).not.toBe('none');
       expect(document.getElementById('container-readings-buttons').style.display).not.toBe('none');
       expect(document.getElementById('container-readings-totals').style.display).not.toBe('none');
       expect(document.getElementById('container-readings-list').style.display).not.toBe('none');

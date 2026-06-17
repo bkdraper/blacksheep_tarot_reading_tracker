@@ -93,9 +93,18 @@ class ReadingsManager {
         this.currentSourceIndex = index;
         
         const sourceOptions = document.getElementById('sourceOptions');
-        const sources = window.settings.get('sources');
-        sourceOptions.innerHTML = sources.map(source => 
-            `<button class="payment-option btn btn-ghost btn-small" onclick="readingsManager.selectSource('${source}')">${source}</button>`
+        const allSources = window.settings.get('sources');
+        const sessionType = window.session.type;
+        const sources = allSources.filter(s => s.scope === sessionType || s.scope === 'all');
+        
+        if (sources.length === 0) {
+            sourceOptions.innerHTML = '<p class="no-sources-message">No sources configured</p>';
+            Utils.showSheet('sourceOverlay', 'sourceSheet');
+            return;
+        }
+        
+        sourceOptions.innerHTML = sources.map(s => 
+            `<button class="payment-option btn btn-ghost btn-small" onclick="readingsManager.selectSource('${s.name}')">${s.name}</button>`
         ).join('') + '<button class="payment-option btn btn-ghost btn-small" onclick="readingsManager.selectCustomSource()">Other</button>';
         
         Utils.showSheet('sourceOverlay', 'sourceSheet');

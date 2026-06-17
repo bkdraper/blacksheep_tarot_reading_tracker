@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="version" content="v4.0.1">
+    <meta http-equiv="version" content="v4.3.2">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#28a745">
+    <meta name="theme-color" content="#2d1b3e">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -45,16 +45,25 @@
 </head>
 <body>
     <header class="header">
+        <button id="btn-hamburger" class="hamburger-btn" onclick="session.toggleHamburgerMenu()">
+            <i class="fas fa-bars"></i>
+        </button>
         <h1 id="headerTitle">Tarot Reading Tracker</h1>
         <div class="header-actions">
             <span id="offlineIndicator" class="offline-badge" style="display: none;">Offline</span>
-            <span class="version-badge">v4.0.1</span>
             <button id="btn-user-profile" class="user-profile-btn" onclick="auth.toggleProfileMenu()" style="display: none;">
                 <img id="img-user-profile-pic" class="user-profile-pic" style="display: none;">
                 <i id="icon-user-profile" class="fas fa-user-circle"></i>
-                <span id="text-user-profile-name"></span>
             </button>
             <div id="menu-user-profile" class="profile-menu" style="display: none;">
+                <div class="profile-menu-header">
+                    <span id="text-user-profile-name" class="profile-menu-name"></span>
+                    <span id="text-impersonated-user" class="impersonated-user-label" style="display: none;"></span>
+                </div>
+                <div id="menu-switch-user" class="profile-menu-item" onclick="session.showUserSelection()" style="display: none;">
+                    <i class="fas fa-users-cog"></i>
+                    <span>Switch User</span>
+                </div>
                 <div class="profile-menu-item" onclick="auth.signOut()">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Sign Out</span>
@@ -63,6 +72,31 @@
             <button id="btn-app-settings" class="settings-btn" onclick="settings.openDrawer()" title="Settings" style="display: none;"><i class="fas fa-cog"></i></button>
         </div>
     </header>
+
+    <!-- Hamburger Menu -->
+    <div id="hamburger-overlay" class="hamburger-overlay" onclick="session.closeHamburgerMenu()"></div>
+    <div id="hamburger-menu" class="hamburger-menu">
+        <div class="hamburger-item" onclick="session.newEvent()">
+            <i class="fas fa-calendar-alt"></i> New Event
+        </div>
+        <div class="hamburger-item" onclick="session.newPrivateReading()">
+            <i class="fas fa-user"></i> New Private Reading
+        </div>
+        <div class="hamburger-item" onclick="session.showLoadSession()">
+            <i class="fas fa-folder-open"></i> Load Session
+        </div>
+        <div id="hamburger-end-session" class="hamburger-item" onclick="session.endSession()">
+            <i class="fas fa-stop-circle"></i> End Session
+        </div>
+        <div class="hamburger-divider"></div>
+        <button id="btn-gpsy-open" class="tracker-buddy-btn" onclick="session.closeHamburgerMenu(); gpsyChat.open();">
+            <div class="gpsy-avatar" style="width: 32px; height: 32px; background: transparent;">
+                <img src="" id="buddyLogo" alt="ChatGPSY">
+            </div>
+            <span style="font-size: 16px; font-weight: 600;">ChatGPSY</span>
+        </button>
+    </div>
+
     <div class="container">
         <!-- Login Prompt (shown when not authenticated) -->
         <div id="container-login-prompt" class="login-prompt">
@@ -73,53 +107,13 @@
             </button>
         </div>
 
-        <div id="event-settings" class="event-settings">
-            <div class="settings-header" onclick="session.toggleSettings()">
-                <span>Event Settings</span>
-                <span class="collapse-icon"><i class="fas fa-chevron-down"></i></span>
-            </div>
-            <div id="session-summary" class="text-small text-muted" style="display: none; padding: 8px 15px; border-bottom: 1px solid #eee;"></div>
-            <div class="settings-content" id="settings-content">
-                <div class="user-section">
-                    <div id="admin-user-display" style="display: none;">
-                        <div class="input-group">
-                            <label>Viewing:</label>
-                            <span id="text-admin-active-user" style="font-size: 14px; font-weight: 600; color: #333;"></span>
-                        </div>
-                        <button id="btn-session-user" onclick="session.showUserSelection()" class="btn btn-secondary btn-small" style="margin-bottom: 8px;">Switch User</button>
-                    </div>
-                    <button id="btn-session-load" class="btn-load-session btn btn-secondary" onclick="session.showLoadSession()">Load Session</button>
-                </div>
-
-                <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
-
-                <div class="input-group">
-                    <label for="price">Reading<br>Price:</label>
-                    <div class="price-input-container">
-                        <span class="dollar-sign">$</span>
-                        <input type="number" id="price" value="40" step="0.01" min="0">
-                    </div>
-                </div>
-
-                <div class="input-group">
-                    <label for="location">Event<br>Name:</label>
-                    <input type="text" id="location" placeholder="(City, Season, Year, etc.)">
-                </div>
-
-                <div class="input-group">
-                    <label for="sessionDate">Event<br>Date:</label>
-                    <input type="date" id="sessionDate" placeholder="Select event date" onclick="this.showPicker()">
-                </div>
-
-                <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
-
-                <div id="requiredFieldsNote" style="font-size: 11px; color: #dc3545; text-align: center; margin-bottom: 10px;">* Fill in the red-outlined fields to create a new session</div>
-
-                <div class="input-group">
-                    <button id="btn-session-create" class="btn-create-session inactive btn btn-primary" onclick="session.handleCreateSession()">Create Session</button>
-                    <button id="btn-session-new" class="btn-new-session btn btn-danger" onclick="session.startNewSession()" style="display: none;">New Session</button>
-                </div>
-            </div>
+        <div id="session-bar" class="session-bar">
+            <span id="session-bar-location" class="session-bar-location no-session">(no active session)</span>
+            <span id="session-bar-price" class="session-bar-price" style="display: none;"></span>
+            <span id="session-bar-date" class="session-bar-date" style="display: none;"></span>
+            <button id="btn-session-edit" class="session-bar-edit" style="display: none;">
+                <i class="fas fa-pencil-alt"></i>
+            </button>
         </div>
 
         <div id="container-readings-buttons" class="buttons">
@@ -213,6 +207,12 @@
             <button class="modal-close" onclick="session.closeSessionSheet()"><i class="fas fa-times"></i></button>
         </div>
         <div class="session-sheet-content">
+            <input type="text" id="session-search" class="session-search-input" placeholder="Search sessions..." oninput="session.filterLoadedSessions()">
+            <div class="session-filter-toggles">
+                <button class="session-filter-btn active" data-filter="all" onclick="session.filterLoadedSessions('all', this)">All</button>
+                <button class="session-filter-btn" data-filter="event" onclick="session.filterLoadedSessions('event', this)"><i class="fas fa-store"></i> Events</button>
+                <button class="session-filter-btn" data-filter="private" onclick="session.filterLoadedSessions('private', this)"><i class="fas fa-user"></i> Private</button>
+            </div>
             <div id="sessionsList"></div>
         </div>
     </div>
@@ -240,6 +240,36 @@
         <div class="session-sheet-content">
             <div id="sourcesList"></div>
             <button id="btn-source-add" onclick="settings.addSource()" class="add-payment-method btn btn-primary">+ Add Source</button>
+        </div>
+    </div>
+
+    <!-- Private Price Presets Customization Sheet -->
+    <div id="privatePricePresetsOverlay" class="payment-overlay" onclick="settings.closePrivatePricePresetsSheet()"></div>
+    <div id="privatePricePresetsSheet" class="payment-methods-sheet sheet">
+        <div class="session-sheet-header sheet-header">
+            <h3>Customize Price Presets</h3>
+            <button class="modal-close" onclick="settings.closePrivatePricePresetsSheet()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="session-sheet-content">
+            <div id="privatePricePresetsList"></div>
+            <button id="btn-preset-add" onclick="settings.addPrivatePricePreset()" class="add-payment-method btn btn-primary">+ Add Preset</button>
+        </div>
+    </div>
+
+    <!-- Session Creation/Edit Sheet -->
+    <div id="sessionSheetOverlay" class="payment-overlay" onclick="session.closeSessionCreationSheet()"></div>
+    <div id="sessionCreationSheet" class="session-creation-sheet sheet">
+        <div class="sheet-header">
+            <h3 id="sessionSheetTitle">New Event</h3>
+            <button class="modal-close" onclick="session.closeSessionCreationSheet()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="session-creation-content">
+            <div id="sessionSheetFields"></div>
+            <button id="btn-session-save" class="btn btn-primary btn-large" onclick="session.saveSessionSheet()">
+                Save
+            </button>
         </div>
     </div>
 
@@ -273,16 +303,6 @@
             <button class="modal-close" onclick="settings.closeDrawer()"><i class="fas fa-times"></i></button>
         </div>
         <div class="settings-drawer-content">
-            <!-- ChatGPSY -->
-            <div class="settings-section" style="border-bottom: 2px solid #ddd; padding-bottom: 20px; margin-bottom: 20px;">
-                <button id="btn-gpsy-open" class="tracker-buddy-btn" onclick="gpsyChat.open()">
-                    <div class="gpsy-avatar" style="width: 32px; height: 32px; background: transparent;">
-                        <img src="" id="buddyLogo" alt="ChatGPSY">
-                    </div>
-                    <span style="font-size: 16px; font-weight: 600;">ChatGPSY</span>
-                </button>
-            </div>
-
             <!-- App Preferences -->
             <div class="settings-section">
                 <h3>App Preferences</h3>
@@ -350,6 +370,18 @@
                         <div class="setting-description">Customize source options</div>
                     </div>
                     <button id="btn-settings-source-customize" class="settings-button btn btn-secondary btn-small" onclick="settings.customizeSources()">Customize</button>
+                </div>
+            </div>
+
+            <!-- Private Price Presets -->
+            <div class="settings-section">
+                <h3>Private Price Presets</h3>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">Price Presets</div>
+                        <div class="setting-description">Quick-select prices for private readings</div>
+                    </div>
+                    <button id="btn-settings-presets-customize" class="settings-button btn btn-secondary btn-small" onclick="settings.customizePrivatePricePresets()">Customize</button>
                 </div>
             </div>
 
@@ -422,6 +454,11 @@
                     </div>
                     <button id="btn-settings-cache" class="settings-button btn btn-secondary btn-small" onclick="clearCache()">Clear</button>
                 </div>
+            </div>
+
+            <!-- Version Info -->
+            <div class="settings-version-info">
+                <span>v4.3.2</span>
             </div>
         </div>
     </div>
@@ -757,40 +794,17 @@
             document.getElementById('gpsyHeaderLogo').src = window.APP_LOGO;
         });
 
-        document.getElementById('price').addEventListener('input', function() {
-            session.price = parseFloat(this.value) || 0;
-        });
 
-        document.getElementById('location').addEventListener('input', function() {
-            session.location = this.value;
-        });
-        
-        document.getElementById('sessionDate').addEventListener('input', function() {
-            session.sessionDate = this.value;
-        });
 
 
         // Check for saved session on page load
         window.addEventListener('load', async function() {
-            // Check auth first
+            // Check auth first - this handles session restore prompt internally
             const isAuthenticated = await auth.checkAuth();
             if (!isAuthenticated) return;
 
-            const saved = localStorage.getItem('readingTracker');
-            if (saved) {
-                const state = JSON.parse(saved);
-                const location = state.location || 'Unknown location';
-                const date = state.sessionDate || state.selectedDay || 'Unknown date';
-                const message = `I have saved data from ${location} on ${date}. Would you like to load that data? (OK) or start a new session? (Cancel)`;
-                if (confirm(message)) {
-                    session.loadFromStorage();
-                } else {
-                    session.startOver();
-                }
-            } else {
-                // Initialize UI on first load
-                session.updateUI();
-            }
+            // Clean up legacy key (pre-multi-user)
+            localStorage.removeItem('readingTracker');
         });
 
         // Close sheets when clicking outside

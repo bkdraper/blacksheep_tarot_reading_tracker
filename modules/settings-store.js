@@ -15,7 +15,15 @@ class SettingsStore {
             tipTrends: true,
             peakTime: true,
             paymentMethods: ['Cash', 'CC', 'Venmo', 'PayPal', 'Cash App'],
-            sources: ['Referral', 'Renu', 'POG', 'Repeat']
+            sources: [
+                { name: 'Referral', scope: 'event' },
+                { name: 'Renu', scope: 'event' },
+                { name: 'POG', scope: 'event' },
+                { name: 'Repeat', scope: 'all' },
+                { name: 'Phone', scope: 'private' },
+                { name: 'In-Person', scope: 'private' }
+            ],
+            privatePricePresets: [60, 120, 150]
         };
         this.settings = this.loadSettings();
         this.applySettings();
@@ -23,7 +31,24 @@ class SettingsStore {
 
     loadSettings() {
         const saved = localStorage.getItem('tarotTrackerSettings');
-        return saved ? { ...this.defaults, ...JSON.parse(saved) } : { ...this.defaults };
+        const settings = saved ? { ...this.defaults, ...JSON.parse(saved) } : { ...this.defaults };
+        const migrated = this.migrateSources(settings);
+        if (migrated) {
+            localStorage.setItem('tarotTrackerSettings', JSON.stringify(settings));
+        }
+        return settings;
+    }
+
+    /**
+     * Migrate legacy flat string array sources to scoped object format.
+     * Returns true if migration was performed, false otherwise.
+     */
+    migrateSources(settings) {
+        if (Array.isArray(settings.sources) && settings.sources.length > 0 && typeof settings.sources[0] === 'string') {
+            settings.sources = settings.sources.map(name => ({ name, scope: 'event' }));
+            return true;
+        }
+        return false;
     }
 
     saveSettings() {
@@ -184,13 +209,21 @@ class SettingsStore {
         const list = document.getElementById('sourcesList');
         if (!list) return;
         
-        list.innerHTML = sources.map((source, index) => `
-            <div class="payment-method-item">
-                <input type="text" class="payment-method-input" value="${source}" 
-                       onchange="settings.updateSource(${index}, this.value)">
+        list.innerHTML = sources.map((source, index) => {
+            const name = typeof source === 'object' ? source.name : source;
+            const scope = typeof source === 'object' ? source.scope : 'event';
+            return `
+            <div class="payment-method-item source-item">
+                <input type="text" class="payment-method-input" value="${name}" 
+                       onchange="settings.updateSource(${index}, 'name', this.value)">
+                <select class="source-scope-select" onchange="settings.updateSource(${index}, 'scope', this.value)">
+                    <option value="event"${scope === 'event' ? ' selected' : ''}>Event</option>
+                    <option value="private"${scope === 'private' ? ' selected' : ''}>Private</option>
+                    <option value="all"${scope === 'all' ? ' selected' : ''}>All</option>
+                </select>
                 <button class="payment-method-delete btn btn-danger btn-small" onclick="settings.deleteSource(${index})">Delete</button>
             </div>
-        `).join('');
+        `}).join('');
         showSheet('sourcesOverlay', 'sourcesSheet');
     }
     
@@ -199,11 +232,15 @@ class SettingsStore {
         hideSheet('sourcesOverlay', 'sourcesSheet');
     }
     
-    updateSource(index, value) {
+    updateSource(index, field, value) {
         if (this.get('haptic')) vibrate([30]);
-        const sources = [...this.get('sources')];
-        sources[index] = value.trim();
-        this.set('sources', sources.filter(s => s));
+        const sources = [...this.get('sources')].map(s => typeof s === 'object' ? { ...s } : { name: s, scope: 'event' });
+        if (field === 'name') {
+            sources[index].name = value.trim();
+        } else if (field === 'scope') {
+            sources[index].scope = value;
+        }
+        this.set('sources', sources.filter(s => s.name));
         showSnackbar('Setting saved', 'success');
     }
     
@@ -218,9 +255,61 @@ class SettingsStore {
     addSource() {
         if (this.get('haptic')) vibrate([50]);
         const sources = [...this.get('sources')];
-        sources.push('New Source');
+        sources.push({ name: 'New Source', scope: 'all' });
         this.set('sources', sources);
         this.showSourcesSheet();
+    }
+
+    customizePrivatePricePresets() {
+        if (this.get('haptic')) vibrate([50]);
+        this.showPrivatePricePresetsSheet();
+    }
+
+    showPrivatePricePresetsSheet() {
+        const presets = this.get('privatePricePresets');
+        const list = document.getElementById('privatePricePresetsList');
+        if (!list) return;
+
+        list.innerHTML = presets.map((preset, index) => `
+            <div class="payment-method-item">
+                <input type="number" class="payment-method-input" value="${preset}" min="0" step="1"
+                       onchange="settings.updatePrivatePricePreset(${index}, this.value)">
+                <button class="payment-method-delete btn btn-danger btn-small" onclick="settings.deletePrivatePricePreset(${index})">Delete</button>
+            </div>
+        `).join('');
+        showSheet('privatePricePresetsOverlay', 'privatePricePresetsSheet');
+    }
+
+    closePrivatePricePresetsSheet() {
+        if (this.get('haptic')) vibrate([30]);
+        hideSheet('privatePricePresetsOverlay', 'privatePricePresetsSheet');
+    }
+
+    updatePrivatePricePreset(index, value) {
+        if (this.get('haptic')) vibrate([30]);
+        const presets = [...this.get('privatePricePresets')];
+        const numValue = parseInt(value);
+        if (!isNaN(numValue) && numValue >= 0) {
+            presets[index] = numValue;
+            this.set('privatePricePresets', presets);
+            showSnackbar('Setting saved', 'success');
+        }
+    }
+
+    deletePrivatePricePreset(index) {
+        if (this.get('haptic')) vibrate([50]);
+        const presets = [...this.get('privatePricePresets')];
+        presets.splice(index, 1);
+        this.set('privatePricePresets', presets);
+        this.showPrivatePricePresetsSheet();
+    }
+
+    addPrivatePricePreset() {
+        if (this.get('haptic')) vibrate([50]);
+        const presets = [...this.get('privatePricePresets')];
+        presets.push(0);
+        this.set('privatePricePresets', presets);
+        this.showPrivatePricePresetsSheet();
     }
 
     async exportData() {
@@ -278,20 +367,6 @@ class SettingsStore {
             showSnackbar('Data exported successfully', 'success');
         } catch (error) {
             showSnackbar('Export failed', 'error');
-        }
-    }
-
-    // Settings UI functions
-    collapseSettings() {
-        if (window.session) {
-            window.session.collapseSettings();
-        }
-    }
-
-    toggleSettings() {
-        vibrate([50]);
-        if (window.session) {
-            window.session.toggleSettings();
         }
     }
 

@@ -4,9 +4,12 @@ class SessionStore {
                 this._location = '';
                 this._sessionDate = '';
                 this._price = 40;
+                this._type = 'event';
                 this._readings = [];
                 this.saveTimeout = null;
                 this._loading = false;
+                this._loadedSessions = [];
+                this._sessionFilter = 'all';
             }
 
             // Getters - read from auth
@@ -17,6 +20,7 @@ class SessionStore {
             get sessionDate() { return this._sessionDate; }
             get price() { return this._price; }
             get readings() { return this._readings; }
+            get type() { return this._type || 'event'; }
 
             // Computed properties
             get canCreateSession() {
@@ -51,6 +55,11 @@ class SessionStore {
                 this._price = value;
                 this.updateUI();
                 this.debouncedSave();
+            }
+            set type(value) {
+                this._type = (value === 'private') ? 'private' : 'event';
+                this.updateUI();
+                this.save();
             }
             set readings(value) {
                 this._readings = value;
@@ -150,47 +159,26 @@ class SessionStore {
             updateUI() {
                 // Only update if authenticated
                 if (!this.userId) {
-                    const eventSettings = document.getElementById('event-settings');
                     const readingsButtons = document.getElementById('container-readings-buttons');
                     const readingsTotals = document.getElementById('container-readings-totals');
                     const readingsList = document.getElementById('container-readings-list');
+                    const sessionBar = document.getElementById('session-bar');
                     
-                    if (eventSettings) eventSettings.style.setProperty('display', 'none');
                     if (readingsButtons) readingsButtons.style.setProperty('display', 'none');
                     if (readingsTotals) readingsTotals.style.setProperty('display', 'none');
                     if (readingsList) readingsList.style.setProperty('display', 'none');
+                    if (sessionBar) sessionBar.style.setProperty('display', 'none');
                     return;
                 }
                 
-                // Show session controls when authenticated
-                const eventSettings = document.getElementById('event-settings');
-                const readingsButtons = document.getElementById('container-readings-buttons');
-                const readingsTotals = document.getElementById('container-readings-totals');
-                const readingsList = document.getElementById('container-readings-list');
+                // Session bar always visible when authenticated
+                const sessionBar = document.getElementById('session-bar');
+                if (sessionBar) sessionBar.style.removeProperty('display');
                 
-                if (eventSettings) eventSettings.style.removeProperty('display');
-                if (readingsButtons) readingsButtons.style.removeProperty('display');
-                if (readingsTotals) readingsTotals.style.removeProperty('display');
-                if (readingsList) readingsList.style.removeProperty('display');
-                
-                // Sync DOM with internal state
-                const locationInput = document.getElementById('location');
-                if (locationInput && locationInput.value !== this._location) {
-                    locationInput.value = this._location;
-                }
-                
-                const sessionDateInput = document.getElementById('sessionDate');
-                if (sessionDateInput && sessionDateInput.value !== this._sessionDate) {
-                    sessionDateInput.value = this._sessionDate;
-                }
-                
-                const priceInput = document.getElementById('price');
-                if (priceInput && priceInput.value != this._price) {
-                    priceInput.value = this._price;
-                }
-                
+                // Readings section visibility controlled by updateSections based on session state
                 this.updateButtons();
                 this.updateSections();
+                this.updateSessionBar();
             }
 
             updateButtons() {
@@ -213,17 +201,19 @@ class SessionStore {
                 }
                 
                 // Create Session button - only visible in setup phase
-                if (this.sessionPhase === 'SETUP' || this.sessionPhase === 'READY_TO_CREATE') {
-                    createBtn.style.display = 'block';
-                    if (this.sessionPhase === 'READY_TO_CREATE') {
-                        createBtn.classList.remove('inactive');
-                        createBtn.classList.add('active');
+                if (createBtn) {
+                    if (this.sessionPhase === 'SETUP' || this.sessionPhase === 'READY_TO_CREATE') {
+                        createBtn.style.display = 'block';
+                        if (this.sessionPhase === 'READY_TO_CREATE') {
+                            createBtn.classList.remove('inactive');
+                            createBtn.classList.add('active');
+                        } else {
+                            createBtn.classList.remove('active');
+                            createBtn.classList.add('inactive');
+                        }
                     } else {
-                        createBtn.classList.remove('active');
-                        createBtn.classList.add('inactive');
+                        createBtn.style.display = 'none';
                     }
-                } else {
-                    createBtn.style.display = 'none';
                 }
                 
                 // Show/hide required fields note
@@ -231,57 +221,51 @@ class SessionStore {
                     requiredNote.style.display = this.sessionPhase === 'SETUP' ? 'block' : 'none';
                 }
                 
-                // Highlight required fields and auto-expand when in setup mode
-                if (this.sessionPhase === 'SETUP') {
-                    // Auto-expand settings panel
-                    const content = document.getElementById('settings-content');
-                    const icon = document.querySelector('.collapse-icon');
-                    if (content && !content.classList.contains('open')) {
-                        content.classList.add('open');
-                        icon.classList.add('open');
-                    }
-                    
-                    if (!this._location.trim()) {
-                        locationInput.classList.add('required-field');
+                // Highlight required fields when in setup mode
+                if (locationInput && sessionDateInput) {
+                    if (this.sessionPhase === 'SETUP') {
+                        if (!this._location.trim()) {
+                            locationInput.classList.add('required-field');
+                        } else {
+                            locationInput.classList.remove('required-field');
+                        }
+                        
+                        if (!this._sessionDate) {
+                            sessionDateInput.classList.add('required-field');
+                        } else {
+                            sessionDateInput.classList.remove('required-field');
+                        }
                     } else {
                         locationInput.classList.remove('required-field');
-                    }
-                    
-                    if (!this._sessionDate) {
-                        sessionDateInput.classList.add('required-field');
-                    } else {
                         sessionDateInput.classList.remove('required-field');
                     }
-                } else {
-                    locationInput.classList.remove('required-field');
-                    sessionDateInput.classList.remove('required-field');
                 }
                 
                 // New Session button - only show when session is active
-                newBtn.style.display = this.sessionPhase === 'ACTIVE' ? 'block' : 'none';
-                
-                // Auto-expand settings when create button becomes ready
-                if (this.sessionPhase === 'READY_TO_CREATE') {
-                    const content = document.getElementById('settings-content');
-                    const icon = document.querySelector('.collapse-icon');
-                    if (content && !content.classList.contains('open')) {
-                        content.classList.add('open');
-                        icon.classList.add('open');
-                    }
+                if (newBtn) {
+                    newBtn.style.display = this.sessionPhase === 'ACTIVE' ? 'block' : 'none';
                 }
             }
 
             updateSections() {
                 if (!this.userId) return;
                 
+                // Use both class selectors and IDs for robustness
                 const buttonsDiv = document.querySelector('.buttons');
                 const totalsDiv = document.querySelector('.totals');
                 const readingsDiv = document.querySelector('.readings-list');
+                const readingsButtons = document.getElementById('container-readings-buttons');
+                const readingsTotals = document.getElementById('container-readings-totals');
+                const readingsList = document.getElementById('container-readings-list');
                 
                 const showSections = this.sessionPhase === 'ACTIVE';
                 if (buttonsDiv) buttonsDiv.style.display = showSections ? 'flex' : 'none';
                 if (totalsDiv) totalsDiv.style.display = showSections ? 'block' : 'none';
                 if (readingsDiv) readingsDiv.style.display = showSections ? 'block' : 'none';
+                // Also set by ID in case class selectors miss them
+                if (readingsButtons && readingsButtons !== buttonsDiv) readingsButtons.style.display = showSections ? 'flex' : 'none';
+                if (readingsTotals && readingsTotals !== totalsDiv) readingsTotals.style.display = showSections ? 'block' : 'none';
+                if (readingsList && readingsList !== readingsDiv) readingsList.style.display = showSections ? 'block' : 'none';
             }
 
             updateReadingsList() {
@@ -394,6 +378,7 @@ class SessionStore {
                     location: this._location,
                     sessionDate: this._sessionDate,
                     price: this._price,
+                    type: this._type || 'event',
                     readings: this._readings
                 };
                 localStorage.setItem(`readingTracker_${this.userId}`, JSON.stringify(state));
@@ -419,11 +404,43 @@ class SessionStore {
                     this._location = state.location || '';
                     this._sessionDate = state.sessionDate || state.selectedDay || '';
                     this._price = state.price || 40;
+                    if (state.type !== 'event' && state.type !== 'private') {
+                        console.log(`[SessionStore] loadFromStorage: type "${state.type}" is missing or invalid, defaulting to "event"`);
+                    }
+                    this._type = (state.type === 'private') ? 'private' : 'event';
                     this._readings = state.readings || [];
                     
                     this.updateReadingsList();
                     this.updateTotals();
                     this.updateUI();
+                }
+            }
+
+            promptRestoreSession() {
+                if (!this.userId) return;
+
+                const saved = localStorage.getItem(`readingTracker_${this.userId}`);
+                if (!saved) {
+                    this.updateUI();
+                    return;
+                }
+
+                const state = JSON.parse(saved);
+                // Only prompt if there's an actual session to restore
+                if (!state.sessionId) {
+                    this.updateUI();
+                    return;
+                }
+
+                const location = state.location || 'Unknown location';
+                const date = state.sessionDate || state.selectedDay || 'Unknown date';
+                const readingCount = (state.readings || []).length;
+                const message = `Your last session was "${location}" on ${date} (${readingCount} reading${readingCount !== 1 ? 's' : ''}). Restore it?`;
+
+                if (confirm(message)) {
+                    this.loadFromStorage();
+                } else {
+                    this.startOver();
                 }
             }
             
@@ -518,14 +535,14 @@ class SessionStore {
                             user_id: this.userId,
                             user_name: this.userName,
                             location: this._location,
-                            reading_price: this._price
+                            reading_price: this._price,
+                            type: this._type || 'event'
                         }])
                         .select();
                     
                     if (newData && newData[0]) {
                         this.sessionId = newData[0].id;
                         this.readings = [];
-                        this.collapseSettings();
                         showSnackbar('Session created successfully!');
                     }
                 } catch (error) {
@@ -549,13 +566,17 @@ class SessionStore {
             }
 
             async showLoadSession() {
+                this.closeHamburgerMenu();
                 if (!this.userId) return;
                 
                 vibrate([50]);
                 const btn = document.querySelector('.btn-load-session');
-                const originalText = btn.textContent;
-                btn.innerHTML = '<span class="spinner inline"></span>Loading...';
-                btn.classList.add('loading');
+                let originalText;
+                if (btn) {
+                    originalText = btn.textContent;
+                    btn.innerHTML = '<span class="spinner inline"></span>Loading...';
+                    btn.classList.add('loading');
+                }
                 
                 try {
                     const { data } = await supabaseClient
@@ -566,19 +587,16 @@ class SessionStore {
                         .order('created_at', { ascending: false });
                     
                     if (data && data.length > 0) {
-                        const sessionsList = document.getElementById('sessionsList');
-                        sessionsList.innerHTML = data.map(sessionData => {
-                            const readingCount = sessionData.readings_count || 0;
-                            const date = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString();
-                            const dayOfWeek = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString('en-US', { weekday: 'short' });
-                            const grandTotal = sessionData.total_earnings || 0;
-                            return `
-                                <div class="session-item" onclick="session.selectSession('${sessionData.id}', event)">
-                                    <div class="session-info">${Utils.sanitize(sessionData.location) || 'No location'} - ${dayOfWeek} ${date}</div>
-                                    <div class="session-details">${readingCount} readings  $${grandTotal.toFixed(2)}</div>
-                                </div>
-                            `;
-                        }).join('');
+                        this._loadedSessions = data;
+                        this._sessionFilter = 'all';
+                        // Reset search input and filter buttons
+                        const searchInput = document.getElementById('session-search');
+                        if (searchInput) searchInput.value = '';
+                        const filterBtns = document.querySelectorAll('.session-filter-btn');
+                        filterBtns.forEach(btn => {
+                            btn.classList.toggle('active', btn.dataset.filter === 'all');
+                        });
+                        this.filterLoadedSessions();
                         showSheet('sessionOverlay', 'sessionSheet');
                     } else {
                         showSnackbar('No existing sessions found', 'error');
@@ -586,9 +604,71 @@ class SessionStore {
                 } catch (error) {
                     showSnackbar('Failed to load sessions', 'error');
                 } finally {
-                    btn.textContent = originalText;
-                    btn.classList.remove('loading');
+                    if (btn) {
+                        btn.textContent = originalText;
+                        btn.classList.remove('loading');
+                    }
                 }
+            }
+
+            filterLoadedSessions(typeFilter, btnElement) {
+                // If called with a type filter (from button click), update the active filter
+                if (typeFilter) {
+                    this._sessionFilter = typeFilter;
+                    // Update active class on filter buttons
+                    const filterBtns = document.querySelectorAll('.session-filter-btn');
+                    filterBtns.forEach(btn => btn.classList.remove('active'));
+                    if (btnElement) {
+                        btnElement.classList.add('active');
+                    } else {
+                        // Find the button with matching data-filter
+                        filterBtns.forEach(btn => {
+                            if (btn.dataset.filter === typeFilter) btn.classList.add('active');
+                        });
+                    }
+                }
+
+                const searchInput = document.getElementById('session-search');
+                const searchText = (searchInput ? searchInput.value : '').toLowerCase();
+                const activeFilter = this._sessionFilter;
+
+                const filtered = this._loadedSessions.filter(sessionData => {
+                    // Type filter
+                    if (activeFilter !== 'all' && sessionData.type !== activeFilter) return false;
+                    // Search filter - case-insensitive substring match against location
+                    if (searchText && !(sessionData.location || '').toLowerCase().includes(searchText)) return false;
+                    return true;
+                });
+
+                const sessionsList = document.getElementById('sessionsList');
+                if (filtered.length > 0) {
+                    sessionsList.innerHTML = filtered.map(sessionData => {
+                        const readingCount = sessionData.readings_count || 0;
+                        const date = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString();
+                        const dayOfWeek = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString('en-US', { weekday: 'short' });
+                        const grandTotal = sessionData.total_earnings || 0;
+                        const typeBadge = sessionData.type === 'private'
+                            ? '<span class="session-type-badge session-type-private"><i class="fas fa-user"></i> Private</span>'
+                            : '<span class="session-type-badge session-type-event"><i class="fas fa-store"></i> Event</span>';
+                        return `
+                            <div class="session-item" onclick="session.selectSession('${sessionData.id}', event)">
+                                <div class="session-info">${Utils.sanitize(sessionData.location) || 'No location'} - ${dayOfWeek} ${date} ${typeBadge}</div>
+                                <div class="session-details">${readingCount} readings  $${grandTotal.toFixed(2)}</div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    sessionsList.innerHTML = '<div class="no-sessions-message">No matching sessions</div>';
+                }
+            }
+
+            setSessionFilter(type) {
+                this._sessionFilter = type;
+                const filterBtns = document.querySelectorAll('.session-filter-btn');
+                filterBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.filter === type);
+                });
+                this.filterLoadedSessions();
             }
 
             closeSessionSheet() {
@@ -630,6 +710,7 @@ class SessionStore {
                 this._location = sessionData.location || '';
                 this._sessionDate = sessionData.session_date || '';
                 this._price = sessionData.reading_price || 40;
+                this._type = (sessionData.type === 'private') ? 'private' : 'event';
                 
                 try {
                     const { data: readings } = await supabaseClient
@@ -651,49 +732,454 @@ class SessionStore {
                 this.updateUI();
                 this.saveToLocalStorage();
                 
-                this.collapseSettings();
                 showSnackbar(`Loaded session: ${sessionData.location} on ${sessionData.session_date}`);
             }
 
-            collapseSettings() {
-                const content = document.getElementById('settings-content');
-                const icon = document.querySelector('.collapse-icon');
-                const summary = document.getElementById('session-summary');
+            updateSessionBar() {
+                const locationEl = document.getElementById('session-bar-location');
+                const priceEl = document.getElementById('session-bar-price');
+                const dateEl = document.getElementById('session-bar-date');
+                const editBtn = document.getElementById('btn-session-edit');
                 
-                if (content) {
-                    content.classList.remove('open');
-                    icon.classList.remove('open');
-                    
-                    if (summary && this.hasValidSession) {
-                        const date = new Date(normalizeDate(this._sessionDate)).toLocaleDateString();
-                        summary.textContent = `${this._location} - ${date}`;
-                        summary.style.display = 'block';
-                    }
-                }
-            }
-
-            expandSettings() {
-                const content = document.getElementById('settings-content');
-                const icon = document.querySelector('.collapse-icon');
-                const summary = document.getElementById('session-summary');
+                if (!locationEl) return;
                 
-                if (content) {
-                    content.classList.add('open');
-                    icon.classList.add('open');
-                    
-                    if (summary) {
-                        summary.style.display = 'none';
-                    }
-                }
-            }
-
-            toggleSettings() {
-                vibrate([50]);
-                const content = document.getElementById('settings-content');
-                if (content && content.classList.contains('open')) {
-                    this.collapseSettings();
+                if (!this.hasValidSession) {
+                    // No active session state
+                    locationEl.textContent = '(no active session)';
+                    locationEl.classList.add('no-session');
+                    priceEl.style.display = 'none';
+                    dateEl.style.display = 'none';
+                    editBtn.style.display = 'none';
                 } else {
-                    this.expandSettings();
+                    // Active session - determine type icon
+                    const type = this._type || 'event';
+                    const iconClass = type === 'private' ? 'fas fa-user' : 'fas fa-store';
+                    
+                    locationEl.innerHTML = `<i class="${iconClass}" style="margin-right: 6px;"></i>${Utils.sanitize(this._location)}`;
+                    locationEl.classList.remove('no-session');
+                    
+                    priceEl.textContent = '· $' + this._price;
+                    priceEl.style.display = '';
+                    
+                    // Format date as MM/DD from YYYY-MM-DD
+                    if (this._sessionDate) {
+                        const parts = this._sessionDate.split('-');
+                        const mmdd = parts[1] + '/' + parts[2];
+                        dateEl.textContent = '· ' + mmdd;
+                        dateEl.style.display = '';
+                    } else {
+                        dateEl.style.display = 'none';
+                    }
+                    
+                    editBtn.style.display = '';
+                    editBtn.onclick = () => {
+                        this.openSessionSheet('edit', this._type || 'event');
+                    };
                 }
             }
+
+            // === Hamburger Menu Methods ===
+            
+            toggleHamburgerMenu() {
+                const overlay = document.getElementById('hamburger-overlay');
+                const menu = document.getElementById('hamburger-menu');
+                if (!overlay || !menu) return;
+                
+                const isVisible = menu.style.display === 'block';
+                if (isVisible) {
+                    this.closeHamburgerMenu();
+                } else {
+                    // Update "End Session" disabled state
+                    const endItem = document.getElementById('hamburger-end-session');
+                    if (endItem) {
+                        if (!this.hasValidSession) {
+                            endItem.classList.add('disabled');
+                        } else {
+                            endItem.classList.remove('disabled');
+                        }
+                    }
+                    overlay.style.display = 'block';
+                    menu.style.display = 'block';
+                }
+            }
+
+            closeHamburgerMenu() {
+                const overlay = document.getElementById('hamburger-overlay');
+                const menu = document.getElementById('hamburger-menu');
+                if (overlay) overlay.style.display = 'none';
+                if (menu) menu.style.display = 'none';
+            }
+
+            newEvent() {
+                this.closeHamburgerMenu();
+                this.openSessionSheet('create', 'event');
+            }
+
+            newPrivateReading() {
+                this.closeHamburgerMenu();
+                this.openSessionSheet('create', 'private');
+            }
+
+            openSessionSheet(mode, type) {
+                this._sheetMode = mode;
+                this._sheetType = type;
+                this._sheetSelectedPrice = null;
+                this._sheetSelectedSource = null;
+
+                // Set title
+                const titleEl = document.getElementById('sessionSheetTitle');
+                if (titleEl) {
+                    if (mode === 'edit') {
+                        const editIcon = type === 'private' ? 'fas fa-user' : 'fas fa-store';
+                        titleEl.innerHTML = `<i class="${editIcon}" style="margin-right: 8px;"></i>Edit Session`;
+                    } else if (type === 'private') {
+                        titleEl.innerHTML = '<i class="fas fa-user" style="margin-right: 8px;"></i>New Private Reading';
+                    } else {
+                        titleEl.innerHTML = '<i class="fas fa-store" style="margin-right: 8px;"></i>New Event';
+                    }
+                }
+
+                const fieldsContainer = document.getElementById('sessionSheetFields');
+                if (!fieldsContainer) return;
+
+                const today = new Date().toISOString().split('T')[0];
+                const dateValue = mode === 'edit' ? (this._sessionDate || today) : today;
+                const editLocation = mode === 'edit' ? Utils.sanitize(this._location) : '';
+                const priceValue = mode === 'edit' ? this._price : this._price;
+
+                if (type === 'event') {
+                    fieldsContainer.innerHTML = `
+                        <div class="input-group">
+                            <label>Location</label>
+                            <input type="text" id="sessionSheetLocation" maxlength="100" placeholder="Event Name / Location" value="${editLocation}">
+                        </div>
+                        <div class="input-group">
+                            <label>Date</label>
+                            <input type="date" id="sessionSheetDate" value="${dateValue}" onclick="this.showPicker()">
+                        </div>
+                        <div class="input-group">
+                            <label>Price</label>
+                            <div class="price-input-container">
+                                <span class="dollar-sign">$</span>
+                                <input type="number" id="sessionSheetPrice" step="0.01" min="0" value="${priceValue}">
+                            </div>
+                        </div>`;
+                } else {
+                    // Private type
+                    const presets = window.settings ? window.settings.get('privatePricePresets') : [];
+                    const sources = window.settings ? window.settings.get('sources') : [];
+                    const filteredSources = sources.filter(s => s.scope === 'private' || s.scope === 'all');
+
+                    let priceHtml = '';
+                    if (presets && presets.length > 0) {
+                        const selectedPrice = mode === 'edit' ? this._price : null;
+                        this._sheetSelectedPrice = selectedPrice;
+                        priceHtml = `
+                            <div class="input-group">
+                                <label>Price</label>
+                                <div class="price-presets" id="sessionSheetPricePresets">
+                                    ${presets.map(p => `<button class="preset-btn${p === selectedPrice ? ' active' : ''}" onclick="session.selectPresetPrice(${p})">$${p}</button>`).join('')}
+                                </div>
+                            </div>`;
+                    } else {
+                        priceHtml = `
+                            <div class="input-group">
+                                <label>Price</label>
+                                <div class="price-input-container">
+                                    <span class="dollar-sign">$</span>
+                                    <input type="number" id="sessionSheetPrice" step="0.01" min="0" value="${priceValue}">
+                                </div>
+                            </div>`;
+                    }
+
+                    let sourcesHtml = '';
+                    if (mode !== 'edit' && filteredSources.length > 0) {
+                        const selectedSource = '';
+                        this._sheetSelectedSource = null;
+                        sourcesHtml = `
+                            <div class="input-group">
+                                <label>Source</label>
+                                <div class="source-toggles" id="sessionSheetSourceToggles">
+                                    ${filteredSources.map(s => `<button class="source-toggle-btn" onclick="session.selectSessionSource('${Utils.sanitize(s.name)}')">${Utils.sanitize(s.name)}</button>`).join('')}
+                                </div>
+                            </div>`;
+                    }
+
+                    fieldsContainer.innerHTML = `
+                        <div class="input-group">
+                            <label>Client</label>
+                            <input type="text" id="sessionSheetLocation" maxlength="100" placeholder="Client Name" value="${editLocation}">
+                        </div>
+                        <div class="input-group">
+                            <label>Date</label>
+                            <input type="date" id="sessionSheetDate" value="${dateValue}" onclick="this.showPicker()">
+                        </div>
+                        ${priceHtml}
+                        ${sourcesHtml}`;
+                }
+
+                showSheet('sessionSheetOverlay', 'sessionCreationSheet');
+            }
+
+            selectPresetPrice(value) {
+                this._sheetSelectedPrice = value;
+                const container = document.getElementById('sessionSheetPricePresets');
+                if (container) {
+                    container.querySelectorAll('.preset-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.textContent === '$' + value);
+                    });
+                }
+            }
+
+            selectSessionSource(name) {
+                this._sheetSelectedSource = name;
+                const container = document.getElementById('sessionSheetSourceToggles');
+                if (container) {
+                    container.querySelectorAll('.source-toggle-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.textContent === name);
+                    });
+                }
+            }
+
+            async saveSessionSheet() {
+                vibrate([50]);
+
+                // Read values from form
+                const locationInput = document.getElementById('sessionSheetLocation');
+                const dateInput = document.getElementById('sessionSheetDate');
+                const priceInput = document.getElementById('sessionSheetPrice');
+
+                const location = locationInput ? locationInput.value.trim() : '';
+                const date = dateInput ? dateInput.value : '';
+
+                // For private type with presets, use selected preset price; otherwise use input
+                let price;
+                if (this._sheetType === 'private' && this._sheetSelectedPrice !== null) {
+                    price = this._sheetSelectedPrice;
+                } else if (priceInput) {
+                    price = parseFloat(priceInput.value) || 0;
+                } else {
+                    price = this._price || 40;
+                }
+
+                // Validation
+                let hasError = false;
+
+                // Clear previous errors first
+                const fields = document.getElementById('sessionSheetFields');
+                if (fields) {
+                    fields.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+                    fields.querySelectorAll('input').forEach(el => el.style.border = '');
+                }
+
+                // Location/Client name: must have ≥1 non-whitespace char
+                if (!location || location.trim().length === 0) {
+                    if (locationInput) {
+                        locationInput.classList.add('input-error');
+                    }
+                    hasError = true;
+                }
+
+                // Date: must be a valid date (YYYY-MM-DD format)
+                if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || isNaN(new Date(date + 'T00:00:00').getTime())) {
+                    if (dateInput) {
+                        dateInput.classList.add('input-error');
+                    }
+                    hasError = true;
+                }
+
+                if (hasError) {
+                    showSnackbar('Please fill in required fields', 'error');
+                    return;
+                }
+
+                // Disable save button during operation
+                const saveBtn = document.getElementById('btn-session-save');
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<span class="spinner inline"></span>Saving...';
+                }
+
+                try {
+                    if (this._sheetMode === 'edit') {
+                        // UPDATE existing session (type is locked - never changed on edit)
+                        if (this._sessionId) {
+                            await supabaseClient
+                                .from('blacksheep_reading_tracker_sessions')
+                                .update({
+                                    location: location,
+                                    session_date: date,
+                                    reading_price: price
+                                })
+                                .eq('id', this._sessionId);
+                        }
+
+                        // Update local state
+                        this._loading = true;
+                        this._location = location;
+                        this._sessionDate = date;
+                        this._price = price;
+                        this._loading = false;
+
+                        this.saveToLocalStorage();
+                        this.closeSessionCreationSheet();
+                        this.updateSessionBar();
+                        this.updateUI();
+                        showSnackbar('Session updated', 'success');
+
+                    } else {
+                        // CREATE new session
+                        // Check for duplicate first
+                        const { data: existing } = await supabaseClient
+                            .from('blacksheep_reading_tracker_sessions')
+                            .select('*')
+                            .eq('session_date', date)
+                            .eq('user_id', this.userId)
+                            .eq('location', location)
+                            .limit(1);
+
+                        if (existing && existing[0]) {
+                            if (saveBtn) {
+                                saveBtn.disabled = false;
+                                saveBtn.textContent = 'Save';
+                            }
+                            const message = `${existing[0].location} on ${existing[0].session_date} already exists`;
+                            showSnackbar(message);
+                            if (confirm(`${message}. Load existing session?`)) {
+                                await this.loadExistingSession(existing[0]);
+                                this.closeSessionCreationSheet();
+                            }
+                            return;
+                        }
+
+                        // Insert new session with type
+                        const { data: newData } = await supabaseClient
+                            .from('blacksheep_reading_tracker_sessions')
+                            .insert([{
+                                session_date: date,
+                                user_id: this.userId,
+                                user_name: this.userName,
+                                location: location,
+                                reading_price: price,
+                                type: this._sheetType
+                            }])
+                            .select();
+
+                        if (newData && newData[0]) {
+                            this._loading = true;
+                            this._sessionId = newData[0].id;
+                            this._location = location;
+                            this._sessionDate = date;
+                            this._price = price;
+                            this._type = this._sheetType;
+                            this._readings = [];
+                            this._loading = false;
+
+                            // For private sessions, auto-create the first reading with selected price and source
+                            if (this._sheetType === 'private') {
+                                const readingData = {
+                                    timestamp: new Date().toISOString(),
+                                    tip: 0,
+                                    price: price
+                                };
+                                if (this._sheetSelectedSource) {
+                                    readingData.source = this._sheetSelectedSource;
+                                }
+                                await this.addReading(readingData);
+                            }
+
+                            this.saveToLocalStorage();
+                            this.closeSessionCreationSheet();
+                            this.updateReadingsList();
+                            this.updateTotals();
+                            this.updateSessionBar();
+                            this.updateUI();
+                            showSnackbar('Session created!', 'success');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Save session sheet error:', error);
+                    showSnackbar('Database error, using offline mode', 'error');
+
+                    // Offline fallback: save locally anyway
+                    this._loading = true;
+                    this._location = location;
+                    this._sessionDate = date;
+                    this._price = price;
+                    this._type = this._sheetType;
+                    if (this._sheetMode === 'create') {
+                        this._sessionId = 'offline_' + Date.now();
+                        this._readings = [];
+                    }
+                    this._loading = false;
+
+                    // For private sessions, auto-create the first reading with selected price and source
+                    if (this._sheetMode === 'create' && this._sheetType === 'private') {
+                        const readingData = {
+                            timestamp: new Date().toISOString(),
+                            tip: 0,
+                            price: price
+                        };
+                        if (this._sheetSelectedSource) {
+                            readingData.source = this._sheetSelectedSource;
+                        }
+                        await this.addReading(readingData);
+                    }
+
+                    this.saveToLocalStorage();
+                    this.closeSessionCreationSheet();
+                    this.updateReadingsList();
+                    this.updateTotals();
+                    this.updateSessionBar();
+                    this.updateUI();
+                    registerBackgroundSync();
+                } finally {
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = 'Save';
+                    }
+                }
+            }
+
+            endSession() {
+                this.closeHamburgerMenu();
+                if (!this.hasValidSession) return;
+
+                if (!confirm('End the current session? This will clear all active session data.')) return;
+
+                // Clear all session state
+                this._loading = true;
+                this._sessionId = null;
+                this._location = '';
+                this._sessionDate = '';
+                this._price = 40;
+                this._readings = [];
+                this._type = 'event';
+                this._loading = false;
+
+                // Persist cleared state
+                this.saveToLocalStorage();
+
+                // Update full UI (handles session bar + readings section visibility)
+                this.updateUI();
+
+                showSnackbar('Session ended', 'success');
+            }
+
+            closeSessionCreationSheet() {
+                vibrate([30]);
+                hideSheet('sessionSheetOverlay', 'sessionCreationSheet');
+
+                // Clear error indicators
+                const fields = document.getElementById('sessionSheetFields');
+                if (fields) {
+                    fields.querySelectorAll('.input-error').forEach(el => {
+                        el.classList.remove('input-error');
+                    });
+                    fields.querySelectorAll('input').forEach(el => {
+                        el.style.border = '';
+                    });
+                }
+            }
+
         }

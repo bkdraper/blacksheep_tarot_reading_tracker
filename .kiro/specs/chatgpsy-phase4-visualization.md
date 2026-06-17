@@ -52,7 +52,7 @@ chart.setOption({
 ```
 
 **Bedrock Response Format**:
-Agent must return chart data in structured format:
+Agent must return chart data in structured format. Note: As of v3.99.8, the Bedrock system prompt enforces HTML-only output (no plain text, RTF, or markdown). Chart triggers should be integrated into the HTML response format:
 ```json
 {
   "type": "chart",
@@ -64,6 +64,7 @@ Agent must return chart data in structured format:
   "title": "Top Locations by Earnings"
 }
 ```
+Implementation note: The system prompt will need a new section added for chart data formatting. Current prompt (~57% reduced from original) uses XML format for better Claude comprehension.
 
 ### #10a: Sparklines
 **Priority**: Low | **Effort**: Medium
@@ -144,9 +145,10 @@ Add tiny inline trend indicators.
 - `styles.css` - Add chart and sparkline styles
 
 ### Backend (Lambda)
-- `mcp-server/bedrock-handler.js` - Format chart data
+- `mcp-server/bedrock_lambda.js` - Format chart data responses
+- `mcp-server/server.js` - Shared tool definitions (v2 tools)
 - `mcp-server/bedrock-agent-system-prompt.txt` - Add chart instructions
-- Note: Both MCP and Bedrock lambdas share tool logic, only response format differs
+- Note: All three lambdas share tool logic in server.js, differ only in response protocol
 
 ## Technical Specifications
 

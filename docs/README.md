@@ -2,7 +2,7 @@
 
 Mobile-optimized single page app for tracking tarot readings and tips. Built with pure HTML/CSS/JS and Supabase cloud database.
 
-## Version: v4.0.1
+## Version: v4.3.2
 
 ## Architecture Overview
 
@@ -154,6 +154,24 @@ npm start  # Runs on port 8080
 # Access at http://192.168.5.62:8080
 ```
 
+## MCP Server Setup (for Kiro/AI assistants)
+
+This project uses MCP servers for AI-assisted development. The workspace config (`.kiro/settings/mcp.json`) is committed and provides:
+- **tarot-tracker** — Project's own data access Lambda (public URL, no auth needed)
+- **chrome-devtools** — Browser debugging (disabled by default)
+
+The following servers must be configured at the **user level** (`~/.kiro/settings/mcp.json`) since they require tokens:
+- **Supabase** — Direct DB access (requires bearer token from Supabase dashboard)
+- **fetch** — Web content fetching (`uvx mcp-server-fetch`)
+- **aws knowledge** — AWS documentation search (public URL)
+- **aws** — AWS API access (requires AWS profile, disabled by default)
+
+To set up on a new machine:
+1. Install [uv](https://docs.astral.sh/uv/getting-started/installation/) for `uvx` command
+2. Open Kiro command palette → "MCP" → configure user-level servers
+3. Get Supabase MCP token from: Supabase Dashboard → Project Settings → MCP
+4. Workspace servers will work automatically after clone
+
 ## Tech Stack
 - Pure HTML/CSS/JavaScript (no frameworks)
 - Supabase PostgreSQL database with normalized schema
@@ -170,7 +188,20 @@ npm start  # Runs on port 8080
 - `mcp-server/`: Data access API
 - See `ARCHITECTURE.md` for technical details
 
-## Recent Changes (v4.0.1)
+## Recent Changes (v4.3.2 - Session UX Redesign)
+- Replaced collapsible Event Settings panel with slim session bar + hamburger menu + bottom sheet
+- Added session types (event/private) with type-driven source filtering
+- Session bar: read-only display with 📍/👤 prefixes, price, date, edit pencil
+- Hamburger menu: New Event, New Private Reading, Load Session, End Session
+- Session sheet: type-driven fields, validation, price presets for private
+- Load Session: search input, type filter toggles, type badges
+- Unified sources with scope (event/private/all) in SettingsStore
+- Legacy migration converts old flat string arrays to scoped objects
+- App modes: readings section hidden when no active session
+- Moved Switch User to profile menu (admin only)
+- 223 tests passing across 8 suites
+
+## Previous Changes (v4.0.1)
 - Fixed Gpsy AI chat - was broken due to multiple bugs in mcp-server Lambda chain
 - Root cause: `bedrock.js` (actual Lambda entrypoint) was never updated - all fixes were going to `bedrock-handler.js` which was never in the call chain
 - Fixed `responseState: 'SUCCESS'` - not a valid Bedrock value, caused deserialization errors on every response (omitting it is correct for success)

@@ -8,7 +8,7 @@
             margin: 0;
         }
         .header {
-            background: #28a745;
+            background: #2d1b3e;
             color: white;
             padding: 12px 20px;
             display: flex;
@@ -245,14 +245,6 @@
             cursor: pointer;
             color: #999;
         }
-        .session-item {
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
         .session-item:hover {
             background-color: #f8f9fa;
         }
@@ -264,36 +256,139 @@
             font-size: 14px;
             color: #666;
         }
-        .event-settings {
+
+        /* ========================================
+           SESSION BAR
+           ======================================== */
+        .session-bar {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            gap: 8px;
             background: white;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 16px;
         }
-        .settings-header {
-            padding: 15px;
+        .session-bar-location {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 16px;
+        }
+        .session-bar-location.no-session {
+            opacity: 0.5;
+        }
+        .session-bar-price,
+        .session-bar-date {
+            flex-shrink: 0;
+            white-space: nowrap;
+            font-size: 16px;
+        }
+        .session-bar-edit {
+            flex-shrink: 0;
+            width: 44px;
+            min-width: 44px;
+            min-height: 44px;
+            background: none;
+            border: none;
             cursor: pointer;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #eee;
-            font-weight: bold;
+            justify-content: center;
+            border-radius: 50%;
+            color: #555;
+            font-size: 16px;
+            touch-action: manipulation;
         }
-        .settings-content {
-            padding: 15px;
+        .session-bar-edit:active {
+            background: rgba(0,0,0,0.05);
+        }
+
+        /* ========================================
+           HAMBURGER MENU
+           ======================================== */
+        .hamburger-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            width: 44px;
+            min-width: 44px;
+            height: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            margin-right: 8px;
+        }
+        .hamburger-btn:active {
+            background: rgba(255,255,255,0.2);
+        }
+        .hamburger-overlay {
             display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.3);
+            z-index: 1999;
+        }
+        .hamburger-menu {
+            display: none;
+            position: fixed;
+            top: 56px;
+            left: 12px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            z-index: 2001;
+            min-width: 220px;
             overflow: hidden;
         }
-        .settings-content.open {
-            display: block;
+        .hamburger-item {
+            padding: 14px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 44px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            color: #333;
         }
-        .collapse-icon {
-            font-size: 12px;
-            transition: transform 0.2s;
+        .hamburger-item:active {
+            background: #f0f0f0;
         }
-        .collapse-icon.open {
-            transform: rotate(180deg);
+        .hamburger-item i {
+            width: 20px;
+            text-align: center;
+            color: #555;
         }
+        .hamburger-item.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        .hamburger-divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 8px 0;
+        }
+        .hamburger-menu .tracker-buddy-btn {
+            margin: 8px 12px 12px;
+            width: calc(100% - 24px);
+        }
+
+
         /* Utility classes */
         .text-small {
             font-size: 13px;
@@ -534,6 +629,145 @@
         }
         .session-sheet-content {
             padding: 20px;
+            background: #f5f5f5;
+        }
+        /* ========================================
+           LOAD SESSION — SEARCH, FILTER, BADGES
+           ======================================== */
+        .session-search-input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .session-search-input:focus {
+            outline: none;
+            border-color: #28a745;
+        }
+        .session-filter-toggles {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .session-filter-btn {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .session-filter-btn.active {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+            font-weight: 600;
+        }
+        .session-filter-btn:not(.active):active {
+            background: #f0f0f0;
+        }
+        .session-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            background: white;
+        }
+        .session-type-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        .session-type-badge i {
+            font-size: 10px;
+            margin-right: 3px;
+        }
+        .session-type-event {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        .session-type-private {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        .session-creation-sheet {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .session-creation-content {
+            padding: 20px;
+        }
+        .session-creation-content #btn-session-save {
+            width: 100%;
+            margin-top: 20px;
+            min-height: 48px;
+            font-size: 18px;
+        }
+        .price-presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .preset-btn {
+            padding: 10px 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            font-size: 16px;
+            min-height: 44px;
+            min-width: 44px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .preset-btn.active {
+            border-color: #28a745;
+            background: #e8f5e9;
+            font-weight: 600;
+        }
+        .source-toggles {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .source-toggle-btn {
+            padding: 8px 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            font-size: 16px;
+            min-height: 44px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .source-toggle-btn.active {
+            border-color: #28a745;
+            background: #e8f5e9;
+            font-weight: 600;
+        }
+        .input-error {
+            border-color: #dc3545 !important;
         }
         .user-btn {
             flex: 2;
@@ -668,6 +902,14 @@
         }
         .settings-drawer-content {
             padding: 20px;
+        }
+        .settings-version-info {
+            text-align: center;
+            padding: 16px 0 8px;
+            color: #999;
+            font-size: 12px;
+            border-top: 1px solid #eee;
+            margin-top: 10px;
         }
         .settings-section {
             margin-bottom: 30px;
@@ -867,6 +1109,15 @@
         .payment-method-delete {
             border-radius: 4px;
         }
+        .source-scope-select {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+            min-height: 44px;
+            background: #fff;
+            flex-shrink: 0;
+        }
         .add-payment-method {
             width: 100%;
             margin-top: 15px;
@@ -880,14 +1131,12 @@
         body.dark-mode .container {
             background: #1a1a1a;
         }
-        body.dark-mode .event-settings,
         body.dark-mode .totals,
         body.dark-mode .readings-list,
         body.dark-mode .timer {
             background: #2d2d2d;
             color: #ffffff;
         }
-        body.dark-mode .settings-header,
         body.dark-mode h3,
         body.dark-mode label {
             color: #ffffff;
@@ -935,11 +1184,85 @@
             color: #ffffff;
             border-color: #555;
         }
+        body.dark-mode .source-scope-select {
+            background: #3d3d3d;
+            color: #ffffff;
+            border-color: #555;
+        }
+        body.dark-mode .preset-btn,
+        body.dark-mode .source-toggle-btn {
+            background: #3d3d3d;
+            color: #ffffff;
+            border-color: #555;
+        }
+        body.dark-mode .preset-btn.active,
+        body.dark-mode .source-toggle-btn.active {
+            border-color: #28a745;
+            background: #1a4d2e;
+        }
         body.dark-mode .session-info {
             color: #ffffff;
         }
+        body.dark-mode .session-bar {
+            background: #2d2d2d;
+            color: #ffffff;
+        }
+        body.dark-mode .session-bar-edit {
+            color: #cccccc;
+        }
+        body.dark-mode .session-bar-edit:active {
+            background: rgba(255,255,255,0.1);
+        }
+        body.dark-mode .session-sheet-content {
+            background: #1a1a1a;
+        }
+        body.dark-mode .session-search-input {
+            background: #2d2d2d;
+            border-color: #444;
+            color: #ffffff;
+        }
+        body.dark-mode .session-filter-btn {
+            background: #2d2d2d;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+        body.dark-mode .session-filter-btn.active {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+        body.dark-mode .session-item {
+            background: #2d2d2d;
+            border-color: #444;
+        }
+        body.dark-mode .session-item:hover {
+            background-color: #3a3a3a;
+        }
+        body.dark-mode .session-type-event {
+            background: #1a3a5c;
+            color: #90caf9;
+        }
+        body.dark-mode .session-type-private {
+            background: #3a1a4c;
+            color: #ce93d8;
+        }
+        body.dark-mode .hamburger-menu {
+            background: #2d2d2d;
+        }
+        body.dark-mode .hamburger-item {
+            color: #e0e0e0;
+        }
+        body.dark-mode .hamburger-item:active {
+            background: #3a3a3a;
+        }
+        body.dark-mode .hamburger-item i {
+            color: #aaaaaa;
+        }
+        body.dark-mode .hamburger-divider {
+            background: #444;
+        }
         body.dark-mode .header {
-            background: #1a4d2e;
+            background: #1f0f2e;
         }
         body.dark-mode .dollar-sign {
             background: #555;
@@ -977,7 +1300,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #28a745;
+            background: #2d1b3e;
             color: white;
             flex-shrink: 0;
         }
@@ -1066,21 +1389,21 @@
         }
         .tracker-buddy-btn {
             width: 100%;
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            background: linear-gradient(135deg, #2d1b3e 0%, #5a3d7a 100%);
             color: white;
             border: none;
-            padding: 20px;
+            padding: 16px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
-            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            box-shadow: 0 4px 12px rgba(45, 27, 62, 0.3);
             transition: transform 0.2s, box-shadow 0.2s;
         }
         .tracker-buddy-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+            box-shadow: 0 6px 16px rgba(45, 27, 62, 0.4);
         }
         .gpsy-thinking {
             display: flex;
@@ -1111,7 +1434,7 @@
             color: #ffffff;
         }
         body.dark-mode .gpsy-header {
-            background: #1a4d2e;
+            background: #1f0f2e;
         }
         body.dark-mode .gpsy-bubble {
             background: #3d3d3d;
@@ -1452,14 +1775,17 @@ body.dark-mode .auth-container p {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
+    padding: 8px;
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 20px;
+    border-radius: 50%;
     color: white;
     cursor: pointer;
     font-size: 14px;
     transition: all 0.2s;
+    width: 40px;
+    height: 40px;
+    justify-content: center;
 }
 
 .user-profile-btn:hover {
@@ -1469,6 +1795,13 @@ body.dark-mode .auth-container p {
 
 .user-profile-btn i {
     font-size: 18px;
+}
+
+.impersonated-user-label {
+    font-size: 11px;
+    font-style: italic;
+    opacity: 0.8;
+    white-space: nowrap;
 }
 
 /* Login Prompt */
@@ -1512,8 +1845,27 @@ body.dark-mode .auth-container p {
     background: white;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    min-width: 150px;
+    min-width: 180px;
     z-index: 1000;
+}
+
+.profile-menu-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.profile-menu-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.profile-menu-header .impersonated-user-label {
+    color: #666;
+    font-size: 12px;
 }
 
 .profile-menu-item {
@@ -1538,6 +1890,18 @@ body.dark-mode .auth-container p {
 body.dark-mode .profile-menu {
     background: #2d2d2d;
     box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+body.dark-mode .profile-menu-header {
+    border-bottom-color: #444;
+}
+
+body.dark-mode .profile-menu-name {
+    color: #fff;
+}
+
+body.dark-mode .profile-menu-header .impersonated-user-label {
+    color: #aaa;
 }
 
 body.dark-mode .profile-menu-item {

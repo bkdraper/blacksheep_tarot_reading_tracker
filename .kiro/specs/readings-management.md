@@ -3,22 +3,26 @@
 ## Overview
 CRUD operations for individual readings with payment methods, sources, and tip tracking.
 
+## Current State (v4.0.1) ✅ IMPLEMENTED
+
 ## Context
 - Current implementation: `modules/readings-manager.js`
 - Integrates with SessionStore for data persistence
+- Readings stored in normalized `blacksheep_reading_tracker_readings` table (not JSONB)
 - Sheet-based UI for payment/source selection
 - Real-time totals calculation
 
 ## Data Structure
 
-### Reading Object
+### Reading Object (in-memory + normalized DB)
 ```javascript
 {
+  id: "uuid",                              // Set after DB insert; null for unsaved
   timestamp: "2025-01-15T14:30:00.000Z",  // ISO datetime
   tip: 10,                                 // Numeric tip amount
   price: 40,                               // Null uses session price
-  payment: "cash",                         // Payment method
-  source: "referral"                       // Reading source
+  payment: "cash",                         // cash|cc|venmo|paypal|cashapp|custom
+  source: "referral"                       // referral|renu|pog|repeat|custom
 }
 ```
 
@@ -54,97 +58,29 @@ CRUD operations for individual readings with payment methods, sources, and tip t
 ### Constructor
 ```javascript
 class ReadingsManager {
-  constructor(sessionStore, settingsStore, utils) {
-    this.sessionStore = sessionStore;
-    this.settingsStore = settingsStore;
-    this.utils = utils;
+  constructor() {
+    this.currentPaymentIndex = null;
+    this.currentSourceIndex = null;
   }
 }
 ```
+Uses `window.session`, `window.settings`, and `Utils` directly (global access pattern consistent with other modules).
 
 ### Core Methods
 
 #### Add Reading
 ```javascript
-addReading() {
-  const tipInput = document.getElementById('tip-input');
-  const tip = parseFloat(tipInput.value);
-  
-  if (isNaN(tip) || tip < 0) {
-    this.utils.showToast('Please enter a valid tip amount');
+async addReading() {
+  if (!window.session.hasValidSession) {
+    Utils.showSnackbar('Create session first', 'error');
     return;
   }
-  
-  // Show payment method sheet
-  this.showPaymentSheet(tip);
-}
-
-showPaymentSheet(tip) {
-  this.currentTip = tip;
-  
-  // Populate payment methods
-  const container = document.getElementById('payment-methods');
-  container.innerHTML = '';
-  
-  this.settingsStore.paymentMethods.forEach(method => {
-    const button = document.createElement('button');
-    button.className = 'payment-option';
-    button.textContent = method;
-    button.onclick = () => this.selectPayment(method);
-    container.appendChild(button);
-  });
-  
-  this.utils.showSheet('payment-sheet');
-}
-
-selectPayment(payment) {
-  this.currentPayment = payment;
-  this.utils.hideSheet('payment-sheet');
-  
-  // Show source sheet
-  this.showSourceSheet();
-}
-
-showSourceSheet() {
-  const container = document.getElementById('sources');
-  container.innerHTML = '';
-  
-  this.settingsStore.sources.forEach(source => {
-    const button = document.createElement('button');
-    button.className = 'source-option';
-    button.textContent = source;
-    button.onclick = () => this.selectSource(source);
-    container.appendChild(button);
-  });
-  
-  this.utils.showSheet('source-sheet');
-}
-
-selectSource(source) {
-  this.utils.hideSheet('source-sheet');
-  
-  // Create reading object
-  const reading = {
-    timestamp: new Date().toISOString(),
-    tip: this.currentTip,
-    price: null, // Uses session price
-    payment: this.currentPayment,
-    source: source
-  };
-  
-  // Add to session
-  this.sessionStore.addReading(reading);
-  
-  // Clear input and show feedback
-  document.getElementById('tip-input').value = '';
-  this.utils.vibrate(50);
-  this.utils.showToast(`Reading added: $${this.currentTip}`);
-  
-  // Reset state
-  this.currentTip = null;
-  this.currentPayment = null;
+  Utils.vibrate([50]);
+  const timestamp = new Date().toISOString();
+  window.session.addReading({ timestamp, tip: 0, price: window.session.price });
 }
 ```
+Reading is created immediately with defaults. User edits tip/payment/source inline in the reading card.
 
 #### Delete Reading
 ```javascript
@@ -176,15 +112,18 @@ updateReadingsList() {
       hour: 'numeric',
       minute: '2-digit'
     });
+    // XSS sanitization applied via Utils.sanitize() (added v3.99.4)
+    const payment = Utils.sanitize(reading.payment);
+    const source = Utils.sanitize(reading.source);
     
     return `
       <div class="reading-item">
         <div class="reading-time">${time}</div>
         <div class="reading-tip">$${reading.tip}</div>
-        <div class="reading-payment">${reading.payment}</div>
-        <div class="reading-source">${reading.source}</div>
+        <div class="reading-payment">${payment}</div>
+        <div class="reading-source">${source}</div>
         <button 
-          class="btn-delete" 
+          class="btn btn-danger btn-small" 
           onclick="readingsManager.deleteReading(${index})"
           aria-label="Delete reading">
           ×
@@ -293,6 +232,14 @@ updateTotalsDisplay() {
 </div>
 ```
 
+### Button CSS (v3.99.3+ consolidated system)
+All buttons use base `.btn` class with modifiers:
+- `.btn-primary` — purple action buttons
+- `.btn-secondary` — outlined buttons
+- `.btn-danger` — destructive actions (delete)
+- `.btn-ghost` — minimal styling
+- Size modifiers: `.btn-small`, `.btn-large`, `.btn-xlarge`
+
 ### Payment Method Sheet
 ```html
 <div id="payment-sheet" class="sheet">
@@ -374,24 +321,21 @@ updateTotalsDisplay() {
 
 ## User Experience
 
-### Add Reading Flow
-1. User enters tip amount
-2. Clicks "Add Reading"
-3. Payment method sheet appears
-4. User selects payment method
-5. Source sheet appears
-6. User selects source
-7. Reading added with haptic feedback
-8. Toast confirmation shown
-9. Input cleared for next reading
+### Add Reading Flow (Actual)
+1. User clicks "+ Add Reading" button
+2. Reading created immediately (timestamp, session price, tip=0)
+3. Reading appears in list with inline editable fields
+4. User taps "Method" button → payment sheet opens → selects payment
+5. User taps "Source" button → source sheet opens → selects source
+6. User taps price/tip field → edits inline, updates on blur/enter
+7. All changes save to DB immediately (or queue for offline sync)
 
 ### Delete Reading Flow
 1. User clicks × button on reading
 2. Confirmation dialog appears
 3. User confirms deletion
-4. Reading removed with haptic feedback
-5. Toast confirmation shown
-6. Totals updated automatically
+4. Reading removed from DB and local state
+5. Totals updated automatically
 
 ## Mobile Optimizations
 
