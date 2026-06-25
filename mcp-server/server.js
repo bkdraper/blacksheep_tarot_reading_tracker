@@ -94,6 +94,7 @@ export class TarotTrackerMCPServer {
             start_date: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
             end_date: { type: 'string', description: 'End date (YYYY-MM-DD)' },
             location: { type: 'string', description: 'Location filter (partial match)' },
+            format: { type: 'string', description: 'Session format filter (e.g., Expo, Shop, Party, Phone, In-Person)' },
             day_of_week: { type: 'string', description: 'Filter by day of week: sunday|monday|tuesday|wednesday|thursday|friday|saturday' },
             limit: { type: 'number', description: 'Max results', default: 50 }
           },
@@ -426,7 +427,18 @@ export class TarotTrackerMCPServer {
   async listSessionsV2(args) {
     console.log('[listSessionsV2] args:', JSON.stringify(args));
     const supabase = getSupabase();
-    const { user_name, user_id, start_date, end_date, location, day_of_week, limit = 50 } = args;
+    const { user_name, user_id, location, day_of_week, format, limit = 50 } = args;
+
+    // Support combined date_range param (Bedrock action group has 5-param limit)
+    let start_date = args.start_date;
+    let end_date = args.end_date;
+    if (args.date_range && !start_date && !end_date) {
+      const parts = args.date_range.split(',');
+      start_date = parts[0]?.trim() || undefined;
+      end_date = parts[1]?.trim() || undefined;
+      console.log('[listSessionsV2] parsed date_range:', args.date_range, '→ start:', start_date, 'end:', end_date);
+    }
+
     console.log('[listSessionsV2] user_id:', user_id, '| user_name:', user_name, '| limit:', limit);
 
     let query = supabase
@@ -455,6 +467,7 @@ export class TarotTrackerMCPServer {
       console.log('[listSessionsV2] day_of_week:', day_of_week, '→ dow_num:', dow);
       if (dow !== undefined) query = query.eq('day_of_week_num', dow);
     }
+    if (format && format.trim()) { console.log('[listSessionsV2] format:', format); query = query.ilike('format', `%${format.trim()}%`); }
 
     console.log('[listSessionsV2] executing query...');
     const t = Date.now();

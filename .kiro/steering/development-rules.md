@@ -5,7 +5,7 @@ description: Core development rules, deployment commands, data structures, and t
 
 # Development Rules
 
-## Version: v4.3.2
+## Version: v4.4.7
 
 CRITICAL: Bump version on EVERY code change (cache-busting). Update version in: index.html, README.md, and this file.
 
@@ -116,6 +116,8 @@ aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock
 - E2E test: `node mcp-server/test-e2e.mjs` (run before Lambda deploy)
 - Smoke test: `node mcp-server/test-tools.js`
 - **No live DB in tests**: All Supabase calls MUST be mocked (jest.mock). No test shall ever make live interactions with the database. Tests verify payloads and state transitions only.
+- **No property-based testing (PBT)**: Do NOT use fast-check or any PBT library. Write thorough example-based unit tests with good edge cases instead. No "correctness properties" sections in specs.
+- **Testing phase is last**: Build all implementation first, manually test, THEN write unit tests as a single consolidated task at the end. Do not pepper test-writing tasks throughout the implementation plan.
 
 ## mcp-server File Structure
 
@@ -127,8 +129,19 @@ aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock
 ## Service Worker
 - Strategy: Network-first for static assets, skip for HTML/external/Supabase
 - Service Worker version: v7.2
-- Cache name format: `app:v4.1.1-service:v7.2`
+- Cache name format: `app:v4.3.2-service:v7.2`
 - Excludes: Supabase API calls, external CDNs, HTML files
+
+### Pre-Push Hook (cache version sync)
+- File: `.git/hooks/pre-push` (source: `pre-push-hook.sh` in repo root)
+- **Purpose**: Automatically updates `CACHE_NAME` in `serviceWorker.js` before push so the app detects new versions and prompts "update available"
+- Extracts app version from `<meta http-equiv="version" content="vX.X.X">` in index.html
+- Extracts service worker version from `SERVICE_WORKER_VERSION = 'vX.X'` in serviceWorker.js
+- Writes `CACHE_NAME = 'app:vX.X.X-service:vX.X'` and amends the commit
+- Uses `sed -n 's/.*pattern.*/\1/p'` for extraction (not `grep -o` which returns multiple matches)
+- Uses `|` as sed delimiter (not `/`) to avoid conflicts with semicolons in the JS line
+- If extraction fails (empty version), hook exits 1 and blocks the push
+- **To install on a new machine**: `cp pre-push-hook.sh .git/hooks/pre-push`
 
 ## Z-Index Hierarchy
 - Snackbars: 3000

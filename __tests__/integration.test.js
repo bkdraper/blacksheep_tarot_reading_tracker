@@ -618,10 +618,6 @@ describe('Integration: index.html + auth.js', () => {
   });
 
   describe('DOM Element Existence', () => {
-    test('should find btn-app-settings element', () => {
-      expect(document.getElementById('btn-app-settings')).toBeTruthy();
-    });
-
     test('should find btn-user-profile element', () => {
       expect(document.getElementById('btn-user-profile')).toBeTruthy();
     });
@@ -648,7 +644,6 @@ describe('Integration: index.html + auth.js', () => {
     test('should hide authenticated UI when not logged in', () => {
       auth.updateUI();
 
-      expect(document.getElementById('btn-app-settings').style.display).toBe('none');
       expect(document.getElementById('btn-user-profile').style.display).toBe('none');
     });
 
@@ -658,7 +653,6 @@ describe('Integration: index.html + auth.js', () => {
       
       auth.updateUI();
       
-      expect(document.getElementById('btn-app-settings').style.display).toBe('flex');
       expect(document.getElementById('btn-user-profile').style.display).toBe('flex');
       expect(document.getElementById('text-user-profile-name').textContent).toBe('Test User');
     });

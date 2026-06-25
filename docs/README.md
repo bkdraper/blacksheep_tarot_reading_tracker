@@ -2,7 +2,7 @@
 
 Mobile-optimized single page app for tracking tarot readings and tips. Built with pure HTML/CSS/JS and Supabase cloud database.
 
-## Version: v4.3.2
+## Version: v4.4.7
 
 ## Architecture Overview
 

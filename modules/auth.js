@@ -152,7 +152,6 @@ class Auth {
         if (menu) menu.style.display = 'none';
         
         if (this.isAuthenticated) {
-            const settingsBtn = document.getElementById('btn-app-settings');
             const profileBtn = document.getElementById('btn-user-profile');
             const profileName = document.getElementById('text-user-profile-name');
             const profilePic = document.getElementById('img-user-profile-pic');
@@ -161,7 +160,6 @@ class Auth {
             const switchUserItem = document.getElementById('menu-switch-user');
             const impersonatedLabel = document.getElementById('text-impersonated-user');
 
-            if (settingsBtn) settingsBtn.style.setProperty('display', 'flex');
             if (profileBtn) profileBtn.style.setProperty('display', 'flex');
             if (profileName) profileName.textContent = this.getUserName();
             if (loginPrompt) loginPrompt.style.setProperty('display', 'none');
@@ -196,12 +194,10 @@ class Auth {
 
             if (switchUserItem) switchUserItem.style.display = this.isAdmin() ? 'flex' : 'none';
         } else {
-            const settingsBtn = document.getElementById('btn-app-settings');
             const profileBtn = document.getElementById('btn-user-profile');
             const loginPrompt = document.getElementById('container-login-prompt');
             const switchUserItem = document.getElementById('menu-switch-user');
             
-            if (settingsBtn) settingsBtn.style.setProperty('display', 'none');
             if (profileBtn) profileBtn.style.setProperty('display', 'none');
             if (loginPrompt) loginPrompt.style.removeProperty('display');
             if (switchUserItem) switchUserItem.style.display = 'none';

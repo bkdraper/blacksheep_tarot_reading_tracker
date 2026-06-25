@@ -610,6 +610,593 @@ describe('SessionStore', () => {
     });
   });
 
+  describe('Format — localStorage Round-Trip', () => {
+    test('format is persisted to localStorage and restored on load', () => {
+      session._format = 'Expo';
+      session._location = 'Test';
+      session._sessionDate = '2025-01-15';
+      session.saveToLocalStorage();
+
+      const newSession = new SessionStore();
+      newSession.loadFromStorage();
+      expect(newSession.format).toBe('Expo');
+    });
+
+    test('null format persists and restores as null', () => {
+      session._format = null;
+      session._location = 'Test';
+      session.saveToLocalStorage();
+
+      const newSession = new SessionStore();
+      newSession.loadFromStorage();
+      expect(newSession.format).toBeNull();
+    });
+
+    test('missing format key in stored state defaults to null', () => {
+      const state = {
+        sessionId: 'test-id',
+        location: 'Test',
+        sessionDate: '2025-01-15',
+        price: 40,
+        type: 'event',
+        readings: []
+        // no format key
+      };
+      localStorage.setItem('readingTracker_user-123', JSON.stringify(state));
+      session.loadFromStorage();
+      expect(session.format).toBeNull();
+    });
+
+    test('format value with falsy empty string defaults to null on load', () => {
+      const state = {
+        sessionId: 'test-id',
+        location: 'Test',
+        sessionDate: '2025-01-15',
+        price: 40,
+        type: 'event',
+        format: '',
+        readings: []
+      };
+      localStorage.setItem('readingTracker_user-123', JSON.stringify(state));
+      session.loadFromStorage();
+      expect(session.format).toBeNull();
+    });
+
+    test('format round-trips proper-cased values exactly', () => {
+      session._format = 'In-Person';
+      session.saveToLocalStorage();
+
+      const newSession = new SessionStore();
+      newSession.loadFromStorage();
+      expect(newSession.format).toBe('In-Person');
+    });
+  });
+
+  describe('Format — saveSessionSheet Payload', () => {
+    beforeEach(() => {
+      // Add the session sheet DOM elements needed
+      document.body.innerHTML += `
+        <div id="sessionSheetTitle"></div>
+        <div id="sessionSheetFields"></div>
+        <div id="sessionSheetOverlay"></div>
+        <div id="sessionCreationSheet"></div>
+        <button id="btn-session-save">Save</button>
+        <span id="session-bar-location"></span>
+        <div id="session-bar-badges" style="display: none">
+          <span id="session-bar-type"></span>
+          <span id="session-bar-format"></span>
+        </div>
+        <span id="session-bar-price"></span>
+        <span id="session-bar-date"></span>
+        <button id="btn-session-edit"></button>
+      `;
+      global.showSheet = jest.fn();
+      global.hideSheet = jest.fn();
+      global.vibrate = jest.fn();
+      global.window.settings = {
+        get: jest.fn((key) => {
+          if (key === 'formats') return [
+            { name: 'Expo', scope: 'event' },
+            { name: 'Fair', scope: 'event' },
+            { name: 'Phone', scope: 'private' },
+            { name: 'In-Person', scope: 'private' }
+          ];
+          if (key === 'sources') return [];
+          if (key === 'privatePricePresets') return [];
+          return null;
+        })
+      };
+    });
+
+    test('insert payload includes format when creating event session', async () => {
+      const insertMock = jest.fn(() => ({
+        select: jest.fn(() => Promise.resolve({ data: [{ id: 'new-id' }], error: null }))
+      }));
+      const selectMock = jest.fn(() => ({
+        eq: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              limit: jest.fn(() => Promise.resolve({ data: [], error: null }))
+            }))
+          }))
+        }))
+      }));
+      global.supabaseClient.from.mockImplementation((table) => {
+        if (table === 'blacksheep_reading_tracker_sessions') {
+          return { select: selectMock, insert: insertMock, update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) })) };
+        }
+        return { select: jest.fn(() => ({ eq: jest.fn(() => ({ order: jest.fn(() => Promise.resolve({ data: [] })) })) })) };
+      });
+
+      session.openSessionSheet('create', 'event');
+      // Fill required fields
+      document.getElementById('sessionSheetLocation').value = 'Ren Fest';
+      document.getElementById('sessionSheetDate').value = '2025-06-01';
+      document.getElementById('sessionSheetPrice').value = '40';
+      // Format defaults to 'Expo' for event
+
+      await session.saveSessionSheet();
+
+      expect(insertMock).toHaveBeenCalled();
+      const insertPayload = insertMock.mock.calls[0][0][0];
+      expect(insertPayload.format).toBe('Expo');
+    });
+
+    test('update payload includes format when editing session', async () => {
+      const updateMock = jest.fn(() => ({
+        eq: jest.fn(() => Promise.resolve({ data: null, error: null }))
+      }));
+      global.supabaseClient.from.mockImplementation((table) => ({
+        update: updateMock,
+        select: jest.fn(() => ({ eq: jest.fn(() => ({ eq: jest.fn(() => ({ eq: jest.fn(() => ({ limit: jest.fn(() => Promise.resolve({ data: [], error: null })) })) })) })) }))
+      }));
+
+      session._sessionId = 'existing-id';
+      session._location = 'Old Location';
+      session._sessionDate = '2025-01-15';
+      session._type = 'event';
+      session._format = 'Fair';
+
+      session.openSessionSheet('edit', 'event');
+      // Change format
+      session.selectSessionFormat('Expo');
+      await session.saveSessionSheet();
+
+      expect(updateMock).toHaveBeenCalled();
+      const updatePayload = updateMock.mock.calls[0][0];
+      expect(updatePayload.format).toBe('Expo');
+    });
+
+    test('format null when no format selected and validation blocks save', async () => {
+      session.openSessionSheet('create', 'event');
+      session._sheetSelectedFormat = null;
+      document.getElementById('sessionSheetLocation').value = 'Test';
+      document.getElementById('sessionSheetDate').value = '2025-06-01';
+      document.getElementById('sessionSheetPrice').value = '40';
+
+      await session.saveSessionSheet();
+
+      // Should not have called insert due to validation failure
+      expect(global.supabaseClient.from).not.toHaveBeenCalledWith('blacksheep_reading_tracker_sessions');
+      expect(global.showSnackbar).toHaveBeenCalledWith('Please fill in required fields', 'error');
+    });
+  });
+
+  describe('Format — Session Bar Display', () => {
+    beforeEach(() => {
+      document.body.innerHTML += `
+        <span id="session-bar-location"></span>
+        <div id="session-bar-badges" style="display: none">
+          <span id="session-bar-type"></span>
+          <span id="session-bar-format" style="display: none"></span>
+        </div>
+        <span id="session-bar-price"></span>
+        <span id="session-bar-date"></span>
+        <button id="btn-session-edit"></button>
+      `;
+      session._sessionId = 'test-id';
+      session._location = 'Test Location';
+      session._sessionDate = '2025-01-15';
+    });
+
+    test('null format hides the format element', () => {
+      session._format = null;
+      session.updateSessionBar();
+      const el = document.getElementById('session-bar-format');
+      expect(el.style.display).toBe('none');
+    });
+
+    test('empty string format hides the format element', () => {
+      session._format = '';
+      session.updateSessionBar();
+      const el = document.getElementById('session-bar-format');
+      expect(el.style.display).toBe('none');
+    });
+
+    test('short format displays visible as badge', () => {
+      session._format = 'Expo';
+      session.updateSessionBar();
+      const el = document.getElementById('session-bar-format');
+      expect(el.style.display).toBe('');
+      expect(el.textContent).toBe('Expo');
+    });
+
+    test('exactly 20 char format displays without truncation', () => {
+      session._format = '12345678901234567890'; // exactly 20 chars
+      session.updateSessionBar();
+      const el = document.getElementById('session-bar-format');
+      expect(el.textContent).toBe('12345678901234567890');
+      expect(el.textContent).not.toContain('…');
+    });
+
+    test('format > 20 chars is truncated with ellipsis', () => {
+      session._format = 'Super Long Format Name!'; // 23 chars, substring(0,20) = "Super Long Format Na"
+      session.updateSessionBar();
+      const el = document.getElementById('session-bar-format');
+      expect(el.textContent).toBe('Super Long Format Na…');
+      expect(el.style.display).toBe('');
+    });
+
+    test('format with no valid session hides element', () => {
+      session._sessionId = null;
+      session._location = '';
+      session._sessionDate = '';
+      session._format = 'Expo';
+      session.updateSessionBar();
+      const el = document.getElementById('session-bar-format');
+      expect(el.style.display).toBe('none');
+    });
+  });
+
+  describe('Format — Selector Filtering by Session Type', () => {
+    beforeEach(() => {
+      document.body.innerHTML += `
+        <div id="sessionSheetTitle"></div>
+        <div id="sessionSheetFields"></div>
+        <div id="sessionSheetOverlay"></div>
+        <div id="sessionCreationSheet"></div>
+        <span id="session-bar-location"></span>
+        <span id="session-bar-format"></span>
+        <span id="session-bar-price"></span>
+        <span id="session-bar-date"></span>
+        <button id="btn-session-edit"></button>
+      `;
+      global.showSheet = jest.fn();
+      global.window.settings = {
+        get: jest.fn((key) => {
+          if (key === 'formats') return [
+            { name: 'Expo', scope: 'event' },
+            { name: 'Fair', scope: 'event' },
+            { name: 'Phone', scope: 'private' },
+            { name: 'In-Person', scope: 'private' },
+            { name: 'Video', scope: 'all' }
+          ];
+          if (key === 'sources') return [];
+          if (key === 'privatePricePresets') return [];
+          return null;
+        })
+      };
+    });
+
+    test('event type shows only event and all-scope formats', () => {
+      session.openSessionSheet('create', 'event');
+      const buttons = document.querySelectorAll('#sessionSheetFormatToggles .format-toggle-btn');
+      const names = Array.from(buttons).map(b => b.textContent);
+      expect(names).toContain('Expo');
+      expect(names).toContain('Fair');
+      expect(names).toContain('Video');
+      expect(names).not.toContain('Phone');
+      expect(names).not.toContain('In-Person');
+    });
+
+    test('private type shows only private and all-scope formats', () => {
+      session.openSessionSheet('create', 'private');
+      const buttons = document.querySelectorAll('#sessionSheetFormatToggles .format-toggle-btn');
+      const names = Array.from(buttons).map(b => b.textContent);
+      expect(names).toContain('Phone');
+      expect(names).toContain('In-Person');
+      expect(names).toContain('Video');
+      expect(names).not.toContain('Expo');
+      expect(names).not.toContain('Fair');
+    });
+
+    test('event type defaults format selection to Expo', () => {
+      session.openSessionSheet('create', 'event');
+      expect(session._sheetSelectedFormat).toBe('Expo');
+      const activeBtn = document.querySelector('#sessionSheetFormatToggles .format-toggle-btn.active');
+      expect(activeBtn.textContent).toBe('Expo');
+    });
+
+    test('private type defaults format selection to In-Person', () => {
+      session.openSessionSheet('create', 'private');
+      expect(session._sheetSelectedFormat).toBe('In-Person');
+      const activeBtn = document.querySelector('#sessionSheetFormatToggles .format-toggle-btn.active');
+      expect(activeBtn.textContent).toBe('In-Person');
+    });
+
+    test('format selector hidden when no matching formats exist', () => {
+      global.window.settings.get = jest.fn((key) => {
+        if (key === 'formats') return [
+          { name: 'Phone', scope: 'private' }
+        ];
+        if (key === 'sources') return [];
+        if (key === 'privatePricePresets') return [];
+        return null;
+      });
+      session.openSessionSheet('create', 'event');
+      const formatGroup = document.getElementById('formatSelectorGroup');
+      expect(formatGroup).toBeNull();
+    });
+  });
+
+  describe('Format — Required Validation Blocks Save', () => {
+    beforeEach(() => {
+      document.body.innerHTML += `
+        <div id="sessionSheetTitle"></div>
+        <div id="sessionSheetFields"></div>
+        <div id="sessionSheetOverlay"></div>
+        <div id="sessionCreationSheet"></div>
+        <button id="btn-session-save">Save</button>
+        <span id="session-bar-location"></span>
+        <span id="session-bar-format"></span>
+        <span id="session-bar-price"></span>
+        <span id="session-bar-date"></span>
+        <button id="btn-session-edit"></button>
+      `;
+      global.showSheet = jest.fn();
+      global.hideSheet = jest.fn();
+      global.vibrate = jest.fn();
+      global.window.settings = {
+        get: jest.fn((key) => {
+          if (key === 'formats') return [
+            { name: 'Expo', scope: 'event' },
+            { name: 'Fair', scope: 'event' }
+          ];
+          if (key === 'sources') return [];
+          if (key === 'privatePricePresets') return [];
+          return null;
+        })
+      };
+    });
+
+    test('save is blocked when format is null', async () => {
+      session.openSessionSheet('create', 'event');
+      session._sheetSelectedFormat = null;
+
+      document.getElementById('sessionSheetLocation').value = 'Valid Location';
+      document.getElementById('sessionSheetDate').value = '2025-06-01';
+      document.getElementById('sessionSheetPrice').value = '40';
+
+      await session.saveSessionSheet();
+
+      expect(global.showSnackbar).toHaveBeenCalledWith('Please fill in required fields', 'error');
+    });
+
+    test('save proceeds when format is selected', async () => {
+      const insertMock = jest.fn(() => ({
+        select: jest.fn(() => Promise.resolve({ data: [{ id: 'new-id' }], error: null }))
+      }));
+      const selectMock = jest.fn(() => ({
+        eq: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              limit: jest.fn(() => Promise.resolve({ data: [], error: null }))
+            }))
+          }))
+        }))
+      }));
+      global.supabaseClient.from.mockImplementation((table) => {
+        if (table === 'blacksheep_reading_tracker_sessions') {
+          return { select: selectMock, insert: insertMock };
+        }
+        return { select: jest.fn(() => ({ eq: jest.fn(() => ({ order: jest.fn(() => Promise.resolve({ data: [] })) })) })) };
+      });
+
+      session.openSessionSheet('create', 'event');
+      // Format should default to 'Expo'
+      document.getElementById('sessionSheetLocation').value = 'Valid Location';
+      document.getElementById('sessionSheetDate').value = '2025-06-01';
+      document.getElementById('sessionSheetPrice').value = '40';
+
+      await session.saveSessionSheet();
+
+      expect(insertMock).toHaveBeenCalled();
+    });
+
+    test('formatSelectorGroup gets input-error class when format missing', async () => {
+      session.openSessionSheet('create', 'event');
+      session._sheetSelectedFormat = null;
+
+      document.getElementById('sessionSheetLocation').value = 'Valid Location';
+      document.getElementById('sessionSheetDate').value = '2025-06-01';
+      document.getElementById('sessionSheetPrice').value = '40';
+
+      await session.saveSessionSheet();
+
+      const formatGroup = document.getElementById('formatSelectorGroup');
+      expect(formatGroup.classList.contains('input-error')).toBe(true);
+    });
+  });
+
+  describe('Format — Edit Mode Pre-fills Existing Format', () => {
+    beforeEach(() => {
+      document.body.innerHTML += `
+        <div id="sessionSheetTitle"></div>
+        <div id="sessionSheetFields"></div>
+        <div id="sessionSheetOverlay"></div>
+        <div id="sessionCreationSheet"></div>
+        <span id="session-bar-location"></span>
+        <span id="session-bar-format"></span>
+        <span id="session-bar-price"></span>
+        <span id="session-bar-date"></span>
+        <button id="btn-session-edit"></button>
+      `;
+      global.showSheet = jest.fn();
+      global.window.settings = {
+        get: jest.fn((key) => {
+          if (key === 'formats') return [
+            { name: 'Expo', scope: 'event' },
+            { name: 'Fair', scope: 'event' },
+            { name: 'Festival', scope: 'event' }
+          ];
+          if (key === 'sources') return [];
+          if (key === 'privatePricePresets') return [];
+          return null;
+        })
+      };
+    });
+
+    test('edit mode pre-fills format with session current format', () => {
+      session._sessionId = 'test-id';
+      session._location = 'Ren Fest';
+      session._sessionDate = '2025-01-15';
+      session._type = 'event';
+      session._format = 'Fair';
+
+      session.openSessionSheet('edit', 'event');
+
+      expect(session._sheetSelectedFormat).toBe('Fair');
+      const activeBtn = document.querySelector('#sessionSheetFormatToggles .format-toggle-btn.active');
+      expect(activeBtn.textContent).toBe('Fair');
+    });
+
+    test('edit mode shows format even if not in current settings list', () => {
+      session._sessionId = 'test-id';
+      session._location = 'Old Event';
+      session._sessionDate = '2025-01-15';
+      session._type = 'event';
+      session._format = 'Defunct Format';
+
+      session.openSessionSheet('edit', 'event');
+
+      expect(session._sheetSelectedFormat).toBe('Defunct Format');
+      const buttons = document.querySelectorAll('#sessionSheetFormatToggles .format-toggle-btn');
+      const names = Array.from(buttons).map(b => b.textContent);
+      expect(names).toContain('Defunct Format');
+    });
+
+    test('edit mode with null format defaults correctly', () => {
+      session._sessionId = 'test-id';
+      session._location = 'Some Place';
+      session._sessionDate = '2025-01-15';
+      session._type = 'event';
+      session._format = null;
+
+      session.openSessionSheet('edit', 'event');
+
+      // When format is null in edit mode, no default is applied beyond type default
+      // The design says edit mode pre-fills with session's current format value
+      // Since _format is null, the default falls through to type default (Expo for event)
+      expect(session._sheetSelectedFormat).toBe('Expo');
+    });
+  });
+
+  describe('Format — loadExistingSession', () => {
+    test('loads format from database row', async () => {
+      global.supabaseClient.from.mockImplementation((table) => {
+        if (table === 'blacksheep_reading_tracker_readings') {
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                order: jest.fn(() => Promise.resolve({ data: [] }))
+              }))
+            }))
+          };
+        }
+        return { update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) })) };
+      });
+
+      await session.loadExistingSession({
+        id: 'sess-1',
+        location: 'Expo Hall',
+        session_date: '2025-06-01',
+        reading_price: 40,
+        type: 'event',
+        format: 'Expo'
+      });
+
+      expect(session.format).toBe('Expo');
+    });
+
+    test('loads null format when DB row has no format', async () => {
+      global.supabaseClient.from.mockImplementation((table) => {
+        if (table === 'blacksheep_reading_tracker_readings') {
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                order: jest.fn(() => Promise.resolve({ data: [] }))
+              }))
+            }))
+          };
+        }
+        return { update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) })) };
+      });
+
+      await session.loadExistingSession({
+        id: 'sess-2',
+        location: 'Test',
+        session_date: '2025-06-01',
+        reading_price: 40,
+        type: 'event'
+        // no format field
+      });
+
+      expect(session.format).toBeNull();
+    });
+
+    test('format is persisted to localStorage after loading session', async () => {
+      global.supabaseClient.from.mockImplementation((table) => {
+        if (table === 'blacksheep_reading_tracker_readings') {
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                order: jest.fn(() => Promise.resolve({ data: [] }))
+              }))
+            }))
+          };
+        }
+        return { update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) })) };
+      });
+
+      await session.loadExistingSession({
+        id: 'sess-3',
+        location: 'Fair Grounds',
+        session_date: '2025-06-01',
+        reading_price: 40,
+        type: 'event',
+        format: 'Fair'
+      });
+
+      const saved = JSON.parse(localStorage.getItem('readingTracker_user-123'));
+      expect(saved.format).toBe('Fair');
+    });
+  });
+
+  describe('Format — selectSessionFormat', () => {
+    beforeEach(() => {
+      document.body.innerHTML += `
+        <div id="sessionSheetFormatToggles">
+          <button class="format-toggle-btn active">Expo</button>
+          <button class="format-toggle-btn">Fair</button>
+          <button class="format-toggle-btn">Festival</button>
+        </div>
+      `;
+    });
+
+    test('selectSessionFormat updates _sheetSelectedFormat', () => {
+      session.selectSessionFormat('Fair');
+      expect(session._sheetSelectedFormat).toBe('Fair');
+    });
+
+    test('selectSessionFormat toggles active class on buttons', () => {
+      session.selectSessionFormat('Fair');
+      const buttons = document.querySelectorAll('#sessionSheetFormatToggles .format-toggle-btn');
+      expect(buttons[0].classList.contains('active')).toBe(false); // Expo
+      expect(buttons[1].classList.contains('active')).toBe(true);  // Fair
+      expect(buttons[2].classList.contains('active')).toBe(false); // Festival
+    });
+  });
+
   describe('Load Session Filtering and Search', () => {
     const mockSessions = [
       { id: 'sess-1', location: 'Renaissance Festival', session_date: '2025-01-10', type: 'event', readings_count: 5, total_earnings: 200 },

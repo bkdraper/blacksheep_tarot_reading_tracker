@@ -1,5 +1,16 @@
 # Changelog
 
+## v4.4.7 - Remove Video from default formats
+- Removed "Video" from default private format presets (Phone implies video)
+
+## v4.4.6 - Fix format selector layout & session bar badges
+- Fixed "Kind of reading" label bleeding into format toggle buttons on narrow screens
+  - Format selector now uses stacked layout (label above, buttons below)
+- Session bar now shows type and format as styled badge pills instead of plain text
+  - Type badge: blue "Event" or purple "Private" with icon
+  - Format badge: orange pill (same style as Load Session tiles)
+- Session bar allows flex-wrap for better display on narrow devices
+
 ## v4.3.2 - Load Session: Search, Filters & Type Badges
 - Added search input to Load Session sheet for filtering by location (case-insensitive)
 - Added type filter toggle buttons (All / Events / Private) with one-active-at-a-time behavior

@@ -1,0 +1,343 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "3.1 Add format state and persistence to SessionStore": [
+      {
+        "executionId": "28a16647-94fd-4360-8a5f-f0d4de7933d5",
+        "chatSessionId": "sess_73f6ae6b-babb-4ce8-aa30-be12d76a88bc",
+        "timestamp": 1782275542417
+      },
+      {
+        "executionId": "28a16647-94fd-4360-8a5f-f0d4de7933d5",
+        "chatSessionId": "sess_73f6ae6b-babb-4ce8-aa30-be12d76a88bc",
+        "timestamp": 1782275554225
+      },
+      {
+        "executionId": "28a16647-94fd-4360-8a5f-f0d4de7933d5",
+        "chatSessionId": "sess_73f6ae6b-babb-4ce8-aa30-be12d76a88bc",
+        "timestamp": 1782275896361
+      }
+    ],
+    "3.2 Add format selector to session sheet UI": [
+      {
+        "executionId": "28a16647-94fd-4360-8a5f-f0d4de7933d5",
+        "chatSessionId": "sess_73f6ae6b-babb-4ce8-aa30-be12d76a88bc",
+        "timestamp": 1782275542594
+      },
+      {
+        "executionId": "28a16647-94fd-4360-8a5f-f0d4de7933d5",
+        "chatSessionId": "sess_73f6ae6b-babb-4ce8-aa30-be12d76a88bc",
+        "timestamp": 1782275900980
+      },
+      {
+        "executionId": "28a16647-94fd-4360-8a5f-f0d4de7933d5",
+        "chatSessionId": "sess_73f6ae6b-babb-4ce8-aa30-be12d76a88bc",
+        "timestamp": 1782276187742
+      }
+    ],
+    "3.3 Add format to session save payload and session bar display": [
+      {
+        "executionId": "28a16647-94fd-4360-8a5f-f0d4de7933d5",
+        "chatSessionId": "sess_73f6ae6b-babb-4ce8-aa30-be12d76a88bc",
+        "timestamp": 1782275542722
+      },
+      {
+        "executionId": "28a16647-94fd-4360-8a5f-f0d4de7933d5",
+        "chatSessionId": "sess_73f6ae6b-babb-4ce8-aa30-be12d76a88bc",
+        "timestamp": 1782275901708
+      },
+      {
+        "executionId": "28a16647-94fd-4360-8a5f-f0d4de7933d5",
+        "chatSessionId": "sess_73f6ae6b-babb-4ce8-aa30-be12d76a88bc",
+        "timestamp": 1782276187883
+      }
+    ],
+    "3. SessionStore — format state, persistence, and session sheet integration": [
+      {
+        "executionId": "28a16647-94fd-4360-8a5f-f0d4de7933d5",
+        "chatSessionId": "sess_73f6ae6b-babb-4ce8-aa30-be12d76a88bc",
+        "timestamp": 1782276188996
+      }
+    ],
+    "4.1 Add format filter to MCP server list_sessions_v2": [
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782346747376
+      },
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782346777200
+      },
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782349446288
+      }
+    ],
+    "4.2 Verify format exposure in list_readings_v2 and get_session_details_v2": [
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782346747506
+      },
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782346778116
+      },
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782349446423
+      }
+    ],
+    "4.3 Update Bedrock Agent schema and system prompt": [
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782346747656
+      },
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782346779120
+      },
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782349447102
+      }
+    ],
+    "5. Manual testing checkpoint": [
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782346747838
+      },
+      {
+        "executionId": "9160058a-6a52-4047-89c2-e59687271d9e",
+        "chatSessionId": "sess_e3893b08-4aa1-4533-a962-a9d6930765a4",
+        "timestamp": 1782349556751
+      },
+      {
+        "executionId": "d6edc07e-3cad-463c-baad-c34d01ee470e",
+        "chatSessionId": "sess_3cf5ea4e-7771-49d7-bc32-401b97d0ee24",
+        "timestamp": 1782350402991
+      }
+    ],
+    "6.1 SettingsStore format tests": [
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782346747942
+      },
+      {
+        "executionId": "9160058a-6a52-4047-89c2-e59687271d9e",
+        "chatSessionId": "sess_e3893b08-4aa1-4533-a962-a9d6930765a4",
+        "timestamp": 1782349556868
+      },
+      {
+        "executionId": "d6edc07e-3cad-463c-baad-c34d01ee470e",
+        "chatSessionId": "sess_3cf5ea4e-7771-49d7-bc32-401b97d0ee24",
+        "timestamp": 1782350403979
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782352536854
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782352577394
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782353517289
+      }
+    ],
+    "6.2 SessionStore format tests": [
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782346748048
+      },
+      {
+        "executionId": "9160058a-6a52-4047-89c2-e59687271d9e",
+        "chatSessionId": "sess_e3893b08-4aa1-4533-a962-a9d6930765a4",
+        "timestamp": 1782349556982
+      },
+      {
+        "executionId": "d6edc07e-3cad-463c-baad-c34d01ee470e",
+        "chatSessionId": "sess_3cf5ea4e-7771-49d7-bc32-401b97d0ee24",
+        "timestamp": 1782350404128
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782352537571
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782352577585
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782353517477
+      }
+    ],
+    "6.3 MCP server format tests": [
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782346748170
+      },
+      {
+        "executionId": "9160058a-6a52-4047-89c2-e59687271d9e",
+        "chatSessionId": "sess_e3893b08-4aa1-4533-a962-a9d6930765a4",
+        "timestamp": 1782349557133
+      },
+      {
+        "executionId": "d6edc07e-3cad-463c-baad-c34d01ee470e",
+        "chatSessionId": "sess_3cf5ea4e-7771-49d7-bc32-401b97d0ee24",
+        "timestamp": 1782350404239
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782352537780
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782352578300
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782353518262
+      }
+    ],
+    "7. Final checkpoint — Ensure all tests pass": [
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782346748292
+      },
+      {
+        "executionId": "9160058a-6a52-4047-89c2-e59687271d9e",
+        "chatSessionId": "sess_e3893b08-4aa1-4533-a962-a9d6930765a4",
+        "timestamp": 1782349557342
+      },
+      {
+        "executionId": "d6edc07e-3cad-463c-baad-c34d01ee470e",
+        "chatSessionId": "sess_3cf5ea4e-7771-49d7-bc32-401b97d0ee24",
+        "timestamp": 1782350404360
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782352537980
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782353532011
+      }
+    ],
+    "8.1 Review `.kiro/steering/session-format-field-context.md` for lessons worth keeping": [
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782346748428
+      },
+      {
+        "executionId": "9160058a-6a52-4047-89c2-e59687271d9e",
+        "chatSessionId": "sess_e3893b08-4aa1-4533-a962-a9d6930765a4",
+        "timestamp": 1782349557476
+      },
+      {
+        "executionId": "d6edc07e-3cad-463c-baad-c34d01ee470e",
+        "chatSessionId": "sess_3cf5ea4e-7771-49d7-bc32-401b97d0ee24",
+        "timestamp": 1782350404471
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782352538137
+      },
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782353532954
+      }
+    ],
+    "4. MCP Server — format filter and Bedrock Agent awareness": [
+      {
+        "executionId": "afe2bcc9-41c2-4418-a29f-e8bfac2927d4",
+        "chatSessionId": "sess_5d1cf77f-ffc9-40d2-84e3-0f3b7535c69f",
+        "timestamp": 1782349447217
+      }
+    ],
+    "6. Write unit tests for all format features": [
+      {
+        "executionId": "4e5ef4a1-3bc0-4013-9d64-d0ea3253cab0",
+        "chatSessionId": "sess_e037431b-5267-4cd7-86bb-ec410d94a6d3",
+        "timestamp": 1782353518366
+      }
+    ],
+    "7.1 Add format badge to session items in the load sessions list": [
+      {
+        "executionId": "f2345155-fdc4-466b-8d92-73a8b4ed346e",
+        "chatSessionId": "sess_e7a678f0-fb72-4e9a-ab1c-a75edae72692",
+        "timestamp": 1782356737430
+      },
+      {
+        "executionId": "f2345155-fdc4-466b-8d92-73a8b4ed346e",
+        "chatSessionId": "sess_e7a678f0-fb72-4e9a-ab1c-a75edae72692",
+        "timestamp": 1782356967581
+      }
+    ],
+    "7.2 Add format filter buttons to load sessions sheet": [
+      {
+        "executionId": "f2345155-fdc4-466b-8d92-73a8b4ed346e",
+        "chatSessionId": "sess_e7a678f0-fb72-4e9a-ab1c-a75edae72692",
+        "timestamp": 1782356737552
+      },
+      {
+        "executionId": "f2345155-fdc4-466b-8d92-73a8b4ed346e",
+        "chatSessionId": "sess_e7a678f0-fb72-4e9a-ab1c-a75edae72692",
+        "timestamp": 1782356967774
+      }
+    ],
+    "9.1 Review `.kiro/steering/session-format-field-context.md` for lessons worth keeping": [
+      {
+        "executionId": "659a0a0f-e48f-4c95-855d-e99de05a0251",
+        "chatSessionId": "sess_a65c7e34-b7a0-4c5c-957e-212f16fce16b",
+        "timestamp": 1782358232670
+      },
+      {
+        "executionId": "659a0a0f-e48f-4c95-855d-e99de05a0251",
+        "chatSessionId": "sess_a65c7e34-b7a0-4c5c-957e-212f16fce16b",
+        "timestamp": 1782358238226
+      },
+      {
+        "executionId": "659a0a0f-e48f-4c95-855d-e99de05a0251",
+        "chatSessionId": "sess_a65c7e34-b7a0-4c5c-957e-212f16fce16b",
+        "timestamp": 1782358320493
+      }
+    ],
+    "9. Cleanup — migrate context and remove steering file": [
+      {
+        "executionId": "659a0a0f-e48f-4c95-855d-e99de05a0251",
+        "chatSessionId": "sess_a65c7e34-b7a0-4c5c-957e-212f16fce16b",
+        "timestamp": 1782358324124
+      }
+    ]
+  }
+}

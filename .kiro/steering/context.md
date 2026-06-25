@@ -9,12 +9,12 @@
 - Mobile-first, used in the field at Renaissance Festivals, conventions, etc.
 
 ### The App
-- Tarot reading tracker with tips, payment methods, sources
+- Tarot reading tracker with tips, payment methods, sources, and session formats
 - Multi-user support with Google OAuth and cloud sync (Supabase)
 - AI assistant "Gpsy" (ChatGPSY) for data queries via Bedrock Agent
 - PWA installable on mobile devices
 - Pure vanilla JS — no frameworks, keeping it simple and fast
-- Currently at v4.0.1 with 223 passing tests across 8 suites
+- Currently at v4.4.3 with 250+ passing tests across 10 suites
 
 ## Development Team
 
@@ -25,7 +25,7 @@
 
 ### Working Style
 - **Version discipline**: Bump version on EVERY code change
-- **Testing discipline**: All 223 tests must pass
+- **Testing discipline**: All tests must pass before shipping
 - **Documentation**: Detailed CHANGELOG, ARCHITECTURE, ROADMAP
 - **Production-ready**: Real users depend on this app
 
@@ -55,6 +55,15 @@ Despite SSE infrastructure, Bedrock Agent buffers the entire response and sends 
 - Duplicate sessions: Check before insert
 - localStorage sync: Split save() into save() + saveToLocalStorage()
 - XSS: Utils.sanitize() for user-generated content
+
+### Session Format Field (v4.1.4 → v4.4.3)
+- **Format values are proper-cased** — stored exactly as displayed in the UI (e.g., "Expo", "In-Person", "Shop"). No lowercase normalization. No display-name → data-label mapping. Phones auto-capitalize, and Amanda types proper case.
+- **Backfill covered ALL sessions** — not just Phone/In-Person privates. Events got: season-in-name → "Expo", Misty's/Steph's → "Party", everything else → "Shop". Zero NULLs remain.
+- **`readings_with_context` view gained `session_type`** — added alongside `session_format` since the original view didn't expose session type.
+- **`get_session_with_readings` function updated** — now returns `type` and `format` in the session JSON object.
+- **MCP server ESM testing** — server.js is ESM but Jest runs CJS. MCP format tests reconstruct filter logic in CJS rather than importing the ESM module directly. Works well.
+- **Migration pattern** — `migrateSourcesFormats()` uses a `legacySourcesMigrated` flag to be idempotent. Exact-match removal (not substring) is critical when source names contain common words.
+- **Format is required on session save** — validation blocks save if no format selected. Defaults: "Expo" for event, "In-Person" for private.
 
 ## Environment Notes
 
@@ -88,5 +97,5 @@ The following steering docs are available:
 - `SESSION-UX-SPEC.md` — Original session UX brainstorm
 
 ## Last Updated
-- Date: June 14, 2026
-- Version: v4.1.4
+- Date: June 24, 2026
+- Version: v4.4.3

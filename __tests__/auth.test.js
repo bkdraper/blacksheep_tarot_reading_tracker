@@ -4,7 +4,6 @@
 
 // Mock DOM elements
 document.body.innerHTML = `
-  <div id="btn-app-settings"></div>
   <div id="btn-user-profile"></div>
   <div id="text-user-profile-name"></div>
   <div id="session-bar"></div>
@@ -237,7 +236,6 @@ describe('Auth', () => {
       
       auth.updateUI();
       
-      expect(document.getElementById('btn-app-settings').style.display).toBe('flex');
       expect(document.getElementById('btn-user-profile').style.display).toBe('flex');
       expect(document.getElementById('text-user-profile-name').textContent).toBe('Test User');
       expect(document.getElementById('container-login-prompt').style.display).toBe('none');
@@ -248,7 +246,6 @@ describe('Auth', () => {
 
       auth.updateUI();
 
-      expect(document.getElementById('btn-app-settings').style.display).toBe('none');
       expect(document.getElementById('btn-user-profile').style.display).toBe('none');
       expect(document.getElementById('container-login-prompt').style.display).not.toBe('none');
     });

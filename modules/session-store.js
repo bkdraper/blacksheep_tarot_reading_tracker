@@ -7,9 +7,11 @@ class SessionStore {
                 this._type = 'event';
                 this._readings = [];
                 this.saveTimeout = null;
+                this._format = null;
                 this._loading = false;
                 this._loadedSessions = [];
                 this._sessionFilter = 'all';
+                this._sessionFormatFilter = 'all';
             }
 
             // Getters - read from auth
@@ -21,6 +23,7 @@ class SessionStore {
             get price() { return this._price; }
             get readings() { return this._readings; }
             get type() { return this._type || 'event'; }
+            get format() { return this._format; }
 
             // Computed properties
             get canCreateSession() {
@@ -60,6 +63,11 @@ class SessionStore {
                 this._type = (value === 'private') ? 'private' : 'event';
                 this.updateUI();
                 this.save();
+            }
+            set format(value) {
+                this._format = value || null;
+                this.updateUI();
+                this.debouncedSave();
             }
             set readings(value) {
                 this._readings = value;
@@ -379,6 +387,7 @@ class SessionStore {
                     sessionDate: this._sessionDate,
                     price: this._price,
                     type: this._type || 'event',
+                    format: this._format,
                     readings: this._readings
                 };
                 localStorage.setItem(`readingTracker_${this.userId}`, JSON.stringify(state));
@@ -408,6 +417,7 @@ class SessionStore {
                         console.log(`[SessionStore] loadFromStorage: type "${state.type}" is missing or invalid, defaulting to "event"`);
                     }
                     this._type = (state.type === 'private') ? 'private' : 'event';
+                    this._format = state.format || null;
                     this._readings = state.readings || [];
                     
                     this.updateReadingsList();
@@ -589,12 +599,17 @@ class SessionStore {
                     if (data && data.length > 0) {
                         this._loadedSessions = data;
                         this._sessionFilter = 'all';
+                        this._sessionFormatFilter = 'all';
                         // Reset search input and filter buttons
                         const searchInput = document.getElementById('session-search');
                         if (searchInput) searchInput.value = '';
                         const filterBtns = document.querySelectorAll('.session-filter-btn');
                         filterBtns.forEach(btn => {
                             btn.classList.toggle('active', btn.dataset.filter === 'all');
+                        });
+                        const formatFilterBtns = document.querySelectorAll('.session-format-filter-btn');
+                        formatFilterBtns.forEach(btn => {
+                            btn.classList.toggle('active', btn.dataset.format === 'all');
                         });
                         this.filterLoadedSessions();
                         showSheet('sessionOverlay', 'sessionSheet');
@@ -631,10 +646,23 @@ class SessionStore {
                 const searchInput = document.getElementById('session-search');
                 const searchText = (searchInput ? searchInput.value : '').toLowerCase();
                 const activeFilter = this._sessionFilter;
+                const activeFormatFilter = this._sessionFormatFilter;
+                const knownFormats = ['expo', 'shop', 'party', 'phone', 'in-person'];
 
                 const filtered = this._loadedSessions.filter(sessionData => {
                     // Type filter
                     if (activeFilter !== 'all' && sessionData.type !== activeFilter) return false;
+                    // Format filter
+                    if (activeFormatFilter !== 'all') {
+                        const sessionFormat = (sessionData.format || '').toLowerCase();
+                        if (activeFormatFilter === 'other') {
+                            // "Other" matches formats not in the known list, including null/empty
+                            if (sessionFormat && knownFormats.includes(sessionFormat)) return false;
+                        } else {
+                            // Match case-insensitively against the selected format
+                            if (sessionFormat !== activeFormatFilter) return false;
+                        }
+                    }
                     // Search filter - case-insensitive substring match against location
                     if (searchText && !(sessionData.location || '').toLowerCase().includes(searchText)) return false;
                     return true;
@@ -650,9 +678,12 @@ class SessionStore {
                         const typeBadge = sessionData.type === 'private'
                             ? '<span class="session-type-badge session-type-private"><i class="fas fa-user"></i> Private</span>'
                             : '<span class="session-type-badge session-type-event"><i class="fas fa-store"></i> Event</span>';
+                        const formatBadge = sessionData.format
+                            ? `<span class="session-format-badge">${Utils.sanitize(sessionData.format)}</span>`
+                            : '';
                         return `
                             <div class="session-item" onclick="session.selectSession('${sessionData.id}', event)">
-                                <div class="session-info">${Utils.sanitize(sessionData.location) || 'No location'} - ${dayOfWeek} ${date} ${typeBadge}</div>
+                                <div class="session-info">${Utils.sanitize(sessionData.location) || 'No location'} - ${dayOfWeek} ${date} ${typeBadge}${formatBadge}</div>
                                 <div class="session-details">${readingCount} readings  $${grandTotal.toFixed(2)}</div>
                             </div>
                         `;
@@ -668,6 +699,20 @@ class SessionStore {
                 filterBtns.forEach(btn => {
                     btn.classList.toggle('active', btn.dataset.filter === type);
                 });
+                this.filterLoadedSessions();
+            }
+
+            setSessionFormatFilter(format, btnElement) {
+                this._sessionFormatFilter = format;
+                const formatBtns = document.querySelectorAll('.session-format-filter-btn');
+                formatBtns.forEach(btn => btn.classList.remove('active'));
+                if (btnElement) {
+                    btnElement.classList.add('active');
+                } else {
+                    formatBtns.forEach(btn => {
+                        if (btn.dataset.format === format) btn.classList.add('active');
+                    });
+                }
                 this.filterLoadedSessions();
             }
 
@@ -711,6 +756,7 @@ class SessionStore {
                 this._sessionDate = sessionData.session_date || '';
                 this._price = sessionData.reading_price || 40;
                 this._type = (sessionData.type === 'private') ? 'private' : 'event';
+                this._format = sessionData.format || null;
                 
                 try {
                     const { data: readings } = await supabaseClient
@@ -737,6 +783,9 @@ class SessionStore {
 
             updateSessionBar() {
                 const locationEl = document.getElementById('session-bar-location');
+                const typeEl = document.getElementById('session-bar-type');
+                const formatEl = document.getElementById('session-bar-format');
+                const badgesEl = document.getElementById('session-bar-badges');
                 const priceEl = document.getElementById('session-bar-price');
                 const dateEl = document.getElementById('session-bar-date');
                 const editBtn = document.getElementById('btn-session-edit');
@@ -747,16 +796,36 @@ class SessionStore {
                     // No active session state
                     locationEl.textContent = '(no active session)';
                     locationEl.classList.add('no-session');
+                    if (badgesEl) badgesEl.style.display = 'none';
+                    if (formatEl) formatEl.style.display = 'none';
                     priceEl.style.display = 'none';
                     dateEl.style.display = 'none';
                     editBtn.style.display = 'none';
                 } else {
-                    // Active session - determine type icon
-                    const type = this._type || 'event';
-                    const iconClass = type === 'private' ? 'fas fa-user' : 'fas fa-store';
-                    
-                    locationEl.innerHTML = `<i class="${iconClass}" style="margin-right: 6px;"></i>${Utils.sanitize(this._location)}`;
+                    // Location name (plain text, no icon)
+                    locationEl.textContent = this._location;
                     locationEl.classList.remove('no-session');
+                    
+                    // Badges row
+                    if (badgesEl && typeEl) {
+                        const type = this._type || 'event';
+                        typeEl.innerHTML = type === 'private'
+                            ? '<span class="session-type-badge session-type-private"><i class="fas fa-user"></i> Private</span>'
+                            : '<span class="session-type-badge session-type-event"><i class="fas fa-store"></i> Event</span>';
+                        
+                        if (formatEl) {
+                            if (this._format) {
+                                const display = this._format.length > 20 
+                                    ? Utils.sanitize(this._format.substring(0, 20)) + '…' 
+                                    : Utils.sanitize(this._format);
+                                formatEl.innerHTML = `<span class="session-format-badge">${display}</span>`;
+                                formatEl.style.display = '';
+                            } else {
+                                formatEl.style.display = 'none';
+                            }
+                        }
+                        badgesEl.style.display = '';
+                    }
                     
                     priceEl.textContent = '· $' + this._price;
                     priceEl.style.display = '';
@@ -825,6 +894,7 @@ class SessionStore {
                 this._sheetType = type;
                 this._sheetSelectedPrice = null;
                 this._sheetSelectedSource = null;
+                this._sheetSelectedFormat = null;
 
                 // Set title
                 const titleEl = document.getElementById('sessionSheetTitle');
@@ -918,7 +988,67 @@ class SessionStore {
                         ${sourcesHtml}`;
                 }
 
+                // Render format selector
+                this._renderFormatSelector(type, mode);
+
                 showSheet('sessionSheetOverlay', 'sessionCreationSheet');
+            }
+
+            _renderFormatSelector(type, mode) {
+                const fieldsContainer = document.getElementById('sessionSheetFields');
+                if (!fieldsContainer) return;
+
+                const formats = window.settings ? window.settings.get('formats') : [];
+                const matchingFormats = formats.filter(f => f.scope === type || f.scope === 'all');
+
+                // In edit mode, include the session's current format even if not in settings
+                let editFormat = null;
+                if (mode === 'edit' && this._format) {
+                    editFormat = this._format;
+                    const alreadyIncluded = matchingFormats.some(f => f.name === editFormat);
+                    if (!alreadyIncluded) {
+                        matchingFormats.push({ name: editFormat, scope: type });
+                    }
+                }
+
+                if (matchingFormats.length === 0) return;
+
+                // Determine default selection
+                let defaultFormat = null;
+                if (mode === 'edit' && this._format) {
+                    defaultFormat = this._format;
+                } else if (type === 'event') {
+                    defaultFormat = 'Expo';
+                } else {
+                    defaultFormat = 'In-Person';
+                }
+                this._sheetSelectedFormat = defaultFormat;
+
+                const label = type === 'event' ? 'Kind of event' : 'Kind of reading';
+                const buttonsHtml = matchingFormats.map(f => {
+                    const active = f.name === defaultFormat ? ' active' : '';
+                    return `<button class="format-toggle-btn${active}" onclick="session.selectSessionFormat('${Utils.sanitize(f.name)}')">${Utils.sanitize(f.name)}</button>`;
+                }).join('');
+
+                const formatHtml = `
+                    <div class="input-group format-group" id="formatSelectorGroup">
+                        <label>${label}</label>
+                        <div class="format-toggles" id="sessionSheetFormatToggles">
+                            ${buttonsHtml}
+                        </div>
+                    </div>`;
+
+                fieldsContainer.insertAdjacentHTML('beforeend', formatHtml);
+            }
+
+            selectSessionFormat(name) {
+                this._sheetSelectedFormat = name;
+                const container = document.getElementById('sessionSheetFormatToggles');
+                if (container) {
+                    container.querySelectorAll('.format-toggle-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.textContent === name);
+                    });
+                }
             }
 
             selectPresetPrice(value) {
@@ -988,6 +1118,15 @@ class SessionStore {
                     hasError = true;
                 }
 
+                // Format: must be selected (required field)
+                if (!this._sheetSelectedFormat) {
+                    const formatGroup = document.getElementById('formatSelectorGroup');
+                    if (formatGroup) {
+                        formatGroup.classList.add('input-error');
+                    }
+                    hasError = true;
+                }
+
                 if (hasError) {
                     showSnackbar('Please fill in required fields', 'error');
                     return;
@@ -1009,7 +1148,8 @@ class SessionStore {
                                 .update({
                                     location: location,
                                     session_date: date,
-                                    reading_price: price
+                                    reading_price: price,
+                                    format: this._sheetSelectedFormat || null
                                 })
                                 .eq('id', this._sessionId);
                         }
@@ -1019,6 +1159,7 @@ class SessionStore {
                         this._location = location;
                         this._sessionDate = date;
                         this._price = price;
+                        this._format = this._sheetSelectedFormat || null;
                         this._loading = false;
 
                         this.saveToLocalStorage();
@@ -1061,7 +1202,8 @@ class SessionStore {
                                 user_name: this.userName,
                                 location: location,
                                 reading_price: price,
-                                type: this._sheetType
+                                type: this._sheetType,
+                                format: this._sheetSelectedFormat || null
                             }])
                             .select();
 
@@ -1072,6 +1214,7 @@ class SessionStore {
                             this._sessionDate = date;
                             this._price = price;
                             this._type = this._sheetType;
+                            this._format = this._sheetSelectedFormat || null;
                             this._readings = [];
                             this._loading = false;
 
@@ -1107,6 +1250,7 @@ class SessionStore {
                     this._sessionDate = date;
                     this._price = price;
                     this._type = this._sheetType;
+                    this._format = this._sheetSelectedFormat || null;
                     if (this._sheetMode === 'create') {
                         this._sessionId = 'offline_' + Date.now();
                         this._readings = [];
@@ -1155,6 +1299,7 @@ class SessionStore {
                 this._price = 40;
                 this._readings = [];
                 this._type = 'event';
+                this._format = null;
                 this._loading = false;
 
                 // Persist cleared state

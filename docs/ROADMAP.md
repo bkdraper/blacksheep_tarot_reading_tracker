@@ -442,6 +442,96 @@ All CSS for Phase 1-2 features already exists:
 
 ---
 
+## Phase 7.1: Session Format Field ⬅️ TOP PRIORITY
+**Goal**: Add a `format` field to sessions to track *what kind* of event/private session it is
+**Status**: 0/6 complete
+
+### Problem Statement
+"Phone" and "In-Person" are currently sources, but they're not *why* someone came — they're *what form* the session takes. Similarly, events have formats (expo, fair, shop, party, market, festival) that aren't captured anywhere. This is a missing dimension.
+
+### Data Model
+- `type` = broad bucket (event | private) — already exists
+- `format` = what kind of session (expo, fair, shop, party, phone, in-person, video, etc.)
+- `source` = why they came (referral, repeat, walk-up, POG, Renu) — stays as-is
+- `location` = where
+
+**DB column**: `format` (text, nullable, on sessions table)
+**Scoped by type**: event formats vs private formats (same pattern as sources)
+
+### Naming Decision (RESOLVED)
+- **DB column**: `format`
+- **UI label (event)**: "Kind of event"
+- **UI label (private)**: "Kind of reading"
+- **Settings section**: "Kinds" or "Kinds of events/readings"
+- The word "format" stays internal (code/DB). Users see "kind".
+
+### Tasks
+
+#### Database
+- [ ] Add `format` text column to sessions table (nullable, no default)
+- [ ] Backfill existing sessions if obvious mappings exist (e.g., sessions with source "Phone" → format "phone")
+
+#### SettingsStore
+- [ ] Add `formats` setting with scoped objects: `{name, scope}` (same pattern as sources)
+- [ ] Default event formats: Expo, Fair, Festival, Shop, Party, Market
+- [ ] Default private formats: Phone, In-Person, Video
+- [ ] Settings UI to manage formats (add/edit/delete with scope)
+- [ ] Remove "Phone" and "In-Person" from default sources (they move to formats)
+
+#### Session Sheet (UI)
+- [ ] Add format selector to new event sheet (label: "What kind?" or similar)
+- [ ] Add format selector to new private reading sheet
+- [ ] Filter format options by session type (same as source filtering)
+- [ ] Pre-fill format in edit mode
+- [ ] Format is optional (nullable) — don't force selection
+
+#### MCP Server
+- [ ] Add `format` to v2 tool responses (list_sessions_v2, list_readings_v2, get_session_details_v2)
+- [ ] Add `format` filter parameter to list_sessions_v2
+- [ ] Update Bedrock Lambda action group schema with format field
+
+#### Bedrock Agent
+- [ ] Update system prompt to know about format field
+- [ ] Update action group API schema
+- [ ] Agent should be able to query/filter by format ("show me all my expo events")
+
+#### Migration & Cleanup
+- [ ] Move "Phone" and "In-Person" out of sources → formats
+- [ ] Legacy migration: if user has old sources that are really formats, handle gracefully
+- [ ] Update session bar display? (optional — could show format as subtle tag)
+
+---
+
+## Phase 7.5: Cleanup — Remove Analytics & Notifications
+**Goal**: Remove unused analytics/notifications system (Gpsy handles this on-demand)
+**Status**: 0/1 complete
+
+### Remove Analytics & Notifications
+**Priority**: High | **Effort**: Small
+- Remove "Analytics & Notifications" section from the settings drawer UI
+- Remove timer-based analytic alerts from the service worker
+- Remove or deprecate `modules/analytics-notifier.js`
+- Remove associated tests (`__tests__/analytics-notifier.test.js`)
+- Clean up any SettingsStore keys related to notification preferences
+- **Rationale**: Never worked reliably, Amanda doesn't use them, Gpsy provides all analytics on-demand
+
+---
+
+## Phase 7.6: Cloud Settings Persistence
+**Goal**: Sync user settings (formats, sources, payments, preferences) to a database table so they aren't only stored in localStorage on a single device
+**Status**: 0/1 complete
+
+### User Settings Cloud Sync
+**Priority**: Medium | **Effort**: Medium
+- Create a `user_settings` table (or column on `user_profiles`) to store serialized settings JSON per user
+- On login, load settings from DB and merge with localStorage (DB wins on conflict)
+- On settings change, persist to both localStorage (immediate) and DB (debounced)
+- Handles the scenario where Amanda clears browser data or switches devices and loses all custom formats, sources, payment methods, etc.
+- localStorage remains the fast local cache; DB is the durable source of truth
+- Consider: conflict resolution strategy (last-write-wins is probably fine for single-user)
+
+---
+
 ## Phase 8: Operations & Reliability
 **Goal**: Protect production data and ensure operational health
 **Status**: 0/2 complete

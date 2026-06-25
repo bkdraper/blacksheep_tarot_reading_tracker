@@ -1,695 +1,1160 @@
-﻿<!DOCTYPE html>
+﻿<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="version" content="v4.3.2">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2d1b3e">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Tarot Reading Tracker" id="appleTitle">
-    <meta name="application-name" content="Tarot Reading Tracker" id="appName">
-    <meta name="msapplication-starturl" content="/">
-    <link rel="icon" type="image/png" id="favicon" href="/logo192.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="version" content="v4.4.7" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#2d1b3e" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta
+      name="apple-mobile-web-app-title"
+      content="Tarot Reading Tracker"
+      id="appleTitle"
+    />
+    <meta
+      name="application-name"
+      content="Tarot Reading Tracker"
+      id="appName"
+    />
+    <meta name="msapplication-starturl" content="/" />
+    <link rel="icon" type="image/png" id="favicon" href="/logo192.png" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
 
     <title>Tarot Reading Tracker</title>
 
     <script>
-        // Global app title variable
-        function isDevelopmentMode() {
-            return window.location.hostname === 'localhost' || 
-                   window.location.hostname === '127.0.0.1' ||
-                   window.location.hostname.startsWith('192.168.') ||
-                   window.location.hostname.startsWith('10.') ||
-                   window.location.port === '8080' ||
-                   window.location.protocol === 'file:' ||
-                   window.location.search.includes('dev=true');
-        }
-        window.APP_TITLE = isDevelopmentMode() ? '[DEV] Tarot Reading Tracker' : 'Tarot Reading Tracker';
-        window.APP_LOGO = isDevelopmentMode() ? '/logo192-dev.png' : '/logo192.png';
-        document.title = window.APP_TITLE;
-        document.getElementById('favicon').href = window.APP_LOGO;
-        document.getElementById('appleTitle').content = window.APP_TITLE;
-        document.getElementById('appName').content = window.APP_TITLE;
-        // Set header title after DOM loads
-        document.addEventListener('DOMContentLoaded', () => {
-            const headerTitle = document.getElementById('headerTitle');
-            if (headerTitle) headerTitle.textContent = window.APP_TITLE;
-        });
+      // Global app title variable
+      function isDevelopmentMode() {
+        return (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1" ||
+          window.location.hostname.startsWith("192.168.") ||
+          window.location.hostname.startsWith("10.") ||
+          window.location.port === "8080" ||
+          window.location.protocol === "file:" ||
+          window.location.search.includes("dev=true")
+        );
+      }
+      window.APP_TITLE = isDevelopmentMode()
+        ? "[DEV] Tarot Reading Tracker"
+        : "Tarot Reading Tracker";
+      window.APP_LOGO = isDevelopmentMode()
+        ? "/logo192-dev.png"
+        : "/logo192.png";
+      document.title = window.APP_TITLE;
+      document.getElementById("favicon").href = window.APP_LOGO;
+      document.getElementById("appleTitle").content = window.APP_TITLE;
+      document.getElementById("appName").content = window.APP_TITLE;
+      // Set header title after DOM loads
+      document.addEventListener("DOMContentLoaded", () => {
+        const headerTitle = document.getElementById("headerTitle");
+        if (headerTitle) headerTitle.textContent = window.APP_TITLE;
+      });
     </script>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
     <header class="header">
-        <button id="btn-hamburger" class="hamburger-btn" onclick="session.toggleHamburgerMenu()">
-            <i class="fas fa-bars"></i>
+      <button
+        id="btn-hamburger"
+        class="hamburger-btn"
+        onclick="session.toggleHamburgerMenu()"
+      >
+        <i class="fas fa-bars"></i>
+      </button>
+      <h1 id="headerTitle">Tarot Reading Tracker</h1>
+      <div class="header-actions">
+        <span id="offlineIndicator" class="offline-badge" style="display: none"
+          >Offline</span
+        >
+        <button
+          id="btn-user-profile"
+          class="user-profile-btn"
+          onclick="auth.toggleProfileMenu()"
+          style="display: none"
+        >
+          <img
+            id="img-user-profile-pic"
+            class="user-profile-pic"
+            style="display: none"
+          />
+          <i id="icon-user-profile" class="fas fa-user-circle"></i>
         </button>
-        <h1 id="headerTitle">Tarot Reading Tracker</h1>
-        <div class="header-actions">
-            <span id="offlineIndicator" class="offline-badge" style="display: none;">Offline</span>
-            <button id="btn-user-profile" class="user-profile-btn" onclick="auth.toggleProfileMenu()" style="display: none;">
-                <img id="img-user-profile-pic" class="user-profile-pic" style="display: none;">
-                <i id="icon-user-profile" class="fas fa-user-circle"></i>
-            </button>
-            <div id="menu-user-profile" class="profile-menu" style="display: none;">
-                <div class="profile-menu-header">
-                    <span id="text-user-profile-name" class="profile-menu-name"></span>
-                    <span id="text-impersonated-user" class="impersonated-user-label" style="display: none;"></span>
-                </div>
-                <div id="menu-switch-user" class="profile-menu-item" onclick="session.showUserSelection()" style="display: none;">
-                    <i class="fas fa-users-cog"></i>
-                    <span>Switch User</span>
-                </div>
-                <div class="profile-menu-item" onclick="auth.signOut()">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Sign Out</span>
-                </div>
-            </div>
-            <button id="btn-app-settings" class="settings-btn" onclick="settings.openDrawer()" title="Settings" style="display: none;"><i class="fas fa-cog"></i></button>
+        <div id="menu-user-profile" class="profile-menu" style="display: none">
+          <div class="profile-menu-header">
+            <span id="text-user-profile-name" class="profile-menu-name"></span>
+            <span
+              id="text-impersonated-user"
+              class="impersonated-user-label"
+              style="display: none"
+            ></span>
+          </div>
+          <div
+            id="menu-switch-user"
+            class="profile-menu-item"
+            onclick="session.showUserSelection()"
+            style="display: none"
+          >
+            <i class="fas fa-users-cog"></i>
+            <span>Switch User</span>
+          </div>
+          <div
+            class="profile-menu-item"
+            onclick="
+              settings.openDrawer();
+              auth.toggleProfileMenu();
+            "
+          >
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+          </div>
+          <div class="profile-menu-item" onclick="auth.signOut()">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Sign Out</span>
+          </div>
         </div>
+      </div>
     </header>
 
     <!-- Hamburger Menu -->
-    <div id="hamburger-overlay" class="hamburger-overlay" onclick="session.closeHamburgerMenu()"></div>
+    <div
+      id="hamburger-overlay"
+      class="hamburger-overlay"
+      onclick="session.closeHamburgerMenu()"
+    ></div>
     <div id="hamburger-menu" class="hamburger-menu">
-        <div class="hamburger-item" onclick="session.newEvent()">
-            <i class="fas fa-calendar-alt"></i> New Event
+      <div class="hamburger-item" onclick="session.newEvent()">
+        <i class="fas fa-calendar-alt"></i> New Event
+      </div>
+      <div class="hamburger-item" onclick="session.newPrivateReading()">
+        <i class="fas fa-user"></i> New Private Reading
+      </div>
+      <div class="hamburger-item" onclick="session.showLoadSession()">
+        <i class="fas fa-folder-open"></i> Load Session
+      </div>
+      <div
+        id="hamburger-end-session"
+        class="hamburger-item"
+        onclick="session.endSession()"
+      >
+        <i class="fas fa-stop-circle"></i> End Session
+      </div>
+      <div class="hamburger-divider"></div>
+      <button
+        id="btn-gpsy-open"
+        class="tracker-buddy-btn"
+        onclick="
+          session.closeHamburgerMenu();
+          gpsyChat.open();
+        "
+      >
+        <div
+          class="gpsy-avatar"
+          style="width: 32px; height: 32px; background: transparent"
+        >
+          <img src="" id="buddyLogo" alt="ChatGPSY" />
         </div>
-        <div class="hamburger-item" onclick="session.newPrivateReading()">
-            <i class="fas fa-user"></i> New Private Reading
-        </div>
-        <div class="hamburger-item" onclick="session.showLoadSession()">
-            <i class="fas fa-folder-open"></i> Load Session
-        </div>
-        <div id="hamburger-end-session" class="hamburger-item" onclick="session.endSession()">
-            <i class="fas fa-stop-circle"></i> End Session
-        </div>
-        <div class="hamburger-divider"></div>
-        <button id="btn-gpsy-open" class="tracker-buddy-btn" onclick="session.closeHamburgerMenu(); gpsyChat.open();">
-            <div class="gpsy-avatar" style="width: 32px; height: 32px; background: transparent;">
-                <img src="" id="buddyLogo" alt="ChatGPSY">
-            </div>
-            <span style="font-size: 16px; font-weight: 600;">ChatGPSY</span>
-        </button>
+        <span style="font-size: 16px; font-weight: 600">ChatGPSY</span>
+      </button>
     </div>
 
     <div class="container">
-        <!-- Login Prompt (shown when not authenticated) -->
-        <div id="container-login-prompt" class="login-prompt">
-            <p>Please sign in to manage your reading sessions</p>
-            <button class="btn btn-primary" onclick="auth.signIn()">
-                <i class="fab fa-google" style="margin-right: 8px;"></i>
-                Sign in with Google
-            </button>
-        </div>
+      <!-- Login Prompt (shown when not authenticated) -->
+      <div id="container-login-prompt" class="login-prompt">
+        <p>Please sign in to manage your reading sessions</p>
+        <button class="btn btn-primary" onclick="auth.signIn()">
+          <i class="fab fa-google" style="margin-right: 8px"></i>
+          Sign in with Google
+        </button>
+      </div>
 
-        <div id="session-bar" class="session-bar">
-            <span id="session-bar-location" class="session-bar-location no-session">(no active session)</span>
-            <span id="session-bar-price" class="session-bar-price" style="display: none;"></span>
-            <span id="session-bar-date" class="session-bar-date" style="display: none;"></span>
-            <button id="btn-session-edit" class="session-bar-edit" style="display: none;">
-                <i class="fas fa-pencil-alt"></i>
-            </button>
+      <div id="session-bar" class="session-bar">
+        <div class="session-bar-main">
+          <span id="session-bar-location" class="session-bar-location no-session"
+            >(no active session)</span
+          >
+          <span
+            id="session-bar-price"
+            class="session-bar-price"
+            style="display: none"
+          ></span>
+          <span
+            id="session-bar-date"
+            class="session-bar-date"
+            style="display: none"
+          ></span>
+          <button
+            id="btn-session-edit"
+            class="session-bar-edit"
+            style="display: none"
+          >
+            <i class="fas fa-pencil-alt"></i>
+          </button>
         </div>
+        <div id="session-bar-badges" class="session-bar-badges" style="display: none">
+          <span id="session-bar-type" class="session-bar-type"></span>
+          <span id="session-bar-format" class="session-bar-format"></span>
+        </div>
+      </div>
 
-        <div id="container-readings-buttons" class="buttons">
-            <button id="btn-readings-add" class="btn-add btn btn-primary btn-large" onclick="readingsManager.addReading()">+ Add Reading</button>
-            <button id="btn-readings-delete" class="btn-remove btn btn-danger btn-large" onclick="readingsManager.removeReading()">-</button>
-        </div>
+      <div id="container-readings-buttons" class="buttons">
+        <button
+          id="btn-readings-add"
+          class="btn-add btn btn-primary btn-large"
+          onclick="readingsManager.addReading()"
+        >
+          + Add Reading
+        </button>
+        <button
+          id="btn-readings-delete"
+          class="btn-remove btn btn-danger btn-large"
+          onclick="readingsManager.removeReading()"
+        >
+          -
+        </button>
+      </div>
 
-        <div id="container-readings-totals" class="totals">
-            <table class="totals-table">
-                <tr>
-                    <td><i class="fas fa-book-open" style="margin-right: 8px;"></i>Readings:</td>
-                    <td><span id="readingCount">0</span></td>
-                </tr>
-                <tr>
-                    <td><i class="fas fa-coins" style="margin-right: 8px;"></i>Base Total:</td>
-                    <td>$<span id="baseTotal">0.00</span></td>
-                </tr>
-                <tr>
-                    <td><i class="fas fa-hand-holding-usd" style="margin-right: 8px;"></i>Tips Total:</td>
-                    <td>$<span id="tipsTotal">0.00</span></td>
-                </tr>
-            </table>
-            <div class="grand-total"><i class="fas fa-wallet" style="margin-right: 8px;"></i>Total: $<span id="grandTotal">0.00</span></div>
+      <div id="container-readings-totals" class="totals">
+        <table class="totals-table">
+          <tr>
+            <td>
+              <i class="fas fa-book-open" style="margin-right: 8px"></i
+              >Readings:
+            </td>
+            <td><span id="readingCount">0</span></td>
+          </tr>
+          <tr>
+            <td>
+              <i class="fas fa-coins" style="margin-right: 8px"></i>Base Total:
+            </td>
+            <td>$<span id="baseTotal">0.00</span></td>
+          </tr>
+          <tr>
+            <td>
+              <i class="fas fa-hand-holding-usd" style="margin-right: 8px"></i
+              >Tips Total:
+            </td>
+            <td>$<span id="tipsTotal">0.00</span></td>
+          </tr>
+        </table>
+        <div class="grand-total">
+          <i class="fas fa-wallet" style="margin-right: 8px"></i>Total: $<span
+            id="grandTotal"
+            >0.00</span
+          >
         </div>
+      </div>
 
-        <div id="container-readings-list" class="readings-list">
-            <h3>Readings Log</h3>
-            <div id="readingsList"></div>
-        </div>
+      <div id="container-readings-list" class="readings-list">
+        <h3>Readings Log</h3>
+        <div id="readingsList"></div>
+      </div>
 
-        <div id="container-timer" class="timer">
-            <h3>Timer</h3>
-            <div class="timer-controls">
-                <button id="btn-timer-decrease" class="arrow-btn btn btn-secondary btn-small" onclick="timer.adjustTime(-1)"><i class="fas fa-minus"></i></button>
-                <input type="number" class="timer-input" id="timerInput" value="15" min="0" max="99" inputmode="numeric">
-                <button id="btn-timer-increase" class="arrow-btn btn btn-secondary btn-small" onclick="timer.adjustTime(1)"><i class="fas fa-plus"></i></button>
-            </div>
-            <div class="timer-canvas-container">
-                <canvas id="timerCanvas" class="timer-canvas" width="300" height="300"></canvas>
-            </div>
-            <div class="timer-display" id="timerDisplay" style="display: none;">15:00</div>
-            <div class="timer-buttons">
-                <button id="btn-timer-start" class="timer-btn start-btn btn btn-primary btn-xlarge" onclick="timer.start()">Start</button>
-                <button id="btn-timer-pause" class="timer-btn pause-btn btn" onclick="timer.pause()">Pause</button>
-                <button id="btn-timer-reset" class="timer-btn reset-btn btn btn-danger" onclick="timer.reset()">Reset</button>
-            </div>
+      <div id="container-timer" class="timer">
+        <h3>Timer</h3>
+        <div class="timer-controls">
+          <button
+            id="btn-timer-decrease"
+            class="arrow-btn btn btn-secondary btn-small"
+            onclick="timer.adjustTime(-1)"
+          >
+            <i class="fas fa-minus"></i>
+          </button>
+          <input
+            type="number"
+            class="timer-input"
+            id="timerInput"
+            value="15"
+            min="0"
+            max="99"
+            inputmode="numeric"
+          />
+          <button
+            id="btn-timer-increase"
+            class="arrow-btn btn btn-secondary btn-small"
+            onclick="timer.adjustTime(1)"
+          >
+            <i class="fas fa-plus"></i>
+          </button>
         </div>
+        <div class="timer-canvas-container">
+          <canvas
+            id="timerCanvas"
+            class="timer-canvas"
+            width="300"
+            height="300"
+          ></canvas>
+        </div>
+        <div class="timer-display" id="timerDisplay" style="display: none">
+          15:00
+        </div>
+        <div class="timer-buttons">
+          <button
+            id="btn-timer-start"
+            class="timer-btn start-btn btn btn-primary btn-xlarge"
+            onclick="timer.start()"
+          >
+            Start
+          </button>
+          <button
+            id="btn-timer-pause"
+            class="timer-btn pause-btn btn"
+            onclick="timer.pause()"
+          >
+            Pause
+          </button>
+          <button
+            id="btn-timer-reset"
+            class="timer-btn reset-btn btn btn-danger"
+            onclick="timer.reset()"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Payment Method Sheet -->
-    <div id="paymentOverlay" class="payment-overlay" onclick="readingsManager.closePaymentSheet()"></div>
+    <div
+      id="paymentOverlay"
+      class="payment-overlay"
+      onclick="readingsManager.closePaymentSheet()"
+    ></div>
     <div id="paymentSheet" class="payment-sheet sheet">
-        <div class="payment-sheet-header sheet-header">
-            <h3>Select Payment Method</h3>
-            <button class="modal-close" onclick="readingsManager.closePaymentSheet()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="payment-sheet-options" id="paymentOptions">
-            <!-- Payment options populated dynamically -->
-        </div>
+      <div class="payment-sheet-header sheet-header">
+        <h3>Select Payment Method</h3>
+        <button
+          class="modal-close"
+          onclick="readingsManager.closePaymentSheet()"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="payment-sheet-options" id="paymentOptions">
+        <!-- Payment options populated dynamically -->
+      </div>
     </div>
 
     <!-- Source Sheet -->
-    <div id="sourceOverlay" class="payment-overlay" onclick="readingsManager.closeSourceSheet()"></div>
+    <div
+      id="sourceOverlay"
+      class="payment-overlay"
+      onclick="readingsManager.closeSourceSheet()"
+    ></div>
     <div id="sourceSheet" class="payment-sheet sheet">
-        <div class="payment-sheet-header sheet-header">
-            <h3>Select Source</h3>
-            <button class="modal-close" onclick="readingsManager.closeSourceSheet()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="payment-sheet-options" id="sourceOptions">
-            <!-- Source options populated dynamically -->
-        </div>
+      <div class="payment-sheet-header sheet-header">
+        <h3>Select Source</h3>
+        <button
+          class="modal-close"
+          onclick="readingsManager.closeSourceSheet()"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="payment-sheet-options" id="sourceOptions">
+        <!-- Source options populated dynamically -->
+      </div>
     </div>
 
     <!-- User Selection Sheet (admin only) -->
-    <div id="overlay-user-selection" class="payment-overlay" onclick="session.hideUserSelection()"></div>
+    <div
+      id="overlay-user-selection"
+      class="payment-overlay"
+      onclick="session.hideUserSelection()"
+    ></div>
     <div id="sheet-user-selection" class="session-sheet sheet">
-        <div class="session-sheet-header sheet-header">
-            <h3>Select User</h3>
-            <button class="modal-close" onclick="session.hideUserSelection()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="session-sheet-content">
-            <div id="list-users"></div>
-        </div>
+      <div class="session-sheet-header sheet-header">
+        <h3>Select User</h3>
+        <button class="modal-close" onclick="session.hideUserSelection()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="session-sheet-content">
+        <div id="list-users"></div>
+      </div>
     </div>
 
     <!-- Load Session Sheet -->
-    <div id="sessionOverlay" class="payment-overlay" onclick="session.closeSessionSheet()"></div>
+    <div
+      id="sessionOverlay"
+      class="payment-overlay"
+      onclick="session.closeSessionSheet()"
+    ></div>
     <div id="sessionSheet" class="session-sheet sheet">
-        <div class="session-sheet-header sheet-header">
-            <h3>Load Existing Session</h3>
-            <button class="modal-close" onclick="session.closeSessionSheet()"><i class="fas fa-times"></i></button>
+      <div class="session-sheet-header sheet-header">
+        <h3>Load Existing Session</h3>
+        <button class="modal-close" onclick="session.closeSessionSheet()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="session-sheet-content">
+        <input
+          type="text"
+          id="session-search"
+          class="session-search-input"
+          placeholder="Search sessions..."
+          oninput="session.filterLoadedSessions()"
+        />
+        <div class="session-filter-toggles">
+          <button
+            class="session-filter-btn active"
+            data-filter="all"
+            onclick="session.filterLoadedSessions('all', this)"
+          >
+            All
+          </button>
+          <button
+            class="session-filter-btn"
+            data-filter="event"
+            onclick="session.filterLoadedSessions('event', this)"
+          >
+            <i class="fas fa-store"></i> Events
+          </button>
+          <button
+            class="session-filter-btn"
+            data-filter="private"
+            onclick="session.filterLoadedSessions('private', this)"
+          >
+            <i class="fas fa-user"></i> Private
+          </button>
         </div>
-        <div class="session-sheet-content">
-            <input type="text" id="session-search" class="session-search-input" placeholder="Search sessions..." oninput="session.filterLoadedSessions()">
-            <div class="session-filter-toggles">
-                <button class="session-filter-btn active" data-filter="all" onclick="session.filterLoadedSessions('all', this)">All</button>
-                <button class="session-filter-btn" data-filter="event" onclick="session.filterLoadedSessions('event', this)"><i class="fas fa-store"></i> Events</button>
-                <button class="session-filter-btn" data-filter="private" onclick="session.filterLoadedSessions('private', this)"><i class="fas fa-user"></i> Private</button>
-            </div>
-            <div id="sessionsList"></div>
+        <div class="session-format-filter-buttons">
+          <button class="session-format-filter-btn active" data-format="all" onclick="session.setSessionFormatFilter('all', this)">All</button>
+          <button class="session-format-filter-btn" data-format="expo" onclick="session.setSessionFormatFilter('expo', this)">Expo</button>
+          <button class="session-format-filter-btn" data-format="shop" onclick="session.setSessionFormatFilter('shop', this)">Shop</button>
+          <button class="session-format-filter-btn" data-format="party" onclick="session.setSessionFormatFilter('party', this)">Party</button>
+          <button class="session-format-filter-btn" data-format="phone" onclick="session.setSessionFormatFilter('phone', this)">Phone</button>
+          <button class="session-format-filter-btn" data-format="in-person" onclick="session.setSessionFormatFilter('in-person', this)">In-Person</button>
+          <button class="session-format-filter-btn" data-format="other" onclick="session.setSessionFormatFilter('other', this)">Other</button>
         </div>
+        <div id="sessionsList"></div>
+      </div>
     </div>
 
     <!-- Payment Methods Customization Sheet -->
-    <div id="paymentMethodsOverlay" class="payment-overlay" onclick="settings.closePaymentMethodsSheet()"></div>
+    <div
+      id="paymentMethodsOverlay"
+      class="payment-overlay"
+      onclick="settings.closePaymentMethodsSheet()"
+    ></div>
     <div id="paymentMethodsSheet" class="payment-methods-sheet sheet">
-        <div class="session-sheet-header sheet-header">
-            <h3>Customize Payment Methods</h3>
-            <button class="modal-close" onclick="settings.closePaymentMethodsSheet()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="session-sheet-content">
-            <div id="paymentMethodsList"></div>
-            <button id="btn-payment-add" onclick="settings.addPaymentMethod()" class="add-payment-method btn btn-primary">+ Add Payment Method</button>
-        </div>
+      <div class="session-sheet-header sheet-header">
+        <h3>Customize Payment Methods</h3>
+        <button
+          class="modal-close"
+          onclick="settings.closePaymentMethodsSheet()"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="session-sheet-content">
+        <div id="paymentMethodsList"></div>
+        <button
+          id="btn-payment-add"
+          onclick="settings.addPaymentMethod()"
+          class="add-payment-method btn btn-primary"
+        >
+          + Add Payment Method
+        </button>
+      </div>
     </div>
 
     <!-- Sources Customization Sheet -->
-    <div id="sourcesOverlay" class="payment-overlay" onclick="settings.closeSourcesSheet()"></div>
+    <div
+      id="sourcesOverlay"
+      class="payment-overlay"
+      onclick="settings.closeSourcesSheet()"
+    ></div>
     <div id="sourcesSheet" class="payment-methods-sheet sheet">
-        <div class="session-sheet-header sheet-header">
-            <h3>Customize Sources</h3>
-            <button class="modal-close" onclick="settings.closeSourcesSheet()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="session-sheet-content">
-            <div id="sourcesList"></div>
-            <button id="btn-source-add" onclick="settings.addSource()" class="add-payment-method btn btn-primary">+ Add Source</button>
-        </div>
+      <div class="session-sheet-header sheet-header">
+        <h3>Customize Sources</h3>
+        <button class="modal-close" onclick="settings.closeSourcesSheet()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="session-sheet-content">
+        <div id="sourcesList"></div>
+        <button
+          id="btn-source-add"
+          onclick="settings.addSource()"
+          class="add-payment-method btn btn-primary"
+        >
+          + Add Source
+        </button>
+      </div>
+    </div>
+
+    <!-- Formats Customization Sheet -->
+    <div
+      id="formatsOverlay"
+      class="payment-overlay"
+      onclick="settings.closeFormatsSheet()"
+    ></div>
+    <div id="formatsSheet" class="payment-methods-sheet sheet">
+      <div class="session-sheet-header sheet-header">
+        <h3>Customize Kinds</h3>
+        <button class="modal-close" onclick="settings.closeFormatsSheet()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="session-sheet-content">
+        <div id="formatsList"></div>
+        <button
+          id="btn-format-add"
+          onclick="settings.addFormat()"
+          class="add-payment-method btn btn-primary"
+        >
+          + Add Kind
+        </button>
+      </div>
     </div>
 
     <!-- Private Price Presets Customization Sheet -->
-    <div id="privatePricePresetsOverlay" class="payment-overlay" onclick="settings.closePrivatePricePresetsSheet()"></div>
+    <div
+      id="privatePricePresetsOverlay"
+      class="payment-overlay"
+      onclick="settings.closePrivatePricePresetsSheet()"
+    ></div>
     <div id="privatePricePresetsSheet" class="payment-methods-sheet sheet">
-        <div class="session-sheet-header sheet-header">
-            <h3>Customize Price Presets</h3>
-            <button class="modal-close" onclick="settings.closePrivatePricePresetsSheet()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="session-sheet-content">
-            <div id="privatePricePresetsList"></div>
-            <button id="btn-preset-add" onclick="settings.addPrivatePricePreset()" class="add-payment-method btn btn-primary">+ Add Preset</button>
-        </div>
+      <div class="session-sheet-header sheet-header">
+        <h3>Customize Price Presets</h3>
+        <button
+          class="modal-close"
+          onclick="settings.closePrivatePricePresetsSheet()"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="session-sheet-content">
+        <div id="privatePricePresetsList"></div>
+        <button
+          id="btn-preset-add"
+          onclick="settings.addPrivatePricePreset()"
+          class="add-payment-method btn btn-primary"
+        >
+          + Add Preset
+        </button>
+      </div>
     </div>
 
     <!-- Session Creation/Edit Sheet -->
-    <div id="sessionSheetOverlay" class="payment-overlay" onclick="session.closeSessionCreationSheet()"></div>
+    <div
+      id="sessionSheetOverlay"
+      class="payment-overlay"
+      onclick="session.closeSessionCreationSheet()"
+    ></div>
     <div id="sessionCreationSheet" class="session-creation-sheet sheet">
-        <div class="sheet-header">
-            <h3 id="sessionSheetTitle">New Event</h3>
-            <button class="modal-close" onclick="session.closeSessionCreationSheet()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="session-creation-content">
-            <div id="sessionSheetFields"></div>
-            <button id="btn-session-save" class="btn btn-primary btn-large" onclick="session.saveSessionSheet()">
-                Save
-            </button>
-        </div>
+      <div class="sheet-header">
+        <h3 id="sessionSheetTitle">New Event</h3>
+        <button
+          class="modal-close"
+          onclick="session.closeSessionCreationSheet()"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="session-creation-content">
+        <div id="sessionSheetFields"></div>
+        <button
+          id="btn-session-save"
+          class="btn btn-primary btn-large"
+          onclick="session.saveSessionSheet()"
+        >
+          Save
+        </button>
+      </div>
     </div>
 
     <!-- Gpsy Chat Drawer -->
-    <div id="gpsyOverlay" class="settings-overlay" onclick="gpsyChat.close()"></div>
+    <div
+      id="gpsyOverlay"
+      class="settings-overlay"
+      onclick="gpsyChat.close()"
+    ></div>
     <div id="gpsyDrawer" class="gpsy-drawer">
-        <div class="gpsy-header">
-            <h2 style="display: flex; align-items: center; gap: 10px;">
-                <div class="gpsy-avatar" style="width: 28px; height: 28px; background: transparent;">
-                    <img src="" id="gpsyHeaderLogo" alt="ChatGPSY">
-                </div>
-                ChatGPSY
-            </h2>
-            <button class="modal-close" onclick="gpsyChat.close()"><i class="fas fa-times"></i></button>
-        </div>
-        <div id="gpsyMessages" class="gpsy-messages"></div>
-        <div id="gpsyQuickActions" class="gpsy-quick-actions" style="display: none;">
-            <!-- Quick action chips populated dynamically -->
-        </div>
-        <div class="gpsy-input-container">
-            <input type="text" id="gpsy-input" placeholder="Ask about your readings..." onkeydown="if(event.key==='Enter') gpsyChat.send()">
-            <button id="gpsy-send-btn" onclick="gpsyChat.send()" class="gpsy-send-btn btn btn-primary">Send</button>
-        </div>
+      <div class="gpsy-header">
+        <h2 style="display: flex; align-items: center; gap: 10px">
+          <div
+            class="gpsy-avatar"
+            style="width: 28px; height: 28px; background: transparent"
+          >
+            <img src="" id="gpsyHeaderLogo" alt="ChatGPSY" />
+          </div>
+          ChatGPSY
+        </h2>
+        <button class="modal-close" onclick="gpsyChat.close()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="gpsyMessages" class="gpsy-messages"></div>
+      <div
+        id="gpsyQuickActions"
+        class="gpsy-quick-actions"
+        style="display: none"
+      >
+        <!-- Quick action chips populated dynamically -->
+      </div>
+      <div class="gpsy-input-container">
+        <input
+          type="text"
+          id="gpsy-input"
+          placeholder="Ask about your readings..."
+          onkeydown="if (event.key === 'Enter') gpsyChat.send();"
+        />
+        <button
+          id="gpsy-send-btn"
+          onclick="gpsyChat.send()"
+          class="gpsy-send-btn btn btn-primary"
+        >
+          Send
+        </button>
+      </div>
     </div>
 
     <!-- Settings Drawer -->
-    <div id="settingsOverlay" class="settings-overlay" onclick="settings.closeDrawer()"></div>
+    <div
+      id="settingsOverlay"
+      class="settings-overlay"
+      onclick="settings.closeDrawer()"
+    ></div>
     <div id="settingsDrawer" class="settings-drawer">
-        <div class="settings-drawer-header">
-            <h2>Settings</h2>
-            <button class="modal-close" onclick="settings.closeDrawer()"><i class="fas fa-times"></i></button>
+      <div class="settings-drawer-header">
+        <h2>Settings</h2>
+        <button class="modal-close" onclick="settings.closeDrawer()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="settings-drawer-content">
+        <!-- App Preferences -->
+        <div class="settings-section">
+          <h3>App Preferences</h3>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Sound Alerts</div>
+              <div class="setting-description">Timer alarm sounds</div>
+            </div>
+            <div
+              class="toggle-switch"
+              id="soundToggle"
+              onclick="settings.toggleSetting('sound')"
+            ></div>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Haptic Feedback</div>
+              <div class="setting-description">Vibration on button presses</div>
+            </div>
+            <div
+              class="toggle-switch"
+              id="hapticToggle"
+              onclick="settings.toggleSetting('haptic')"
+            ></div>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Timer Notifications</div>
+              <div class="setting-description">
+                Push notifications when timer expires
+              </div>
+            </div>
+            <div
+              class="toggle-switch"
+              id="timerNotificationsToggle"
+              onclick="settings.toggleSetting('timerNotifications')"
+            ></div>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Dark Mode</div>
+              <div class="setting-description">
+                Dark theme for evening events
+              </div>
+            </div>
+            <div
+              class="toggle-switch"
+              id="darkModeToggle"
+              onclick="settings.toggleSetting('darkMode')"
+            ></div>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Default Timer</div>
+              <div class="setting-description">Default timer duration</div>
+            </div>
+            <select
+              class="settings-select"
+              id="defaultTimer"
+              onchange="settings.updateSetting('defaultTimer', this.value)"
+            >
+              <option value="5">5 minutes</option>
+              <option value="10">10 minutes</option>
+              <option value="15" selected>15 minutes</option>
+              <option value="20">20 minutes</option>
+              <option value="30">30 minutes</option>
+            </select>
+          </div>
         </div>
-        <div class="settings-drawer-content">
-            <!-- App Preferences -->
-            <div class="settings-section">
-                <h3>App Preferences</h3>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Sound Alerts</div>
-                        <div class="setting-description">Timer alarm sounds</div>
-                    </div>
-                    <div class="toggle-switch" id="soundToggle" onclick="settings.toggleSetting('sound')"></div>
-                </div>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Haptic Feedback</div>
-                        <div class="setting-description">Vibration on button presses</div>
-                    </div>
-                    <div class="toggle-switch" id="hapticToggle" onclick="settings.toggleSetting('haptic')"></div>
-                </div>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Timer Notifications</div>
-                        <div class="setting-description">Push notifications when timer expires</div>
-                    </div>
-                    <div class="toggle-switch" id="timerNotificationsToggle" onclick="settings.toggleSetting('timerNotifications')"></div>
-                </div>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Dark Mode</div>
-                        <div class="setting-description">Dark theme for evening events</div>
-                    </div>
-                    <div class="toggle-switch" id="darkModeToggle" onclick="settings.toggleSetting('darkMode')"></div>
-                </div>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Default Timer</div>
-                        <div class="setting-description">Default timer duration</div>
-                    </div>
-                    <select class="settings-select" id="defaultTimer" onchange="settings.updateSetting('defaultTimer', this.value)">
-                        <option value="5">5 minutes</option>
-                        <option value="10">10 minutes</option>
-                        <option value="15" selected>15 minutes</option>
-                        <option value="20">20 minutes</option>
-                        <option value="30">30 minutes</option>
-                    </select>
-                </div>
-            </div>
 
-            <!-- Payment Methods -->
-            <div class="settings-section">
-                <h3>Payment Methods</h3>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Available Methods</div>
-                        <div class="setting-description">Customize payment options</div>
-                    </div>
-                    <button id="btn-settings-payment-customize" class="settings-button btn btn-secondary btn-small" onclick="settings.customizePaymentMethods()">Customize</button>
-                </div>
+        <!-- Payment Methods -->
+        <div class="settings-section">
+          <h3>Payment Methods</h3>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Available Methods</div>
+              <div class="setting-description">Customize payment options</div>
             </div>
-
-            <!-- Sources -->
-            <div class="settings-section">
-                <h3>Sources</h3>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Available Sources</div>
-                        <div class="setting-description">Customize source options</div>
-                    </div>
-                    <button id="btn-settings-source-customize" class="settings-button btn btn-secondary btn-small" onclick="settings.customizeSources()">Customize</button>
-                </div>
-            </div>
-
-            <!-- Private Price Presets -->
-            <div class="settings-section">
-                <h3>Private Price Presets</h3>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Price Presets</div>
-                        <div class="setting-description">Quick-select prices for private readings</div>
-                    </div>
-                    <button id="btn-settings-presets-customize" class="settings-button btn btn-secondary btn-small" onclick="settings.customizePrivatePricePresets()">Customize</button>
-                </div>
-            </div>
-
-            <!-- Data & Export -->
-            <div class="settings-section">
-                <h3>Data & Export</h3>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Export Data</div>
-                        <div class="setting-description">Download session data as CSV</div>
-                    </div>
-                    <button id="btn-settings-export" class="settings-button btn btn-secondary btn-small" onclick="settings.exportData()">Export</button>
-                </div>
-            </div>
-
-            <!-- Analytics -->
-            <div class="settings-section">
-                <h3>Analytics & Notifications</h3>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Daily Summary</div>
-                        <div class="setting-description">End of day notifications</div>
-                    </div>
-                    <div class="toggle-switch" id="dailySummaryToggle" onclick="settings.toggleSetting('dailySummary')"></div>
-                </div>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Weekend Goals</div>
-                        <div class="setting-description">Earnings milestone alerts</div>
-                    </div>
-                    <div class="toggle-switch" id="weekendGoalsToggle" onclick="settings.toggleSetting('weekendGoals')"></div>
-                </div>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Best Day Alerts</div>
-                        <div class="setting-description">Peak performance notifications</div>
-                    </div>
-                    <div class="toggle-switch" id="bestDayToggle" onclick="settings.toggleSetting('bestDay')"></div>
-                </div>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Tip Trends</div>
-                        <div class="setting-description">Tip analysis notifications</div>
-                    </div>
-                    <div class="toggle-switch" id="tipTrendsToggle" onclick="settings.toggleSetting('tipTrends')"></div>
-                </div>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Peak Time Alerts</div>
-                        <div class="setting-description">Busy time notifications</div>
-                    </div>
-                    <div class="toggle-switch" id="peakTimeToggle" onclick="settings.toggleSetting('peakTime')"></div>
-                </div>
-            </div>
-
-            <!-- App Updates -->
-            <div class="settings-section">
-                <h3>App Updates</h3>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Check for Updates</div>
-                        <div class="setting-description">Manually check for new app versions</div>
-                    </div>
-                    <button id="btn-settings-update" class="settings-button btn btn-secondary btn-small" onclick="checkForUpdates()">Check</button>
-                </div>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">Clear Cache</div>
-                        <div class="setting-description">Clear all cached files and reload</div>
-                    </div>
-                    <button id="btn-settings-cache" class="settings-button btn btn-secondary btn-small" onclick="clearCache()">Clear</button>
-                </div>
-            </div>
-
-            <!-- Version Info -->
-            <div class="settings-version-info">
-                <span>v4.3.2</span>
-            </div>
+            <button
+              id="btn-settings-payment-customize"
+              class="settings-button btn btn-secondary btn-small"
+              onclick="settings.customizePaymentMethods()"
+            >
+              Customize
+            </button>
+          </div>
         </div>
+
+        <!-- Sources -->
+        <div class="settings-section">
+          <h3>Sources</h3>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Available Sources</div>
+              <div class="setting-description">Customize source options</div>
+            </div>
+            <button
+              id="btn-settings-source-customize"
+              class="settings-button btn btn-secondary btn-small"
+              onclick="settings.customizeSources()"
+            >
+              Customize
+            </button>
+          </div>
+        </div>
+
+        <!-- Kinds of Events/Readings -->
+        <div class="settings-section">
+          <h3>Kinds of Events/Readings</h3>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Available Kinds</div>
+              <div class="setting-description">Customize event and reading types</div>
+            </div>
+            <button
+              id="btn-settings-formats-customize"
+              class="settings-button btn btn-secondary btn-small"
+              onclick="settings.customizeFormats()"
+            >
+              Customize
+            </button>
+          </div>
+        </div>
+
+        <!-- Private Price Presets -->
+        <div class="settings-section">
+          <h3>Private Price Presets</h3>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Price Presets</div>
+              <div class="setting-description">
+                Quick-select prices for private readings
+              </div>
+            </div>
+            <button
+              id="btn-settings-presets-customize"
+              class="settings-button btn btn-secondary btn-small"
+              onclick="settings.customizePrivatePricePresets()"
+            >
+              Customize
+            </button>
+          </div>
+        </div>
+
+        <!-- Data & Export -->
+        <div class="settings-section">
+          <h3>Data & Export</h3>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Export Data</div>
+              <div class="setting-description">
+                Download session data as CSV
+              </div>
+            </div>
+            <button
+              id="btn-settings-export"
+              class="settings-button btn btn-secondary btn-small"
+              onclick="settings.exportData()"
+            >
+              Export
+            </button>
+          </div>
+        </div>
+
+        <!-- Analytics -->
+        <div class="settings-section">
+          <h3>Analytics & Notifications</h3>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Daily Summary</div>
+              <div class="setting-description">End of day notifications</div>
+            </div>
+            <div
+              class="toggle-switch"
+              id="dailySummaryToggle"
+              onclick="settings.toggleSetting('dailySummary')"
+            ></div>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Weekend Goals</div>
+              <div class="setting-description">Earnings milestone alerts</div>
+            </div>
+            <div
+              class="toggle-switch"
+              id="weekendGoalsToggle"
+              onclick="settings.toggleSetting('weekendGoals')"
+            ></div>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Best Day Alerts</div>
+              <div class="setting-description">
+                Peak performance notifications
+              </div>
+            </div>
+            <div
+              class="toggle-switch"
+              id="bestDayToggle"
+              onclick="settings.toggleSetting('bestDay')"
+            ></div>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Tip Trends</div>
+              <div class="setting-description">Tip analysis notifications</div>
+            </div>
+            <div
+              class="toggle-switch"
+              id="tipTrendsToggle"
+              onclick="settings.toggleSetting('tipTrends')"
+            ></div>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Peak Time Alerts</div>
+              <div class="setting-description">Busy time notifications</div>
+            </div>
+            <div
+              class="toggle-switch"
+              id="peakTimeToggle"
+              onclick="settings.toggleSetting('peakTime')"
+            ></div>
+          </div>
+        </div>
+
+        <!-- App Updates -->
+        <div class="settings-section">
+          <h3>App Updates</h3>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Check for Updates</div>
+              <div class="setting-description">
+                Manually check for new app versions
+              </div>
+            </div>
+            <button
+              id="btn-settings-update"
+              class="settings-button btn btn-secondary btn-small"
+              onclick="checkForUpdates()"
+            >
+              Check
+            </button>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">Clear Cache</div>
+              <div class="setting-description">
+                Clear all cached files and reload
+              </div>
+            </div>
+            <button
+              id="btn-settings-cache"
+              class="settings-button btn btn-secondary btn-small"
+              onclick="clearCache()"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Version Info -->
+        <div class="settings-version-info">
+          <span>v4.3.2</span>
+        </div>
+      </div>
     </div>
 
     <script src="https://unpkg.com/@supabase/supabase-js@2?v=2"></script>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1691.0.min.js"></script>
     <script>
-        // Supabase configuration
-        const SUPABASE_URL = 'https://uuindvqgdblkjzvjsyrz.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_MsdJm2VITIPWik4dBPErrw_QjfIsKe9';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      // Supabase configuration
+      const SUPABASE_URL = "https://uuindvqgdblkjzvjsyrz.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "sb_publishable_MsdJm2VITIPWik4dBPErrw_QjfIsKe9";
+      const supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY,
+      );
 
-        // Service worker registration for PWA with message handling
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/serviceWorker.js')
-                .then(registration => {
-                    // Check for updates
-                    registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                showUpdateNotification();
-                            }
-                        });
-                    });
-                    
-                    // Register for periodic background sync (requires user permission)
-                    if ('periodicSync' in window.ServiceWorkerRegistration.prototype) {
-                        registration.periodicSync.register('backup-readings', {
-                            minInterval: 24 * 60 * 60 * 1000 // 24 hours
-                        }).catch(() => {});
-                    }
-                    
-                    // Request notification permission
-                    if ('Notification' in window && 'serviceWorker' in navigator) {
-                        Notification.requestPermission();
-                    }
+      // Service worker registration for PWA with message handling
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/serviceWorker.js")
+          .then((registration) => {
+            // Check for updates
+            registration.addEventListener("updatefound", () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener("statechange", () => {
+                if (
+                  newWorker.state === "installed" &&
+                  navigator.serviceWorker.controller
+                ) {
+                  showUpdateNotification();
+                }
+              });
+            });
+
+            // Register for periodic background sync (requires user permission)
+            if ("periodicSync" in window.ServiceWorkerRegistration.prototype) {
+              registration.periodicSync
+                .register("backup-readings", {
+                  minInterval: 24 * 60 * 60 * 1000, // 24 hours
                 })
                 .catch(() => {});
-            
-            // Listen for messages from service worker
-            navigator.serviceWorker.addEventListener('message', event => {
-                if (event.data.type === 'SYNC_READINGS') {
-                    handleBackgroundSync();
-                } else if (event.data.type === 'BACKUP_READINGS') {
-                    handleBackgroundBackup();
-                } else if (event.data.type === 'RESET_TIMER') {
-                    timer.handleTimerReset();
-                }
-            });
+            }
+
+            // Request notification permission
+            if ("Notification" in window && "serviceWorker" in navigator) {
+              Notification.requestPermission();
+            }
+          })
+          .catch(() => {});
+
+        // Listen for messages from service worker
+        navigator.serviceWorker.addEventListener("message", (event) => {
+          if (event.data.type === "SYNC_READINGS") {
+            handleBackgroundSync();
+          } else if (event.data.type === "BACKUP_READINGS") {
+            handleBackgroundBackup();
+          } else if (event.data.type === "RESET_TIMER") {
+            timer.handleTimerReset();
+          }
+        });
+      }
+
+      // Central Session Store
+      // SESSION STORE CLASS - See modules/session-store.js
+      // Timer class extracted to modules/timer.js
+      // SettingsStore class extracted to modules/settings-store.js
+
+      // Date normalization utility
+      function normalizeDate(dateStr) {
+        if (!dateStr) return null;
+        // Convert YYYY-MM-DD or YY-MM-DD to MM/DD/YYYY
+        if (dateStr.match(/^\d{2,4}-\d{2}-\d{2}$/)) {
+          let [year, month, day] = dateStr.split("-");
+          if (year.length === 2) year = "20" + year;
+          return `${parseInt(month)}/${parseInt(day)}/${year}`;
+        }
+        return dateStr; // Already in MM/DD/YYYY or other format
+      }
+
+      // Initialize stores
+      // SESSION STORE CLASS - See modules/session-store.js
+
+      // Analytics & Notification System - See modules/analytics-notifier.js
+
+      // Background sync handler
+      async function handleBackgroundSync() {
+        if (!session.sessionId || !session.userId) return;
+
+        try {
+          // Fetch current DB state
+          const { data: dbReadings } = await supabaseClient
+            .from("blacksheep_reading_tracker_readings")
+            .select("*")
+            .eq("session_id", session.sessionId);
+
+          const dbIds = new Set((dbReadings || []).map((r) => r.id));
+          const localIds = new Set(
+            session.readings.filter((r) => r.id).map((r) => r.id),
+          );
+
+          // INSERT new readings (no id)
+          const newReadings = session.readings.filter((r) => !r.id);
+          if (newReadings.length > 0) {
+            const { data } = await supabaseClient
+              .from("blacksheep_reading_tracker_readings")
+              .insert(
+                newReadings.map((r) => ({
+                  session_id: session.sessionId,
+                  timestamp: r.timestamp,
+                  tip: r.tip || 0,
+                  price: r.price,
+                  payment: r.payment,
+                  source: r.source,
+                })),
+              )
+              .select();
+
+            // Update local readings with returned IDs
+            if (data) {
+              data.forEach((dbReading, i) => {
+                newReadings[i].id = dbReading.id;
+              });
+            }
+          }
+
+          // UPDATE existing readings
+          for (const reading of session.readings.filter((r) => r.id)) {
+            await supabaseClient
+              .from("blacksheep_reading_tracker_readings")
+              .update({
+                tip: reading.tip || 0,
+                price: reading.price,
+                payment: reading.payment,
+                source: reading.source,
+              })
+              .eq("id", reading.id);
+          }
+
+          // DELETE readings removed offline
+          const deletedIds = [...dbIds].filter((id) => !localIds.has(id));
+          if (deletedIds.length > 0) {
+            await supabaseClient
+              .from("blacksheep_reading_tracker_readings")
+              .delete()
+              .in("id", deletedIds);
+          }
+
+          session.saveToLocalStorage();
+        } catch (error) {
+          console.error("Background sync failed:", error);
+        }
+      }
+
+      // Background backup handler
+      async function handleBackgroundBackup() {
+        try {
+          // Create backup in localStorage with timestamp
+          const backup = {
+            timestamp: new Date().toISOString(),
+            sessionData: {
+              sessionId: session.sessionId,
+              location: session.location,
+              selectedDay: session.selectedDay,
+              price: session.price,
+              readings: session.readings,
+            },
+          };
+          localStorage.setItem("readingTracker_backup", JSON.stringify(backup));
+        } catch (error) {}
+      }
+
+      // Register for background sync when going offline
+      function registerBackgroundSync() {
+        if (
+          "serviceWorker" in navigator &&
+          "sync" in window.ServiceWorkerRegistration.prototype
+        ) {
+          navigator.serviceWorker.ready
+            .then((registration) => {
+              return registration.sync.register("background-sync-readings");
+            })
+            .catch(() => {});
+        }
+      }
+
+      // Send push notification (for testing)
+      function sendTestNotification() {
+        if (!("Notification" in window)) {
+          alert("This browser does not support notifications");
+          return;
         }
 
-        
-        // Central Session Store
-        // SESSION STORE CLASS - See modules/session-store.js
-        // Timer class extracted to modules/timer.js
-        // SettingsStore class extracted to modules/settings-store.js
-
-        // Date normalization utility
-        function normalizeDate(dateStr) {
-            if (!dateStr) return null;
-            // Convert YYYY-MM-DD or YY-MM-DD to MM/DD/YYYY
-            if (dateStr.match(/^\d{2,4}-\d{2}-\d{2}$/)) {
-                let [year, month, day] = dateStr.split('-');
-                if (year.length === 2) year = '20' + year;
-                return `${parseInt(month)}/${parseInt(day)}/${year}`;
-            }
-            return dateStr; // Already in MM/DD/YYYY or other format
+        if (Notification.permission === "denied") {
+          alert(
+            "Notifications are blocked. Please enable them in browser settings.",
+          );
+          return;
         }
 
-        // Initialize stores
-        // SESSION STORE CLASS - See modules/session-store.js
-        
-        // Analytics & Notification System - See modules/analytics-notifier.js
+        if (Notification.permission === "default") {
+          Notification.requestPermission().then((permission) => {
+            if (permission === "granted") {
+              showTestNotification();
+            } else {
+              alert("Notification permission denied");
+            }
+          });
+        } else if (Notification.permission === "granted") {
+          showTestNotification();
+        }
+      }
 
-        
-        // Background sync handler
-        async function handleBackgroundSync() {
-            if (!session.sessionId || !session.userId) return;
-            
-            try {
-                // Fetch current DB state
-                const { data: dbReadings } = await supabaseClient
-                    .from('blacksheep_reading_tracker_readings')
-                    .select('*')
-                    .eq('session_id', session.sessionId);
-                
-                const dbIds = new Set((dbReadings || []).map(r => r.id));
-                const localIds = new Set(session.readings.filter(r => r.id).map(r => r.id));
-                
-                // INSERT new readings (no id)
-                const newReadings = session.readings.filter(r => !r.id);
-                if (newReadings.length > 0) {
-                    const { data } = await supabaseClient
-                        .from('blacksheep_reading_tracker_readings')
-                        .insert(newReadings.map(r => ({
-                            session_id: session.sessionId,
-                            timestamp: r.timestamp,
-                            tip: r.tip || 0,
-                            price: r.price,
-                            payment: r.payment,
-                            source: r.source
-                        })))
-                        .select();
-                    
-                    // Update local readings with returned IDs
-                    if (data) {
-                        data.forEach((dbReading, i) => {
-                            newReadings[i].id = dbReading.id;
-                        });
-                    }
-                }
-                
-                // UPDATE existing readings
-                for (const reading of session.readings.filter(r => r.id)) {
-                    await supabaseClient
-                        .from('blacksheep_reading_tracker_readings')
-                        .update({
-                            tip: reading.tip || 0,
-                            price: reading.price,
-                            payment: reading.payment,
-                            source: reading.source
-                        })
-                        .eq('id', reading.id);
-                }
-                
-                // DELETE readings removed offline
-                const deletedIds = [...dbIds].filter(id => !localIds.has(id));
-                if (deletedIds.length > 0) {
-                    await supabaseClient
-                        .from('blacksheep_reading_tracker_readings')
-                        .delete()
-                        .in('id', deletedIds);
-                }
-                
-                session.saveToLocalStorage();
-            } catch (error) {
-                console.error('Background sync failed:', error);
-            }
-        }
-        
-        // Background backup handler
-        async function handleBackgroundBackup() {
-            try {
-                // Create backup in localStorage with timestamp
-                const backup = {
-                    timestamp: new Date().toISOString(),
-                    sessionData: {
-                        sessionId: session.sessionId,
-                        location: session.location,
-                        selectedDay: session.selectedDay,
-                        price: session.price,
-                        readings: session.readings
-                    }
-                };
-                localStorage.setItem('readingTracker_backup', JSON.stringify(backup));
-            } catch (error) {}
-        }
-        
-        // Register for background sync when going offline
-        function registerBackgroundSync() {
-            if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
-                navigator.serviceWorker.ready.then(registration => {
-                    return registration.sync.register('background-sync-readings');
-                }).catch(() => {});
-            }
-        }
-        
-        // Send push notification (for testing)
-        function sendTestNotification() {
-            
-            if (!('Notification' in window)) {
-                alert('This browser does not support notifications');
-                return;
-            }
-            
-            if (Notification.permission === 'denied') {
-                alert('Notifications are blocked. Please enable them in browser settings.');
-                return;
-            }
-            
-            if (Notification.permission === 'default') {
-                Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                        showTestNotification();
-                    } else {
-                        alert('Notification permission denied');
-                    }
-                });
-            } else if (Notification.permission === 'granted') {
-                showTestNotification();
-            }
-        }
-        
-        function showTestNotification() {
-            // Try direct notification first
-            try {
-                new Notification('Test Notification', {
-                    body: 'Direct browser notification test',
-                    icon: '/logo192.png'
-                });
-            } catch (err) {}
-            
-            // Also try service worker notification
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.ready.then(registration => {
-                    registration.showNotification(window.APP_TITLE, {
-                        body: 'Test notification - this should appear on desktop!',
-                        icon: '/logo192.png',
-                        badge: '/logo192.png',
-                        vibrate: [100, 50, 100],
-                        tag: 'test-notification',
-                        actions: [
-                            { action: 'open', title: 'Open App' },
-                            { action: 'close', title: 'Close' }
-                        ]
-                    }).catch(() => {});
-                }).catch(() => {});
-            }
-        }
-        
-        function fallbackNotification() {
-            new Notification(window.APP_TITLE, {
-                body: 'Test notification - fallback method',
-                icon: '/logo192.png'
-            });
-        }
+      function showTestNotification() {
+        // Try direct notification first
+        try {
+          new Notification("Test Notification", {
+            body: "Direct browser notification test",
+            icon: "/logo192.png",
+          });
+        } catch (err) {}
 
-        function showUpdateNotification() {
-            const updateBar = document.createElement('div');
-            updateBar.style.cssText = `
+        // Also try service worker notification
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.ready
+            .then((registration) => {
+              registration
+                .showNotification(window.APP_TITLE, {
+                  body: "Test notification - this should appear on desktop!",
+                  icon: "/logo192.png",
+                  badge: "/logo192.png",
+                  vibrate: [100, 50, 100],
+                  tag: "test-notification",
+                  actions: [
+                    { action: "open", title: "Open App" },
+                    { action: "close", title: "Close" },
+                  ],
+                })
+                .catch(() => {});
+            })
+            .catch(() => {});
+        }
+      }
+
+      function fallbackNotification() {
+        new Notification(window.APP_TITLE, {
+          body: "Test notification - fallback method",
+          icon: "/logo192.png",
+        });
+      }
+
+      function showUpdateNotification() {
+        const updateBar = document.createElement("div");
+        updateBar.style.cssText = `
                 position: fixed;
                 top: 0;
                 left: 0;
@@ -701,153 +1166,160 @@
                 z-index: 10000;
                 font-size: 14px;
             `;
-            updateBar.innerHTML = `
+        updateBar.innerHTML = `
                 New version available! 
                 <button onclick="updateApp()" style="background: white; color: #007bff; border: none; padding: 4px 8px; margin-left: 8px; border-radius: 4px; cursor: pointer;">Update Now</button>
                 <button onclick="this.parentElement.remove()" style="background: transparent; color: white; border: 1px solid white; padding: 4px 8px; margin-left: 4px; border-radius: 4px; cursor: pointer;">Later</button>
             `;
-            document.body.appendChild(updateBar);
-        }
-        
-        function updateApp() {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistration().then(registration => {
-                    if (registration && registration.waiting) {
-                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-                        window.location.reload();
-                    } else {
-                        // Force reload if no waiting worker
-                        window.location.reload(true);
-                    }
-                }).catch(() => {
-                    // Fallback to hard reload
-                    window.location.reload(true);
-                });
-            } else {
+        document.body.appendChild(updateBar);
+      }
+
+      function updateApp() {
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker
+            .getRegistration()
+            .then((registration) => {
+              if (registration && registration.waiting) {
+                registration.waiting.postMessage({ type: "SKIP_WAITING" });
+                window.location.reload();
+              } else {
+                // Force reload if no waiting worker
                 window.location.reload(true);
-            }
+              }
+            })
+            .catch(() => {
+              // Fallback to hard reload
+              window.location.reload(true);
+            });
+        } else {
+          window.location.reload(true);
         }
+      }
 
-        function checkForUpdates() {
-            if (settings.get('haptic')) vibrate([50]);
-            
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistration().then(registration => {
-                    if (registration) {
-                        showSnackbar('Checking for updates...', 'info');
-                        registration.update().then(() => {
-                            setTimeout(() => {
-                                showSnackbar('No updates available', 'success');
-                            }, 1000);
-                        }).catch(() => {
-                            showSnackbar('Update check failed', 'error');
-                        });
-                    } else {
-                        showSnackbar('Service worker not available', 'error');
-                    }
-                }).catch(() => {
-                    showSnackbar('Update check failed', 'error');
-                });
-            } else {
-                showSnackbar('Updates not supported', 'error');
-            }
+      function checkForUpdates() {
+        if (settings.get("haptic")) vibrate([50]);
+
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker
+            .getRegistration()
+            .then((registration) => {
+              if (registration) {
+                showSnackbar("Checking for updates...", "info");
+                registration
+                  .update()
+                  .then(() => {
+                    setTimeout(() => {
+                      showSnackbar("No updates available", "success");
+                    }, 1000);
+                  })
+                  .catch(() => {
+                    showSnackbar("Update check failed", "error");
+                  });
+              } else {
+                showSnackbar("Service worker not available", "error");
+              }
+            })
+            .catch(() => {
+              showSnackbar("Update check failed", "error");
+            });
+        } else {
+          showSnackbar("Updates not supported", "error");
         }
+      }
 
-        function clearCache() {
-            if (settings.get('haptic')) vibrate([50]);
-            
-            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
-                showSnackbar('Cache cleared! Reloading...', 'success');
-                setTimeout(() => {
-                    window.location.reload(true);
-                }, 1000);
-            } else {
-                showSnackbar('Service worker not available', 'error');
-            }
+      function clearCache() {
+        if (settings.get("haptic")) vibrate([50]);
+
+        if (
+          "serviceWorker" in navigator &&
+          navigator.serviceWorker.controller
+        ) {
+          navigator.serviceWorker.controller.postMessage({
+            type: "CLEAR_CACHE",
+          });
+          showSnackbar("Cache cleared! Reloading...", "success");
+          setTimeout(() => {
+            window.location.reload(true);
+          }, 1000);
+        } else {
+          showSnackbar("Service worker not available", "error");
         }
+      }
 
+      // Initialize audio context on first user interaction
+      document.addEventListener("click", () => timer.initAudio(), {
+        once: true,
+      });
 
-
-
-
-        // Initialize audio context on first user interaction
-        document.addEventListener('click', () => timer.initAudio(), { once: true });
-
-        document.getElementById('timerInput').addEventListener('input', function() {
-            if (!timer.isRunning) {
-                timer.seconds = parseInt(this.value) * 60;
-            }
+      document
+        .getElementById("timerInput")
+        .addEventListener("input", function () {
+          if (!timer.isRunning) {
+            timer.seconds = parseInt(this.value) * 60;
+          }
         });
 
-        // Initialize canvas on page load
-        window.addEventListener('load', function() {
-            timer.initCanvas();
-            
-            // Set default timer from settings
-            const defaultMinutes = settings.get('defaultTimer');
-            document.getElementById('timerInput').value = defaultMinutes;
-            timer.seconds = defaultMinutes * 60;
-            
-            // Set logos
-            document.getElementById('buddyLogo').src = window.APP_LOGO;
-            document.getElementById('gpsyHeaderLogo').src = window.APP_LOGO;
-        });
+      // Initialize canvas on page load
+      window.addEventListener("load", function () {
+        timer.initCanvas();
 
+        // Set default timer from settings
+        const defaultMinutes = settings.get("defaultTimer");
+        document.getElementById("timerInput").value = defaultMinutes;
+        timer.seconds = defaultMinutes * 60;
 
+        // Set logos
+        document.getElementById("buddyLogo").src = window.APP_LOGO;
+        document.getElementById("gpsyHeaderLogo").src = window.APP_LOGO;
+      });
 
+      // Check for saved session on page load
+      window.addEventListener("load", async function () {
+        // Check auth first - this handles session restore prompt internally
+        const isAuthenticated = await auth.checkAuth();
+        if (!isAuthenticated) return;
 
-        // Check for saved session on page load
-        window.addEventListener('load', async function() {
-            // Check auth first - this handles session restore prompt internally
-            const isAuthenticated = await auth.checkAuth();
-            if (!isAuthenticated) return;
+        // Clean up legacy key (pre-multi-user)
+        localStorage.removeItem("readingTracker");
+      });
 
-            // Clean up legacy key (pre-multi-user)
-            localStorage.removeItem('readingTracker');
-        });
-
-        // Close sheets when clicking outside
-        window.addEventListener('click', function(event) {
-            if (event.target === document.getElementById('sessionOverlay')) {
-                session.closeSessionSheet();
-            }
-        });
-        
-        // Network status monitoring
-        function updateOnlineStatus() {
-            const indicator = document.getElementById('offlineIndicator');
-            if (!navigator.onLine) {
-                indicator.style.display = 'inline-block';
-                showSnackbar('Offline - changes saved locally', 'error');
-            } else {
-                indicator.style.display = 'none';
-                handleBackgroundSync();
-            }
+      // Close sheets when clicking outside
+      window.addEventListener("click", function (event) {
+        if (event.target === document.getElementById("sessionOverlay")) {
+          session.closeSessionSheet();
         }
-        
-        window.addEventListener('online', updateOnlineStatus);
-        window.addEventListener('offline', updateOnlineStatus);
-        window.addEventListener('load', updateOnlineStatus);
-        
-        // Page visibility change - backup data when app goes to background (throttled)
-        let lastBackupTime = 0;
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                const now = Date.now();
-                // Only backup once per minute to prevent spam
-                if (now - lastBackupTime > 60000) {
-                    handleBackgroundBackup();
-                    lastBackupTime = now;
-                }
-            }
-        });
-        
+      });
 
-        
+      // Network status monitoring
+      function updateOnlineStatus() {
+        const indicator = document.getElementById("offlineIndicator");
+        if (!navigator.onLine) {
+          indicator.style.display = "inline-block";
+          showSnackbar("Offline - changes saved locally", "error");
+        } else {
+          indicator.style.display = "none";
+          handleBackgroundSync();
+        }
+      }
 
+      window.addEventListener("online", updateOnlineStatus);
+      window.addEventListener("offline", updateOnlineStatus);
+      window.addEventListener("load", updateOnlineStatus);
+
+      // Page visibility change - backup data when app goes to background (throttled)
+      let lastBackupTime = 0;
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          const now = Date.now();
+          // Only backup once per minute to prevent spam
+          if (now - lastBackupTime > 60000) {
+            handleBackgroundBackup();
+            lastBackupTime = now;
+          }
+        }
+      });
     </script>
-    
+
     <script src="modules/utils.js"></script>
     <script src="modules/auth.js"></script>
     <script src="modules/timer.js"></script>
@@ -856,35 +1328,35 @@
     <script src="modules/gpsy-chat.js"></script>
     <script src="modules/readings-manager.js"></script>
     <script src="modules/analytics-notifier.js"></script>
-    
+
     <script>
-        // ========================================
-        // INITIALIZATION
-        const auth = new Auth();
-        const settings = new SettingsStore();
-        const session = new SessionStore();
-        const timer = new Timer();
-        const gpsyChat = new GpsyChat();
-        const readingsManager = new ReadingsManager();
-        const analyticsNotifier = new AnalyticsNotifier();
-        
-        // Expose globally for inline handlers
-        window.auth = auth;
-        window.session = session;
-        window.timer = timer;
-        window.gpsyChat = gpsyChat;
-        window.settings = settings;
-        window.readingsManager = readingsManager;
-        window.analyticsNotifier = analyticsNotifier;
-        
-        // Expose utility functions for modules
-        window.vibrate = Utils.vibrate;
-        window.showSnackbar = Utils.showSnackbar;
-        window.showToast = Utils.showToast;
-        window.isDevelopmentMode = Utils.isDevelopmentMode;
-        window.normalizeDate = Utils.normalizeDate;
-        window.showSheet = Utils.showSheet;
-        window.hideSheet = Utils.hideSheet;
+      // ========================================
+      // INITIALIZATION
+      const auth = new Auth();
+      const settings = new SettingsStore();
+      const session = new SessionStore();
+      const timer = new Timer();
+      const gpsyChat = new GpsyChat();
+      const readingsManager = new ReadingsManager();
+      const analyticsNotifier = new AnalyticsNotifier();
+
+      // Expose globally for inline handlers
+      window.auth = auth;
+      window.session = session;
+      window.timer = timer;
+      window.gpsyChat = gpsyChat;
+      window.settings = settings;
+      window.readingsManager = readingsManager;
+      window.analyticsNotifier = analyticsNotifier;
+
+      // Expose utility functions for modules
+      window.vibrate = Utils.vibrate;
+      window.showSnackbar = Utils.showSnackbar;
+      window.showToast = Utils.showToast;
+      window.isDevelopmentMode = Utils.isDevelopmentMode;
+      window.normalizeDate = Utils.normalizeDate;
+      window.showSheet = Utils.showSheet;
+      window.hideSheet = Utils.hideSheet;
     </script>
-</body>
+  </body>
 </html>

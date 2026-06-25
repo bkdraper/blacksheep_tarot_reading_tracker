@@ -19,7 +19,15 @@ class SettingsStore {
                 { name: 'Referral', scope: 'event' },
                 { name: 'Renu', scope: 'event' },
                 { name: 'POG', scope: 'event' },
-                { name: 'Repeat', scope: 'all' },
+                { name: 'Repeat', scope: 'all' }
+            ],
+            formats: [
+                { name: 'Expo', scope: 'event' },
+                { name: 'Fair', scope: 'event' },
+                { name: 'Festival', scope: 'event' },
+                { name: 'Shop', scope: 'event' },
+                { name: 'Party', scope: 'event' },
+                { name: 'Market', scope: 'event' },
                 { name: 'Phone', scope: 'private' },
                 { name: 'In-Person', scope: 'private' }
             ],
@@ -36,6 +44,10 @@ class SettingsStore {
         if (migrated) {
             localStorage.setItem('tarotTrackerSettings', JSON.stringify(settings));
         }
+        const formatsMigrated = this.migrateSourcesFormats(settings);
+        if (formatsMigrated) {
+            localStorage.setItem('tarotTrackerSettings', JSON.stringify(settings));
+        }
         return settings;
     }
 
@@ -49,6 +61,56 @@ class SettingsStore {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Migrate "Phone" and "In-Person" from sources to formats.
+     * Removes exact matches only (not substrings), adds them to formats as private scope,
+     * and sets legacySourcesMigrated flag to prevent re-running.
+     * Returns true if any changes were made, false otherwise.
+     */
+    migrateSourcesFormats(settings) {
+        if (settings.legacySourcesMigrated === true) {
+            return false;
+        }
+
+        let changed = false;
+
+        // Initialize formats from defaults if not present
+        if (!settings.formats) {
+            settings.formats = [...this.defaults.formats.map(f => ({ ...f }))];
+            changed = true;
+        }
+
+        // Find and remove sources with exact name "Phone" or "In-Person"
+        const legacyNames = ['Phone', 'In-Person'];
+        const removedSources = [];
+
+        if (Array.isArray(settings.sources)) {
+            const originalLength = settings.sources.length;
+            settings.sources = settings.sources.filter(source => {
+                const name = typeof source === 'object' ? source.name : source;
+                if (legacyNames.indexOf(name) !== -1) {
+                    removedSources.push(name);
+                    return false;
+                }
+                return true;
+            });
+            if (settings.sources.length < originalLength) {
+                changed = true;
+            }
+        }
+
+        // Add removed sources to formats if not already present (case-insensitive check)
+        removedSources.forEach(name => {
+            const exists = settings.formats.some(f => f.name.toLowerCase() === name.toLowerCase());
+            if (!exists) {
+                settings.formats.push({ name, scope: 'private' });
+            }
+        });
+
+        settings.legacySourcesMigrated = true;
+        return changed || removedSources.length > 0;
     }
 
     saveSettings() {
@@ -258,6 +320,88 @@ class SettingsStore {
         sources.push({ name: 'New Source', scope: 'all' });
         this.set('sources', sources);
         this.showSourcesSheet();
+    }
+
+    customizeFormats() {
+        if (this.get('haptic')) vibrate([50]);
+        this.showFormatsSheet();
+    }
+
+    showFormatsSheet() {
+        const formats = this.get('formats');
+        const list = document.getElementById('formatsList');
+        if (!list) return;
+
+        list.innerHTML = formats.map((format, index) => {
+            const name = typeof format === 'object' ? format.name : format;
+            const scope = typeof format === 'object' ? format.scope : 'all';
+            return `
+            <div class="payment-method-item source-item">
+                <input type="text" class="payment-method-input" value="${name}" maxlength="30"
+                       style="font-size: 16px"
+                       onchange="settings.updateFormat(${index}, 'name', this.value)">
+                <select class="source-scope-select" style="font-size: 16px" onchange="settings.updateFormat(${index}, 'scope', this.value)">
+                    <option value="event"${scope === 'event' ? ' selected' : ''}>Event</option>
+                    <option value="private"${scope === 'private' ? ' selected' : ''}>Private</option>
+                    <option value="all"${scope === 'all' ? ' selected' : ''}>All</option>
+                </select>
+                <button class="payment-method-delete btn btn-danger btn-small" onclick="settings.deleteFormat(${index})">Delete</button>
+            </div>
+        `}).join('');
+        showSheet('formatsOverlay', 'formatsSheet');
+    }
+
+    closeFormatsSheet() {
+        if (this.get('haptic')) vibrate([30]);
+        hideSheet('formatsOverlay', 'formatsSheet');
+    }
+
+    updateFormat(index, field, value) {
+        if (this.get('haptic')) vibrate([30]);
+        const formats = [...this.get('formats')].map(f => typeof f === 'object' ? { ...f } : { name: f, scope: 'all' });
+        if (field === 'name') {
+            const trimmed = value.trim();
+            if (!trimmed) {
+                formats.splice(index, 1);
+                this.set('formats', formats);
+                this.showFormatsSheet();
+                return;
+            }
+            if (trimmed.length > 30) {
+                showSnackbar('Name must be 30 characters or less', 'error');
+                return;
+            }
+            const isDuplicate = formats.some((f, i) =>
+                i !== index &&
+                f.name.toLowerCase() === trimmed.toLowerCase() &&
+                f.scope === formats[index].scope
+            );
+            if (isDuplicate) {
+                showSnackbar('Name already in use', 'error');
+                return;
+            }
+            formats[index].name = trimmed;
+        } else if (field === 'scope') {
+            formats[index].scope = value;
+        }
+        this.set('formats', formats);
+        showSnackbar('Setting saved', 'success');
+    }
+
+    deleteFormat(index) {
+        if (this.get('haptic')) vibrate([50]);
+        const formats = [...this.get('formats')];
+        formats.splice(index, 1);
+        this.set('formats', formats);
+        this.showFormatsSheet();
+    }
+
+    addFormat() {
+        if (this.get('haptic')) vibrate([50]);
+        const formats = [...this.get('formats')];
+        formats.push({ name: 'New Format', scope: 'all' });
+        this.set('formats', formats);
+        this.showFormatsSheet();
     }
 
     customizePrivatePricePresets() {
