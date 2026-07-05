@@ -5,7 +5,7 @@ description: Core development rules, deployment commands, data structures, and t
 
 # Development Rules
 
-## Version: v4.4.7
+## Version: v4.5.0
 
 CRITICAL: Bump version on EVERY code change (cache-busting). Update version in: index.html, README.md, and this file.
 
@@ -17,6 +17,7 @@ Pure HTML/CSS/JS (no frameworks), Supabase PostgreSQL, localStorage backup, AWS 
 
 All in `modules/`:
 - `auth.js` — Google OAuth via Supabase Auth, role-based access (admin/user)
+- `offline-queue.js` — FIFO operation-message queue for offline-first sync
 - `session-store.js` — Session state, cloud sync, normalized readings table
 - `timer.js` — Canvas countdown, Web Audio alarms, Wake Lock
 - `gpsy-chat.js` — AI chat interface, HTML rendering, suggestion buttons

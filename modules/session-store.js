@@ -101,11 +101,20 @@ class SessionStore {
                         }
                     } catch (error) {
                         console.error('Failed to insert reading:', error);
-                        registerBackgroundSync();
+                        window.offlineQueue.enqueue({
+                            type: 'insert_reading',
+                            createdAt: new Date().toISOString(),
+                            sessionId: this._sessionId,
+                            payload: {
+                                timestamp: reading.timestamp,
+                                tip: reading.tip || 0,
+                                price: reading.price,
+                                payment: reading.payment,
+                                source: reading.source
+                            }
+                        });
                     }
                 }
-                
-                this.saveToLocalStorage();
             }
             async removeReading(index) {
                 const reading = this._readings[index];
@@ -118,14 +127,17 @@ class SessionStore {
                             .eq('id', reading.id);
                     } catch (error) {
                         console.error('Failed to delete reading:', error);
-                        registerBackgroundSync();
+                        window.offlineQueue.enqueue({
+                            type: 'delete_reading',
+                            createdAt: new Date().toISOString(),
+                            readingId: reading.id
+                        });
                     }
                 }
                 
                 this._readings.splice(index, 1);
                 this.updateReadingsList();
                 this.updateTotals();
-                this.saveToLocalStorage();
             }
             async updateReading(index, field, value) {
                 this._readings[index][field] = value;
@@ -141,11 +153,15 @@ class SessionStore {
                             .eq('id', reading.id);
                     } catch (error) {
                         console.error('Failed to update reading:', error);
-                        registerBackgroundSync();
+                        window.offlineQueue.enqueue({
+                            type: 'update_reading',
+                            createdAt: new Date().toISOString(),
+                            readingId: reading.id,
+                            payload: { field, value }
+                        });
                     }
                 }
                 
-                this.debouncedSaveToLocalStorage();
             }
 
             startOver() {
@@ -351,8 +367,6 @@ class SessionStore {
 
             async save() {
                 if (!this.userId || this._loading) return;
-                
-                this.saveToLocalStorage();
 
                 if (this._sessionId) {
                     try {
@@ -373,85 +387,24 @@ class SessionStore {
                             .eq('id', this._sessionId);
                     } catch (error) {
                         console.error('Supabase update error:', error);
-                        registerBackgroundSync();
+                        const payload = {};
+                        if (this._location) payload.location = this._location;
+                        if (this._sessionDate && this._sessionDate.trim()) payload.session_date = this._sessionDate;
+                        if (this._price) payload.reading_price = this._price;
+                        if (this._format) payload.format = this._format;
+                        window.offlineQueue.enqueue({
+                            type: 'update_session',
+                            createdAt: new Date().toISOString(),
+                            sessionId: this._sessionId,
+                            payload
+                        });
                     }
                 }
-            }
-
-            saveToLocalStorage() {
-                if (!this.userId) return;
-                
-                const state = {
-                    sessionId: this._sessionId,
-                    location: this._location,
-                    sessionDate: this._sessionDate,
-                    price: this._price,
-                    type: this._type || 'event',
-                    format: this._format,
-                    readings: this._readings
-                };
-                localStorage.setItem(`readingTracker_${this.userId}`, JSON.stringify(state));
             }
 
             debouncedSave() {
                 clearTimeout(this.saveTimeout);
                 this.saveTimeout = setTimeout(() => this.save(), 500);
-            }
-            
-            debouncedSaveToLocalStorage() {
-                clearTimeout(this.saveTimeout);
-                this.saveTimeout = setTimeout(() => this.saveToLocalStorage(), 500);
-            }
-
-            loadFromStorage() {
-                if (!this.userId) return;
-                
-                const saved = localStorage.getItem(`readingTracker_${this.userId}`);
-                if (saved) {
-                    const state = JSON.parse(saved);
-                    this._sessionId = state.sessionId || null;
-                    this._location = state.location || '';
-                    this._sessionDate = state.sessionDate || state.selectedDay || '';
-                    this._price = state.price || 40;
-                    if (state.type !== 'event' && state.type !== 'private') {
-                        console.log(`[SessionStore] loadFromStorage: type "${state.type}" is missing or invalid, defaulting to "event"`);
-                    }
-                    this._type = (state.type === 'private') ? 'private' : 'event';
-                    this._format = state.format || null;
-                    this._readings = state.readings || [];
-                    
-                    this.updateReadingsList();
-                    this.updateTotals();
-                    this.updateUI();
-                }
-            }
-
-            promptRestoreSession() {
-                if (!this.userId) return;
-
-                const saved = localStorage.getItem(`readingTracker_${this.userId}`);
-                if (!saved) {
-                    this.updateUI();
-                    return;
-                }
-
-                const state = JSON.parse(saved);
-                // Only prompt if there's an actual session to restore
-                if (!state.sessionId) {
-                    this.updateUI();
-                    return;
-                }
-
-                const location = state.location || 'Unknown location';
-                const date = state.sessionDate || state.selectedDay || 'Unknown date';
-                const readingCount = (state.readings || []).length;
-                const message = `Your last session was "${location}" on ${date} (${readingCount} reading${readingCount !== 1 ? 's' : ''}). Restore it?`;
-
-                if (confirm(message)) {
-                    this.loadFromStorage();
-                } else {
-                    this.startOver();
-                }
             }
             
             clearUserData() {
@@ -776,7 +729,6 @@ class SessionStore {
                 this.updateReadingsList();
                 this.updateTotals();
                 this.updateUI();
-                this.saveToLocalStorage();
                 
                 showSnackbar(`Loaded session: ${sessionData.location} on ${sessionData.session_date}`);
             }
@@ -912,7 +864,7 @@ class SessionStore {
                 const fieldsContainer = document.getElementById('sessionSheetFields');
                 if (!fieldsContainer) return;
 
-                const today = new Date().toISOString().split('T')[0];
+                const today = Utils.toISODate();
                 const dateValue = mode === 'edit' ? (this._sessionDate || today) : today;
                 const editLocation = mode === 'edit' ? Utils.sanitize(this._location) : '';
                 const priceValue = mode === 'edit' ? this._price : this._price;
@@ -1162,7 +1114,6 @@ class SessionStore {
                         this._format = this._sheetSelectedFormat || null;
                         this._loading = false;
 
-                        this.saveToLocalStorage();
                         this.closeSessionCreationSheet();
                         this.updateSessionBar();
                         this.updateUI();
@@ -1231,7 +1182,6 @@ class SessionStore {
                                 await this.addReading(readingData);
                             }
 
-                            this.saveToLocalStorage();
                             this.closeSessionCreationSheet();
                             this.updateReadingsList();
                             this.updateTotals();
@@ -1270,7 +1220,6 @@ class SessionStore {
                         await this.addReading(readingData);
                     }
 
-                    this.saveToLocalStorage();
                     this.closeSessionCreationSheet();
                     this.updateReadingsList();
                     this.updateTotals();
@@ -1301,9 +1250,6 @@ class SessionStore {
                 this._type = 'event';
                 this._format = null;
                 this._loading = false;
-
-                // Persist cleared state
-                this.saveToLocalStorage();
 
                 // Update full UI (handles session bar + readings section visibility)
                 this.updateUI();

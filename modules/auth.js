@@ -117,7 +117,7 @@ class Auth {
         this.userId = session.user.id;
         
         if (window.session) {
-            window.session.promptRestoreSession();
+            window.session.startOver();
         }
         
         return true;

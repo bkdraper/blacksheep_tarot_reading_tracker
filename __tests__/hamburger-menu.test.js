@@ -55,6 +55,7 @@ global.showSnackbar = jest.fn();
 global.vibrate = jest.fn();
 global.registerBackgroundSync = jest.fn();
 global.Utils = { sanitize: jest.fn((str) => str) };
+global.window.offlineQueue = { enqueue: jest.fn(), flush: jest.fn(), count: jest.fn(), peek: jest.fn(), setUserId: jest.fn() };
 
 global.window.auth = {
   userId: 'user-123',

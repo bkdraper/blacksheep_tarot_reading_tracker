@@ -8,8 +8,10 @@ graph TB
     B --> C[SessionStore]
     B --> D[Timer]
     B --> E[GpsyChat]
-    C --> F[Supabase DB]
-    C --> G[localStorage]
+    C -->|"enqueue on error"| OQ[OfflineQueue]
+    OQ -->|"persist"| G[localStorage]
+    OQ -->|"flush"| F[Supabase DB]
+    C --> F
     E --> H[Chat Proxy Lambda]
     H --> I[Bedrock Agent]
     I --> J[Bedrock Lambda]
@@ -21,6 +23,7 @@ graph TB
 
 ### File Structure
 - `index.html`: Main HTML with initialization and event handlers
+- `modules/offline-queue.js`: OfflineQueue class (operation-message sync)
 - `modules/session-store.js`: SessionStore class
 - `modules/timer.js`: Timer class
 - `modules/gpsy-chat.js`: GpsyChat class
@@ -39,11 +42,23 @@ graph TB
 - `updateUI()` controls own elements only; delegates session control visibility to `window.session.updateUI()`
 - `signOut()` clears all auth state and calls `window.session.startOver()`
 
+#### OfflineQueue (`modules/offline-queue.js`)
+- FIFO operation-message queue for offline-first sync
+- Replaces snapshot-based localStorage sync with typed operation messages
+- Queues failed Supabase mutations as `insert_reading`, `update_reading`, `delete_reading`, `update_session`
+- Flush triggers: online event, service worker Background Sync, post-auth app load
+- Sequential replay with stop-on-first-error; re-registers Background Sync on failure
+- Per-user isolation via `offlineQueue_{userId}` localStorage key
+- 500-message cap, quota error handling, concurrent flush guard
+- `count()` and `peek()` for DevTools debugging
+- Exposed as `window.offlineQueue`
+
 #### SessionStore (`modules/session-store.js`)
 - Manages session state; reads userId/userName from `window.auth` (not stored internally)
 - Reads/writes individual readings to normalized `blacksheep_reading_tracker_readings` table
 - `save()` updates session metadata only (no JSONB writes)
 - `loadExistingSession()` fetches readings from normalized table
+- On Supabase error, enqueues operation to `window.offlineQueue` for later replay
 - Handles database sync with debouncing
 - Computed properties: `canCreateSession`, `hasValidSession`, `sessionPhase`
 - Auto-save on every state change

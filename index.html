@@ -7,7 +7,7 @@
       http-equiv="Cache-Control"
       content="no-cache, no-store, must-revalidate"
     />
-    <meta http-equiv="version" content="v4.4.7" />
+    <meta http-equiv="version" content="v4.5.0" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#2d1b3e" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -955,9 +955,7 @@
         // Listen for messages from service worker
         navigator.serviceWorker.addEventListener("message", (event) => {
           if (event.data.type === "SYNC_READINGS") {
-            handleBackgroundSync();
-          } else if (event.data.type === "BACKUP_READINGS") {
-            handleBackgroundBackup();
+            window.offlineQueue.flush();
           } else if (event.data.type === "RESET_TIMER") {
             timer.handleTimerReset();
           }
@@ -985,93 +983,6 @@
       // SESSION STORE CLASS - See modules/session-store.js
 
       // Analytics & Notification System - See modules/analytics-notifier.js
-
-      // Background sync handler
-      async function handleBackgroundSync() {
-        if (!session.sessionId || !session.userId) return;
-
-        try {
-          // Fetch current DB state
-          const { data: dbReadings } = await supabaseClient
-            .from("blacksheep_reading_tracker_readings")
-            .select("*")
-            .eq("session_id", session.sessionId);
-
-          const dbIds = new Set((dbReadings || []).map((r) => r.id));
-          const localIds = new Set(
-            session.readings.filter((r) => r.id).map((r) => r.id),
-          );
-
-          // INSERT new readings (no id)
-          const newReadings = session.readings.filter((r) => !r.id);
-          if (newReadings.length > 0) {
-            const { data } = await supabaseClient
-              .from("blacksheep_reading_tracker_readings")
-              .insert(
-                newReadings.map((r) => ({
-                  session_id: session.sessionId,
-                  timestamp: r.timestamp,
-                  tip: r.tip || 0,
-                  price: r.price,
-                  payment: r.payment,
-                  source: r.source,
-                })),
-              )
-              .select();
-
-            // Update local readings with returned IDs
-            if (data) {
-              data.forEach((dbReading, i) => {
-                newReadings[i].id = dbReading.id;
-              });
-            }
-          }
-
-          // UPDATE existing readings
-          for (const reading of session.readings.filter((r) => r.id)) {
-            await supabaseClient
-              .from("blacksheep_reading_tracker_readings")
-              .update({
-                tip: reading.tip || 0,
-                price: reading.price,
-                payment: reading.payment,
-                source: reading.source,
-              })
-              .eq("id", reading.id);
-          }
-
-          // DELETE readings removed offline
-          const deletedIds = [...dbIds].filter((id) => !localIds.has(id));
-          if (deletedIds.length > 0) {
-            await supabaseClient
-              .from("blacksheep_reading_tracker_readings")
-              .delete()
-              .in("id", deletedIds);
-          }
-
-          session.saveToLocalStorage();
-        } catch (error) {
-          console.error("Background sync failed:", error);
-        }
-      }
-
-      // Background backup handler
-      async function handleBackgroundBackup() {
-        try {
-          // Create backup in localStorage with timestamp
-          const backup = {
-            timestamp: new Date().toISOString(),
-            sessionData: {
-              sessionId: session.sessionId,
-              location: session.location,
-              selectedDay: session.selectedDay,
-              price: session.price,
-              readings: session.readings,
-            },
-          };
-          localStorage.setItem("readingTracker_backup", JSON.stringify(backup));
-        } catch (error) {}
-      }
 
       // Register for background sync when going offline
       function registerBackgroundSync() {
@@ -1279,6 +1190,10 @@
         const isAuthenticated = await auth.checkAuth();
         if (!isAuthenticated) return;
 
+        // Initialize offline queue for this user and flush any pending operations
+        window.offlineQueue.setUserId(auth.userId);
+        window.offlineQueue.flush();
+
         // Clean up legacy key (pre-multi-user)
         localStorage.removeItem("readingTracker");
       });
@@ -1298,7 +1213,7 @@
           showSnackbar("Offline - changes saved locally", "error");
         } else {
           indicator.style.display = "none";
-          handleBackgroundSync();
+          window.offlineQueue.flush();
         }
       }
 
@@ -1306,21 +1221,10 @@
       window.addEventListener("offline", updateOnlineStatus);
       window.addEventListener("load", updateOnlineStatus);
 
-      // Page visibility change - backup data when app goes to background (throttled)
-      let lastBackupTime = 0;
-      document.addEventListener("visibilitychange", () => {
-        if (document.hidden) {
-          const now = Date.now();
-          // Only backup once per minute to prevent spam
-          if (now - lastBackupTime > 60000) {
-            handleBackgroundBackup();
-            lastBackupTime = now;
-          }
-        }
-      });
     </script>
 
     <script src="modules/utils.js"></script>
+    <script src="modules/offline-queue.js"></script>
     <script src="modules/auth.js"></script>
     <script src="modules/timer.js"></script>
     <script src="modules/session-store.js"></script>

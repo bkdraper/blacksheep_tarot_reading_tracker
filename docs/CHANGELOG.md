@@ -1,5 +1,24 @@
 # Changelog
 
+## v4.5.0 - Offline Queue (Operation-Message Sync)
+- Replaced snapshot-based localStorage sync with FIFO operation-message queue
+- New `modules/offline-queue.js` module exposed as `window.offlineQueue`
+- Failed Supabase mutations now enqueue typed messages (`insert_reading`, `update_reading`, `delete_reading`, `update_session`) instead of saving full session state
+- Queue flushes automatically on: online event, service worker Background Sync, and post-auth app load
+- FIFO sequential replay with stop-on-first-error and automatic retry via Background Sync
+- Concurrent flush guard prevents duplicate sync attempts
+- 500-message cap with graceful quota error handling
+- Per-user queue isolation via `offlineQueue_{userId}` localStorage key
+- UX snackbar indicators: "Saved offline", "Syncing...", "All changes synced", "Sync failed — will retry"
+- Offline badge removed after successful flush when online
+- Dev-mode logging with `[OfflineQueue]` prefix for enqueue/flush events
+- `count()` and `peek()` methods for DevTools console debugging
+- Removed legacy `saveToLocalStorage`, `loadFromStorage`, `debouncedSaveToLocalStorage`, `promptRestoreSession` from SessionStore
+- Removed `handleBackgroundSync` and `handleBackgroundBackup` functions from index.html
+- Removed `visibilitychange` backup listener
+- `clearUserData()` preserved for sign-out cleanup
+- 409 tests across 13 suites — all passing
+
 ## v4.4.7 - Remove Video from default formats
 - Removed "Video" from default private format presets (Phone implies video)
 

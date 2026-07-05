@@ -36,6 +36,7 @@ global.vibrate = jest.fn();
 global.registerBackgroundSync = jest.fn();
 global.Utils = { sanitize: jest.fn((str) => str) };
 global.hideSheet = jest.fn();
+global.window.offlineQueue = { enqueue: jest.fn(), flush: jest.fn(), count: jest.fn(), peek: jest.fn(), setUserId: jest.fn() };
 
 global.window.auth = {
   userId: 'user-123',
@@ -211,43 +212,4 @@ describe('App Mode Behavior', () => {
     });
   });
 
-  describe('App load with persisted session', () => {
-    test('loadFromStorage restores active session and shows readings', () => {
-      const state = {
-        sessionId: 'persisted-session-id',
-        location: 'Persisted Location',
-        sessionDate: '2025-06-14',
-        price: 65,
-        type: 'event',
-        readings: [{ id: 'r1', timestamp: '2025-06-14T10:00:00Z', tip: 5, price: 65 }]
-      };
-      localStorage.setItem('readingTracker_user-123', JSON.stringify(state));
-
-      session.loadFromStorage();
-
-      expect(session.sessionPhase).toBe('ACTIVE');
-      expect(document.querySelector('.buttons').style.display).toBe('flex');
-      expect(document.querySelector('.totals').style.display).toBe('block');
-      expect(document.querySelector('.readings-list').style.display).toBe('block');
-    });
-
-    test('loadFromStorage without session keeps readings hidden', () => {
-      const state = {
-        sessionId: null,
-        location: '',
-        sessionDate: '',
-        price: 40,
-        type: 'event',
-        readings: []
-      };
-      localStorage.setItem('readingTracker_user-123', JSON.stringify(state));
-
-      session.loadFromStorage();
-
-      expect(session.sessionPhase).toBe('SETUP');
-      expect(document.querySelector('.buttons').style.display).toBe('none');
-      expect(document.querySelector('.totals').style.display).toBe('none');
-      expect(document.querySelector('.readings-list').style.display).toBe('none');
-    });
-  });
 });

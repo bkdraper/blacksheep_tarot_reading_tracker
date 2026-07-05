@@ -17,6 +17,7 @@ describe('GpsyChat Integration with Real HTML', () => {
     global.fetch = jest.fn();
     global.showSnackbar = jest.fn();
     global.registerBackgroundSync = jest.fn();
+    global.window.offlineQueue = { enqueue: jest.fn(), flush: jest.fn(), count: jest.fn(), peek: jest.fn(), setUserId: jest.fn() };
     Object.defineProperty(global, 'crypto', {
       value: { randomUUID: () => 'test-uuid-123' },
       writable: true

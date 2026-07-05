@@ -31,7 +31,15 @@ document.body.innerHTML = `
 global.showSnackbar = jest.fn();
 global.vibrate = jest.fn();
 global.registerBackgroundSync = jest.fn();
-global.Utils = { sanitize: jest.fn((str) => str) };
+global.Utils = { sanitize: jest.fn((str) => str), toISODate: jest.fn(() => '2025-01-15') };
+
+global.window.offlineQueue = {
+  enqueue: jest.fn(),
+  flush: jest.fn(),
+  count: jest.fn(),
+  peek: jest.fn(),
+  setUserId: jest.fn()
+};
 
 global.window.auth = {
   userId: 'user-123',
@@ -232,7 +240,7 @@ describe('SessionStore', () => {
       expect(session.readings[0].tip).toBe(10);
     });
 
-    test('should register background sync on reading insert error', async () => {
+    test('should enqueue insert_reading message on reading insert error', async () => {
       global.supabaseClient.from.mockImplementation((table) => {
         if (table === 'blacksheep_reading_tracker_readings') {
           return { insert: jest.fn(() => ({ select: jest.fn(() => Promise.reject(new Error('Network error'))) })) };
@@ -240,8 +248,62 @@ describe('SessionStore', () => {
         return { update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) })) };
       });
 
-      await session.addReading({ timestamp: new Date().toISOString(), tip: 5 });
-      expect(global.registerBackgroundSync).toHaveBeenCalled();
+      const reading = { timestamp: '2025-01-15T14:30:00.000Z', tip: 5, price: 40, payment: 'Cash', source: 'Walk-up' };
+      await session.addReading(reading);
+
+      expect(window.offlineQueue.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'insert_reading',
+          sessionId: 'test-id',
+          payload: expect.objectContaining({
+            timestamp: '2025-01-15T14:30:00.000Z',
+            tip: 5,
+            price: 40,
+            payment: 'Cash',
+            source: 'Walk-up'
+          })
+        })
+      );
+      expect(window.offlineQueue.enqueue.mock.calls[0][0].createdAt).toBeDefined();
+    });
+
+    test('should enqueue delete_reading message on reading delete error', async () => {
+      const deleteMock = jest.fn(() => ({ eq: jest.fn(() => Promise.reject(new Error('Network error'))) }));
+      global.supabaseClient.from.mockImplementation((table) => {
+        if (table === 'blacksheep_reading_tracker_readings') return { delete: deleteMock };
+        return { update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) })) };
+      });
+
+      session._readings = [{ id: 'r1', timestamp: new Date().toISOString(), tip: 5 }];
+      await session.removeReading(0);
+
+      expect(window.offlineQueue.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'delete_reading',
+          readingId: 'r1'
+        })
+      );
+      expect(window.offlineQueue.enqueue.mock.calls[0][0].createdAt).toBeDefined();
+    });
+
+    test('should enqueue update_reading message on reading update error', async () => {
+      const updateMock = jest.fn(() => ({ eq: jest.fn(() => Promise.reject(new Error('Network error'))) }));
+      global.supabaseClient.from.mockImplementation((table) => {
+        if (table === 'blacksheep_reading_tracker_readings') return { update: updateMock };
+        return { update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) })) };
+      });
+
+      session._readings = [{ id: 'r1', timestamp: new Date().toISOString(), tip: 5 }];
+      await session.updateReading(0, 'tip', 10);
+
+      expect(window.offlineQueue.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'update_reading',
+          readingId: 'r1',
+          payload: { field: 'tip', value: 10 }
+        })
+      );
+      expect(window.offlineQueue.enqueue.mock.calls[0][0].createdAt).toBeDefined();
     });
   });
 
@@ -275,48 +337,7 @@ describe('SessionStore', () => {
     });
   });
 
-  describe('Persistence', () => {
-    test('should save session metadata to localStorage', () => {
-      session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
-      session.saveToLocalStorage();
-      const saved = JSON.parse(localStorage.getItem('readingTracker_user-123'));
-      expect(saved.location).toBe('Test Location');
-    });
 
-    test('should save readings array to localStorage', () => {
-      session._sessionId = 'test-id';
-      session._readings = [{ id: 'r1', timestamp: new Date().toISOString(), tip: 5 }];
-      session.saveToLocalStorage();
-      const saved = JSON.parse(localStorage.getItem('readingTracker_user-123'));
-      expect(saved.readings.length).toBe(1);
-      expect(saved.readings[0].id).toBe('r1');
-    });
-
-    test('should load from localStorage including readings with ids', () => {
-      const state = {
-        sessionId: 'test-id',
-        location: 'Test Location',
-        sessionDate: '2025-01-15',
-        price: 40,
-        readings: [{ id: 'r1', timestamp: new Date().toISOString(), tip: 5, price: 40 }]
-      };
-      localStorage.setItem('readingTracker_user-123', JSON.stringify(state));
-      session.loadFromStorage();
-      expect(session.sessionId).toBe('test-id');
-      expect(session.location).toBe('Test Location');
-      expect(session.readings.length).toBe(1);
-      expect(session.readings[0].id).toBe('r1');
-    });
-
-    test('should not save without userId', () => {
-      const savedAuth = global.window.auth;
-      global.window.auth = null;
-      session.saveToLocalStorage();
-      expect(localStorage.getItem('readingTracker_null')).toBeNull();
-      global.window.auth = savedAuth;
-    });
-  });
 
   describe('Save - Session Metadata Only', () => {
     test('should update session without readings JSONB', async () => {
@@ -361,14 +382,29 @@ describe('SessionStore', () => {
       expect(global.supabaseClient.from).not.toHaveBeenCalled();
     });
 
-    test('should register background sync on save error', async () => {
+    test('should enqueue update_session message on save error', async () => {
       global.supabaseClient.from.mockImplementation(() => ({
         update: jest.fn(() => ({ eq: jest.fn(() => Promise.reject(new Error('Network error'))) }))
       }));
 
       session._sessionId = 'test-id';
+      session._location = 'Test Location';
+      session._sessionDate = '2025-01-15';
+      session._price = 40;
       await session.save();
-      expect(global.registerBackgroundSync).toHaveBeenCalled();
+
+      expect(window.offlineQueue.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'update_session',
+          sessionId: 'test-id',
+          payload: expect.objectContaining({
+            location: 'Test Location',
+            session_date: '2025-01-15',
+            reading_price: 40
+          })
+        })
+      );
+      expect(window.offlineQueue.enqueue.mock.calls[0][0].createdAt).toBeDefined();
     });
   });
 
@@ -541,15 +577,6 @@ describe('SessionStore', () => {
       jest.advanceTimersByTime(500);
       expect(saveSpy).toHaveBeenCalledTimes(1);
     });
-
-    test('should debounce localStorage-only saves', () => {
-      const spy = jest.spyOn(session, 'saveToLocalStorage');
-      session.debouncedSaveToLocalStorage();
-      session.debouncedSaveToLocalStorage();
-      expect(spy).not.toHaveBeenCalled();
-      jest.advanceTimersByTime(500);
-      expect(spy).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('Price Fallback', () => {
@@ -610,67 +637,7 @@ describe('SessionStore', () => {
     });
   });
 
-  describe('Format — localStorage Round-Trip', () => {
-    test('format is persisted to localStorage and restored on load', () => {
-      session._format = 'Expo';
-      session._location = 'Test';
-      session._sessionDate = '2025-01-15';
-      session.saveToLocalStorage();
 
-      const newSession = new SessionStore();
-      newSession.loadFromStorage();
-      expect(newSession.format).toBe('Expo');
-    });
-
-    test('null format persists and restores as null', () => {
-      session._format = null;
-      session._location = 'Test';
-      session.saveToLocalStorage();
-
-      const newSession = new SessionStore();
-      newSession.loadFromStorage();
-      expect(newSession.format).toBeNull();
-    });
-
-    test('missing format key in stored state defaults to null', () => {
-      const state = {
-        sessionId: 'test-id',
-        location: 'Test',
-        sessionDate: '2025-01-15',
-        price: 40,
-        type: 'event',
-        readings: []
-        // no format key
-      };
-      localStorage.setItem('readingTracker_user-123', JSON.stringify(state));
-      session.loadFromStorage();
-      expect(session.format).toBeNull();
-    });
-
-    test('format value with falsy empty string defaults to null on load', () => {
-      const state = {
-        sessionId: 'test-id',
-        location: 'Test',
-        sessionDate: '2025-01-15',
-        price: 40,
-        type: 'event',
-        format: '',
-        readings: []
-      };
-      localStorage.setItem('readingTracker_user-123', JSON.stringify(state));
-      session.loadFromStorage();
-      expect(session.format).toBeNull();
-    });
-
-    test('format round-trips proper-cased values exactly', () => {
-      session._format = 'In-Person';
-      session.saveToLocalStorage();
-
-      const newSession = new SessionStore();
-      newSession.loadFromStorage();
-      expect(newSession.format).toBe('In-Person');
-    });
-  });
 
   describe('Format — saveSessionSheet Payload', () => {
     beforeEach(() => {
@@ -1142,33 +1109,6 @@ describe('SessionStore', () => {
       });
 
       expect(session.format).toBeNull();
-    });
-
-    test('format is persisted to localStorage after loading session', async () => {
-      global.supabaseClient.from.mockImplementation((table) => {
-        if (table === 'blacksheep_reading_tracker_readings') {
-          return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                order: jest.fn(() => Promise.resolve({ data: [] }))
-              }))
-            }))
-          };
-        }
-        return { update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) })) };
-      });
-
-      await session.loadExistingSession({
-        id: 'sess-3',
-        location: 'Fair Grounds',
-        session_date: '2025-06-01',
-        reading_price: 40,
-        type: 'event',
-        format: 'Fair'
-      });
-
-      const saved = JSON.parse(localStorage.getItem('readingTracker_user-123'));
-      expect(saved.format).toBe('Fair');
     });
   });
 

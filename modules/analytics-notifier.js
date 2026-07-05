@@ -41,7 +41,7 @@ class AnalyticsNotifier {
         if (!window.settings.get('dailySummary')) return;
         
         const todaySessions = sessions.filter(s => 
-            new Date(s.session_date).toDateString() === today && 
+            new Date(s.session_date + 'T00:00:00').toDateString() === today && 
             s.readings && s.readings.length > 0
         );
         
@@ -70,7 +70,7 @@ class AnalyticsNotifier {
         if (!isWeekend) return;
         
         const weekendSessions = sessions.filter(s => {
-            const sessionDate = new Date(s.session_date);
+            const sessionDate = new Date(s.session_date + 'T00:00:00');
             const dayOfWeek = sessionDate.getDay();
             return (dayOfWeek === 0 || dayOfWeek === 6) && s.readings && s.readings.length > 0;
         });
@@ -78,7 +78,7 @@ class AnalyticsNotifier {
         if (weekendSessions.length === 0) return;
         
         const currentWeekend = weekendSessions.filter(s => {
-            const sessionDate = new Date(s.session_date);
+            const sessionDate = new Date(s.session_date + 'T00:00:00');
             const startOfWeekend = new Date(today);
             startOfWeekend.setDate(today.getDate() - (today.getDay() === 0 ? 1 : today.getDay() - 6));
             return sessionDate >= startOfWeekend;
@@ -112,7 +112,7 @@ class AnalyticsNotifier {
         
         sessions.forEach(s => {
             if (!s.readings || s.readings.length === 0) return;
-            const dayOfWeek = new Date(s.session_date).getDay();
+            const dayOfWeek = new Date(s.session_date + 'T00:00:00').getDay();
             const baseTotal = s.readings.length * (s.reading_price || 40);
             const tipsTotal = s.readings.reduce((sum, r) => sum + (r.tip || 0), 0);
             dayEarnings[dayOfWeek].push(baseTotal + tipsTotal);

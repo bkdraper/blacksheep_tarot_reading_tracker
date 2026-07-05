@@ -23,6 +23,7 @@ describe('Integration: index.html + session-store.js', () => {
     global.Utils = {
       sanitize: jest.fn((str) => str)
     };
+    global.window.offlineQueue = { enqueue: jest.fn(), flush: jest.fn(), count: jest.fn(), peek: jest.fn(), setUserId: jest.fn() };
 
     // Mock auth for userId
     global.window.auth = { userId: 'user-123', getUserName: jest.fn(() => 'Amanda') };
@@ -104,41 +105,21 @@ describe('Integration: index.html + session-store.js', () => {
 
 
 
-  describe('localStorage Integration', () => {
-    test('should save to user-specific localStorage key', () => {
-      session._location = 'Test Location';
-      session.saveToLocalStorage();
-      const saved = localStorage.getItem('readingTracker_user-123');
-      expect(saved).toBeTruthy();
-      const data = JSON.parse(saved);
-      expect(data.location).toBe('Test Location');
-    });
 
-    test('should load from user-specific localStorage key', () => {
-      const state = {
-        sessionId: 'test-id',
-        location: 'Test Location',
-        sessionDate: '2025-01-15',
-        price: 40,
-        readings: []
-      };
-      localStorage.setItem('readingTracker_user-123', JSON.stringify(state));
-      session.loadFromStorage();
-      expect(session.location).toBe('Test Location');
-    });
-  });
 
   describe('Global Function Calls', () => {
-    test('should call registerBackgroundSync on save error', async () => {
+    test('should call window.offlineQueue.enqueue with update_session message on save error', async () => {
       global.supabaseClient.from = jest.fn(() => ({
         update: jest.fn(() => ({ 
           eq: jest.fn(() => Promise.reject(new Error('Network error')))
         }))
       }));
       session._sessionId = 'test-id';
-      global.registerBackgroundSync.mockClear();
+      global.window.offlineQueue.enqueue.mockClear();
       await session.save();
-      expect(global.registerBackgroundSync).toHaveBeenCalled();
+      expect(global.window.offlineQueue.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'update_session', sessionId: 'test-id' })
+      );
     });
   });
 
@@ -614,7 +595,7 @@ describe('Integration: index.html + auth.js', () => {
     auth = new Auth();
     global.window.auth = auth;
     // Auth calls window.session.updateUI - provide a stub
-    global.window.session = { updateUI: jest.fn(), startOver: jest.fn(), loadFromStorage: jest.fn(), promptRestoreSession: jest.fn() };
+    global.window.session = { updateUI: jest.fn(), startOver: jest.fn() };
   });
 
   describe('DOM Element Existence', () => {

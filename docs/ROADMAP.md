@@ -502,6 +502,48 @@ All CSS for Phase 1-2 features already exists:
 
 ---
 
+## Phase 7.2: Reading Labels (Private Sessions)
+**Goal**: Add an optional name/label to each reading logged during a private session
+**Status**: 0/? complete
+
+### Problem Statement
+Amanda wants to label individual readings in private sessions (e.g., client name). Currently readings are just tip + payment + source — there's no way to identify who a private reading was for. The label defaults to the name entered when the private session is first created, so for single-client sessions it's zero extra taps.
+
+### Data Model
+- New `label` text column on `blacksheep_reading_tracker_readings` (nullable, optional)
+- Only relevant for private sessions (events have too many readings to label)
+
+### UI
+- Text input field on the reading log entry (in the readings manager UI)
+- Defaults to the client name entered when the private session was first created
+- Editable per-reading (for multi-client private sessions, user can change it)
+- Optional — can be left blank
+
+### MCP / Bedrock Constraint
+- `list_sessions_v2` already at 5 input params (Bedrock's limit)
+- **Solution**: Replace individual filter params with a dynamic `search_by` approach
+- Lambda constructs SQL dynamically based on field/value pairs
+- Lambda does NOT download entire datasets and filter locally — all filtering is DB-side
+- This pattern lets us add `label` (and any future field) without exceeding param limits
+
+### Tasks (High Level)
+- [ ] Add `label` text column to readings table (nullable)
+- [ ] Update `readings_with_context` view to include label
+- [ ] Add label input field to reading log UI (defaults to session client name)
+- [ ] Persist label on addReading/updateReading
+- [ ] Refactor `list_sessions_v2` to use dynamic search_by param (replaces individual filters)
+- [ ] Refactor `list_readings_v2` similarly if needed
+- [ ] Update Bedrock agent schema + system prompt for label awareness and new search pattern
+- [ ] Update session details display to show labels when present
+
+### Design Notes
+- Full-stack feature: UI → SQL → Lambda → Agent (all layers touched)
+- Dynamic search pattern: single JSON param like `search_by: { field: value, field: value }` or similar — keeps Bedrock under 5 params
+- SQL construction must be parameterized (no injection risk)
+- Backward compatible: existing queries with no search_by still work
+
+---
+
 ## Phase 7.5: Cleanup — Remove Analytics & Notifications
 **Goal**: Remove unused analytics/notifications system (Gpsy handles this on-demand)
 **Status**: 0/1 complete
@@ -529,6 +571,98 @@ All CSS for Phase 1-2 features already exists:
 - Handles the scenario where Amanda clears browser data or switches devices and loses all custom formats, sources, payment methods, etc.
 - localStorage remains the fast local cache; DB is the durable source of truth
 - Consider: conflict resolution strategy (last-write-wins is probably fine for single-user)
+
+---
+
+## Phase 7.7: Multi-Day Sessions & Reading Timestamps
+**Goal**: Change sessions from single-date to start/end date range; derive per-day analytics from reading timestamps instead of session date
+**Status**: 0/? complete
+
+### Problem Statement
+Amanda now prefers creating one session for an entire weekend event (e.g., a 3-day Renaissance Faire) rather than a separate session per day. But per-day analytics must still work — "How was Friday vs Saturday?" needs to use the reading's own timestamp to determine which day it belongs to, not the session date.
+
+This is full-stack: schema changes, frontend, MCP tools, Bedrock agent, and a data migration to collapse existing multi-day events (like Denver's 3 separate sessions) into single sessions with date ranges.
+
+### Data Model Changes
+- Replace `session_date` (single date) with `start_date` + `end_date` on sessions table
+- Single-day sessions: `start_date == end_date`
+- Multi-day events: `start_date < end_date` (e.g., Fri–Sun)
+- Readings already have `timestamp` — this becomes the authoritative source for "which day" a reading happened
+- MCP tools must use `reading.timestamp` (not session date) for per-day grouping/filtering
+
+### Migration: Collapse Existing Multi-Session Events
+- Identify sessions at the same location within consecutive days (e.g., 3 Denver sessions on Fri/Sat/Sun)
+- Merge into one session: `start_date` = earliest date, `end_date` = latest date
+- Move all readings from collapsed sessions under the surviving session
+- Preserve reading timestamps (analytics still knows Fri vs Sat vs Sun)
+- Delete the now-empty duplicate sessions
+- Handle edge cases: sessions with different formats/types at same location (don't collapse those)
+
+### Database
+- [ ] Add `start_date` and `end_date` columns to sessions table
+- [ ] Migrate existing `session_date` values → both `start_date` and `end_date` (single-day default)
+- [ ] Run collapse migration for known multi-day events (Denver, etc.)
+- [ ] Drop `session_date` column after migration verified
+- [ ] Update `session_summaries` view to use `start_date`/`end_date`
+- [ ] Update `readings_with_context` view — day-of-week derived from `reading.timestamp`, NOT session date
+- [ ] Update `get_session_with_readings()` function
+- [ ] Update `get_user_summary()` function if it references session_date
+
+### Frontend
+- [ ] Session sheet: replace single date picker with start/end date pickers
+- [ ] Default: start_date = today, end_date = today (single-day behavior)
+- [ ] Session bar: display date range when multi-day (e.g., "Jun 20–22")
+- [ ] Session bar: display single date when start == end (current behavior)
+- [ ] SessionStore: update save/load to use start_date/end_date
+- [ ] Load Session sheet: display date ranges
+
+### MCP Server & Bedrock Agent
+- [ ] Update all v2 tools to return `start_date`/`end_date` instead of `session_date`
+- [ ] Per-day analytics: group/filter by `reading.timestamp` date, NOT session date
+- [ ] `list_sessions_v2`: support date range filtering against start_date/end_date
+- [ ] `list_readings_v2`: day_of_week filter uses reading timestamp (already correct via view?)
+- [ ] `aggregate_readings`: ensure grouping by day uses reading timestamp
+- [ ] Update Bedrock action group schema
+- [ ] Update Bedrock system prompt — explain multi-day sessions, reading timestamps = source of truth for day
+
+### Test Updates
+- [ ] Update session-store tests for start_date/end_date
+- [ ] Update integration tests
+- [ ] MCP server tests for new date range responses
+- [ ] Migration verification tests (collapsed sessions have correct readings)
+
+### Design Notes
+- This is a breaking change to the session schema — warrants a major version bump (v5.0.0?)
+- The collapse migration is one-time and irreversible — needs careful verification
+- Per-day analytics become more accurate (reading timestamp > session date even for single-day sessions)
+- Amanda's workflow: create session on Friday, keep using it all weekend, end on Sunday
+- Offline queue must handle start_date/end_date in `update_session` messages
+- MCP tools will likely need a full rewrite of `list_sessions_v2` and `list_readings_v2` — current tools already hit Bedrock's 5-parameter max, and multi-day sessions add more filter needs (start_date, end_date, format, day_of_week, etc.). Probably moving to a dynamic `search_by` JSON param pattern (same idea as Phase 7.2's approach) to stay under the limit
+
+---
+
+## Phase 7.8: Offline Queue (Operation-Message Sync) ✅ COMPLETE
+**Goal**: Replace fragile snapshot-based localStorage sync with a proper FIFO operation-message queue
+**Status**: Complete as of v4.5.0
+
+### Problem Statement
+The old approach saved full session state to localStorage on every change and ran a diff/reconcile cycle on reconnect. This was fragile (lost operation order), opaque (no way to inspect what needs syncing), and produced incorrect results when operations overlapped. The queue approach makes offline behavior predictable, ordered, and debuggable.
+
+### Implementation ✅ COMPLETE
+- ✅ Created `modules/offline-queue.js` — standalone OfflineQueue class exposed as `window.offlineQueue`
+- ✅ Queue stores typed Operation_Messages in localStorage (`offlineQueue_{userId}`)
+- ✅ Four message types: `insert_reading`, `update_reading`, `delete_reading`, `update_session`
+- ✅ FIFO sequential replay on flush with stop-on-first-error
+- ✅ Flush triggers: browser online event, service worker Background Sync, post-auth app load
+- ✅ Concurrent flush guard (`_flushing` flag)
+- ✅ 500-message cap with graceful quota error handling
+- ✅ Per-user queue isolation
+- ✅ UX snackbar indicators for all states (enqueue, syncing, success, failure)
+- ✅ Dev-mode logging with `[OfflineQueue]` prefix
+- ✅ `count()` and `peek()` for DevTools console debugging
+- ✅ Removed legacy: `saveToLocalStorage`, `loadFromStorage`, `debouncedSaveToLocalStorage`, `promptRestoreSession`
+- ✅ Removed legacy: `handleBackgroundSync`, `handleBackgroundBackup`, visibilitychange backup listener
+- ✅ 409 tests across 13 suites — all passing
 
 ---
 

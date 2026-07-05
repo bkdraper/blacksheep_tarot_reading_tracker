@@ -14,7 +14,7 @@
 - AI assistant "Gpsy" (ChatGPSY) for data queries via Bedrock Agent
 - PWA installable on mobile devices
 - Pure vanilla JS — no frameworks, keeping it simple and fast
-- Currently at v4.4.3 with 250+ passing tests across 10 suites
+- Currently at v4.5.0 with 409 passing tests across 13 suites
 
 ## Development Team
 
@@ -53,7 +53,7 @@ Despite SSE infrastructure, Bedrock Agent buffers the entire response and sends 
 - Timezone hell: YYYY-MM-DD → UTC, MM/DD/YYYY → local
 - DOM corruption: ChatGPSY HTML validation
 - Duplicate sessions: Check before insert
-- localStorage sync: Split save() into save() + saveToLocalStorage()
+- localStorage sync: Replaced snapshot-based sync with operation-message queue (v4.5.0)
 - XSS: Utils.sanitize() for user-generated content
 
 ### Session Format Field (v4.1.4 → v4.4.3)
@@ -64,6 +64,17 @@ Despite SSE infrastructure, Bedrock Agent buffers the entire response and sends 
 - **MCP server ESM testing** — server.js is ESM but Jest runs CJS. MCP format tests reconstruct filter logic in CJS rather than importing the ESM module directly. Works well.
 - **Migration pattern** — `migrateSourcesFormats()` uses a `legacySourcesMigrated` flag to be idempotent. Exact-match removal (not substring) is critical when source names contain common words.
 - **Format is required on session save** — validation blocks save if no format selected. Defaults: "Expo" for event, "In-Person" for private.
+
+### Offline Queue (v4.5.0)
+- **Replaced snapshot-based localStorage sync** — old approach saved full session state and ran diff/reconcile on reconnect. New approach queues individual failed operations as typed messages.
+- **`modules/offline-queue.js`** — standalone module, loaded between utils.js and auth.js. Exposed as `window.offlineQueue`.
+- **Four operation types**: `insert_reading`, `update_reading`, `delete_reading`, `update_session`. Each has a `createdAt` timestamp and type-specific payload.
+- **SessionStore error paths** — on Supabase error, calls `window.offlineQueue.enqueue()` instead of the old `registerBackgroundSync()`. No more `saveToLocalStorage()` calls.
+- **Flush triggers**: browser `online` event, SW Background Sync message, and post-auth initialization.
+- **`registerBackgroundSync()`** still exists in index.html — OfflineQueue itself calls it on enqueue and on flush error. SessionStore no longer calls it directly.
+- **Legacy methods removed**: `saveToLocalStorage`, `loadFromStorage`, `debouncedSaveToLocalStorage`, `promptRestoreSession`, `handleBackgroundSync`, `handleBackgroundBackup`.
+- **`clearUserData()` preserved** — still removes `readingTracker_${userId}` on sign-out.
+- **Queue persists across refresh** — stored in `offlineQueue_{userId}` localStorage key. Survives page reload.
 
 ## Environment Notes
 
@@ -97,5 +108,5 @@ The following steering docs are available:
 - `SESSION-UX-SPEC.md` — Original session UX brainstorm
 
 ## Last Updated
-- Date: June 24, 2026
-- Version: v4.4.3
+- Date: July 5, 2026
+- Version: v4.5.0
