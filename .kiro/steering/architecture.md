@@ -7,11 +7,33 @@ fileMatchPattern: "modules/**,mcp-server/**,index.html,server.js,serviceWorker.j
 
 ## System Architecture
 
+```mermaid
+graph TB
+    A[User Browser] --> B[index.html]
+    B --> C[SessionStore]
+    B --> D[Timer]
+    B --> E[GpsyChat]
+    C -->|"enqueue on error"| OQ[OfflineQueue]
+    OQ -->|"persist"| G[localStorage]
+    OQ -->|"flush"| F[Supabase DB]
+    C --> F
+    E --> H[Chat Proxy Lambda]
+    H --> I[Bedrock Agent]
+    I --> J[Bedrock Lambda]
+    J --> K[MCP Server Tools]
+    K --> F
 ```
-User Browser → index.html → [SessionStore, Timer, GpsyChat, ReadingsManager]
-                           → Supabase DB (sessions, readings, user_profiles)
-                           → localStorage (backup)
-GpsyChat → Chat Proxy Lambda → Bedrock Agent → Bedrock Lambda → MCP Tools → Supabase
+
+## Gpsy Chat Flow
+
+```mermaid
+graph LR
+    A[User] --> B[GpsyChat UI]
+    B --> C[Chat Proxy Lambda]
+    C --> D[Bedrock Agent]
+    D --> E[Bedrock Lambda]
+    E --> F[MCP Tools]
+    F --> G[Supabase]
 ```
 
 ## Dual Lambda Architecture
@@ -180,3 +202,25 @@ None on app tables.
   - `blacksheep_tarot-tracker-bedrock-chat-proxy` — nodejs24.x, handler: proxy_lambda.handler, timeout: 120s, env: API_TOKEN
 - MCP Lambda URL: https://fjmqe5vx4n6r6tklpsiyzey6ea0zuzgo.lambda-url.us-east-2.on.aws/
 - CloudWatch (proxy): https://us-east-2.console.aws.amazon.com/cloudwatch/home?region=us-east-2#logsV2:log-groups/log-group/$252Faws$252Flambda$252Fblacksheep_tarot-tracker-bedrock-chat-proxy
+
+## Lessons Learned
+
+### Supabase JS v2 Silent Failures (v4.6.6)
+- Supabase JS v2 does NOT throw on network errors. Returns `{ data: null, error: {...} }` silently.
+- MUST destructure `error` and `if (error) throw error;` after every data operation.
+- Without this, catch blocks never fire and offline queue never triggers.
+
+### LLM Arithmetic — Never Trust (v4.6.7)
+- Claude Haiku 4.5 confidently reports wrong sums. Observed: $527.50 vs actual $554.00.
+- All math must happen in Postgres via RPC functions. Lambda is a passthrough. LLM narrates.
+- `calculate_stats` tool: agent calls it for any numeric question, reports numbers verbatim.
+- System prompt explicitly bans self-computation.
+
+### Production Data — Always Sandbox (v4.5.1, v4.6.5)
+- A sign error in `interval '-7 hours' * -1` corrupted all timestamps. Use `interval '1 hour' * offset`.
+- Always test SQL math on one row first. Never modify production directly.
+- Copy → temp table → validate → promote affected rows only.
+
+### Delta Reconciliation During Migrations
+- Amanda adds readings while you're migrating. Record snapshot timestamp, fix anything with `created_at > snapshot_time`.
+- `tz_offset IS NULL` is a reliable marker for unmigrated readings.

@@ -113,6 +113,17 @@ Despite SSE infrastructure, Bedrock Agent buffers the entire response and sends 
 - **Bring backup current before creating temp tables.** If the backup is stale (even 1 row behind), insert the delta before copying to temp — otherwise your reference counts are wrong from the start.
 - **Collapse results:** 59 sessions → 38 sessions (21 removed). 18 merge groups. 437 readings preserved, zero orphans, zero data loss.
 
+### Supabase Error Handling (v4.6.6 — learned the hard way)
+- **Supabase JS v2 does NOT throw on network errors.** `.insert()`, `.update()`, `.delete()` return `{ data: null, error: {...} }` instead of throwing. Catch blocks never fire.
+- **Fix:** Always destructure `error` and `if (error) throw error;` after every Supabase data operation.
+- **Impact:** Offline queue was broken from v4.5.0 to v4.6.6 — errors were swallowed silently, readings were lost when offline.
+
+### LLM Arithmetic — Bedrock Can't Do Math (v4.6.7)
+- **Claude (Haiku 4.5) confidently reports wrong totals.** Given 17 raw readings, it summed them to $527.50 when the actual total is $554.00. Did it twice in one QE session.
+- **Root cause:** LLMs are fundamentally bad at arithmetic. They approximate. They're language models, not calculators.
+- **Solution:** `calculate_stats` tool — a Postgres RPC function that does ALL math. Agent calls it and reports numbers verbatim. System prompt says "you are BAD at arithmetic, never compute."
+- **Principle:** Math belongs in Postgres. Lambda is a passthrough. LLM is a narrator.
+
 ## Environment Notes
 
 ### Windows
@@ -146,4 +157,4 @@ The following steering docs are available:
 
 ## Last Updated
 - Date: July 5, 2026
-- Version: v4.5.1
+- Version: v4.6.7

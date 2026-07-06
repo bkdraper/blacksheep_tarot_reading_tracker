@@ -5,7 +5,7 @@ description: Core development rules, deployment commands, data structures, and t
 
 # Development Rules
 
-## Version: v4.6.6
+## Version: v4.6.7
 
 CRITICAL: Bump version on EVERY code change (cache-busting). Update version in: index.html, README.md, and this file.
 
@@ -73,6 +73,20 @@ All in `modules/`:
 - **Promotions update only affected records.** Targeted UPDATEs on specific rows, not bulk overwrites.
 - **Verify SQL math on a single row BEFORE running against all data.** Never trust arithmetic in interval expressions without a test query first.
 - **Sign errors kill:** `interval '-7 hours' * -1` = +7 hours, not -7. Use `interval '1 hour' * offset` where offset is already negative.
+
+### Supabase Error Handling — MUST THROW
+- **Supabase JS v2 does NOT throw on network errors for data operations.** It returns `{ data: null, error: {...} }` silently.
+- **ALWAYS destructure `error` and throw it:** `const { data, error } = await supabaseClient.from(...); if (error) throw error;`
+- **Without this, offline queue never triggers.** The catch block only fires on thrown exceptions, not returned error objects.
+- **This applies to:** `.insert()`, `.update()`, `.delete()`, `.select()` — ALL Supabase data operations.
+- **Discovered v4.6.6:** Offline queue existed since v4.5.0 but never actually fired because errors weren't thrown.
+
+### LLM Arithmetic — NEVER TRUST
+- **LLMs are bad at math.** Bedrock/Claude will confidently report wrong totals when given raw readings.
+- **All arithmetic must happen in Postgres.** The `calculate_stats` tool (RPC function) does all computation.
+- **System prompt says "you suck at math, use the tool."** Agent must call `calculate_stats` for any numeric question.
+- **Lambda is a thin passthrough.** No math in Lambda — just parse filters, call RPC, return result as-is.
+- **Discovered v4.6.7:** Agent reported $527.50 when DB had $554.00, and $538 when DB had $507.00.
 
 ## Data Structures (DO NOT BREAK)
 
