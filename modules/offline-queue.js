@@ -219,7 +219,8 @@ class OfflineQueue {
                         tip: message.payload.tip,
                         price: message.payload.price,
                         payment: message.payload.payment,
-                        source: message.payload.source
+                        source: message.payload.source,
+                        tz_offset: message.payload.tz_offset
                     }])
                     .select();
                 break;

@@ -2,7 +2,8 @@ class SessionStore {
             constructor() {
                 this._sessionId = null;
                 this._location = '';
-                this._sessionDate = '';
+                this._startDate = '';
+                this._endDate = '';
                 this._price = 40;
                 this._type = 'event';
                 this._readings = [];
@@ -19,7 +20,8 @@ class SessionStore {
             get userId() { return window.auth?.userId || null; }
             get userName() { return window.auth?.getUserName() || ''; }
             get location() { return this._location; }
-            get sessionDate() { return this._sessionDate; }
+            get startDate() { return this._startDate; }
+            get endDate() { return this._endDate; }
             get price() { return this._price; }
             get readings() { return this._readings; }
             get type() { return this._type || 'event'; }
@@ -27,10 +29,10 @@ class SessionStore {
 
             // Computed properties
             get canCreateSession() {
-                return this.userId && this._location.trim() && this._sessionDate && this._price;
+                return this.userId && this._location.trim() && this._startDate && this._endDate && this._price;
             }
             get hasValidSession() {
-                return this._sessionId && this.userId && this._location.trim() && this._sessionDate;
+                return this._sessionId && this.userId && this._location.trim() && this._startDate;
             }
             get sessionPhase() {
                 if (this.hasValidSession) return 'ACTIVE';
@@ -49,8 +51,13 @@ class SessionStore {
                 this.updateUI();
                 this.debouncedSave();
             }
-            set sessionDate(value) {
-                this._sessionDate = value;
+            set startDate(value) {
+                this._startDate = value;
+                this.updateUI();
+                this.debouncedSave();
+            }
+            set endDate(value) {
+                this._endDate = value;
                 this.updateUI();
                 this.debouncedSave();
             }
@@ -84,7 +91,7 @@ class SessionStore {
                 
                 if (this._sessionId) {
                     try {
-                        const { data } = await supabaseClient
+                        const { data, error } = await supabaseClient
                             .from('blacksheep_reading_tracker_readings')
                             .insert([{
                                 session_id: this._sessionId,
@@ -92,9 +99,12 @@ class SessionStore {
                                 tip: reading.tip || 0,
                                 price: reading.price,
                                 payment: reading.payment,
-                                source: reading.source
+                                source: reading.source,
+                                tz_offset: reading.tz_offset
                             }])
                             .select();
+                        
+                        if (error) throw error;
                         
                         if (data && data[0]) {
                             reading.id = data[0].id;
@@ -110,7 +120,8 @@ class SessionStore {
                                 tip: reading.tip || 0,
                                 price: reading.price,
                                 payment: reading.payment,
-                                source: reading.source
+                                source: reading.source,
+                                tz_offset: reading.tz_offset
                             }
                         });
                     }
@@ -121,10 +132,11 @@ class SessionStore {
                 
                 if (reading.id) {
                     try {
-                        await supabaseClient
+                        const { error } = await supabaseClient
                             .from('blacksheep_reading_tracker_readings')
                             .delete()
                             .eq('id', reading.id);
+                        if (error) throw error;
                     } catch (error) {
                         console.error('Failed to delete reading:', error);
                         window.offlineQueue.enqueue({
@@ -147,10 +159,11 @@ class SessionStore {
                 const reading = this._readings[index];
                 if (reading.id) {
                     try {
-                        await supabaseClient
+                        const { error } = await supabaseClient
                             .from('blacksheep_reading_tracker_readings')
                             .update({ [field]: value })
                             .eq('id', reading.id);
+                        if (error) throw error;
                     } catch (error) {
                         console.error('Failed to update reading:', error);
                         window.offlineQueue.enqueue({
@@ -168,7 +181,8 @@ class SessionStore {
                 this._loading = true;
                 this.sessionId = null;
                 this.location = '';
-                this.sessionDate = '';
+                this.startDate = '';
+                this.endDate = '';
                 this.price = 40;
                 this.readings = [];
                 this._loading = false;
@@ -254,7 +268,7 @@ class SessionStore {
                             locationInput.classList.remove('required-field');
                         }
                         
-                        if (!this._sessionDate) {
+                        if (!this._startDate) {
                             sessionDateInput.classList.add('required-field');
                         } else {
                             sessionDateInput.classList.remove('required-field');
@@ -294,9 +308,30 @@ class SessionStore {
 
             updateReadingsList() {
                 const list = document.getElementById('readingsList');
+                const isMultiDay = this._startDate && this._endDate && this._startDate !== this._endDate;
+                let lastDate = null;
+                
                 list.innerHTML = this._readings.map((reading, index) => {
                     const displayTime = this.formatTimestamp(reading.timestamp);
-                    return `
+                    let separator = '';
+                    
+                    if (isMultiDay && reading.timestamp) {
+                        const readingDate = reading.timestamp.substring(0, 10); // YYYY-MM-DD
+                        if (readingDate !== lastDate) {
+                            lastDate = readingDate;
+                            // Format: "Friday, Apr 24"
+                            const [year, month, day] = readingDate.split('-').map(Number);
+                            const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                            // Create date using UTC to avoid timezone shifts on YYYY-MM-DD
+                            const dateObj = new Date(Date.UTC(year, month - 1, day));
+                            const dayName = days[dateObj.getUTCDay()];
+                            const monthName = months[month - 1];
+                            separator = `<div class="reading-day-separator">${dayName}, ${monthName} ${day}</div>`;
+                        }
+                    }
+                    
+                    return `${separator}
                     <div class="reading-item" data-index="${index}">
                         <div class="reading-left">
                             <button class="delete-btn btn btn-danger btn-small" onclick="readingsManager.deleteReading(${index})">×</button>
@@ -348,7 +383,13 @@ class SessionStore {
             formatTimestamp(timestamp) {
                 if (!timestamp) return '';
                 if (timestamp.includes('T')) {
-                    return new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    // Timestamps are stored as local clock time — display directly
+                    const timePart = timestamp.split('T')[1];
+                    const [hours, minutes] = timePart.split(':');
+                    const h = parseInt(hours);
+                    const period = h >= 12 ? 'PM' : 'AM';
+                    const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                    return `${displayHour}:${minutes} ${period}`;
                 }
                 return timestamp; // Legacy format
             }
@@ -377,19 +418,28 @@ class SessionStore {
                             reading_price: this._price
                         };
                         
-                        if (this._sessionDate && this._sessionDate.trim()) {
-                            updateData.session_date = this._sessionDate;
+                        if (this._startDate && this._startDate.trim()) {
+                            updateData.start_date = this._startDate;
+                            updateData.session_date = this._startDate; // backwards compat
+                        }
+                        if (this._endDate && this._endDate.trim()) {
+                            updateData.end_date = this._endDate;
                         }
                         
-                        await supabaseClient
+                        const { error } = await supabaseClient
                             .from('blacksheep_reading_tracker_sessions')
                             .update(updateData)
                             .eq('id', this._sessionId);
+                        if (error) throw error;
                     } catch (error) {
                         console.error('Supabase update error:', error);
                         const payload = {};
                         if (this._location) payload.location = this._location;
-                        if (this._sessionDate && this._sessionDate.trim()) payload.session_date = this._sessionDate;
+                        if (this._startDate && this._startDate.trim()) {
+                            payload.start_date = this._startDate;
+                            payload.end_date = this._endDate;
+                            payload.session_date = this._startDate; // backwards compat
+                        }
                         if (this._price) payload.reading_price = this._price;
                         if (this._format) payload.format = this._format;
                         window.offlineQueue.enqueue({
@@ -468,10 +518,11 @@ class SessionStore {
                 btn.classList.add('loading');
                 
                 try {
+                    // Duplicate check by start_date + user + location
                     const { data } = await supabaseClient
                         .from('blacksheep_reading_tracker_sessions')
                         .select('*')
-                        .eq('session_date', this._sessionDate)
+                        .eq('start_date', this._startDate)
                         .eq('user_id', this.userId)
                         .eq('location', this._location)
                         .limit(1);
@@ -480,13 +531,14 @@ class SessionStore {
                         btn.textContent = originalText;
                         btn.classList.remove('loading');
                         
-                        const message = `${data[0].location} on ${data[0].session_date} already exists`;
+                        const message = `${data[0].location} on ${data[0].start_date || data[0].session_date} already exists`;
                         showSnackbar(message);
                         if (confirm(`${message}. Load existing session?`)) {
                             await this.loadExistingSession(data[0]);
                         } else {
                             this.location = '';
-                            this.sessionDate = '';
+                            this.startDate = '';
+                            this.endDate = '';
                         }
                         return;
                     }
@@ -494,7 +546,9 @@ class SessionStore {
                     const { data: newData } = await supabaseClient
                         .from('blacksheep_reading_tracker_sessions')
                         .insert([{
-                            session_date: this._sessionDate,
+                            start_date: this._startDate,
+                            end_date: this._endDate,
+                            session_date: this._startDate, // backwards compat
                             user_id: this.userId,
                             user_name: this.userName,
                             location: this._location,
@@ -625,8 +679,18 @@ class SessionStore {
                 if (filtered.length > 0) {
                     sessionsList.innerHTML = filtered.map(sessionData => {
                         const readingCount = sessionData.readings_count || 0;
-                        const date = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString();
-                        const dayOfWeek = new Date(normalizeDate(sessionData.session_date)).toLocaleDateString('en-US', { weekday: 'short' });
+                        // Use start_date/end_date with fallback to session_date
+                        const sDate = sessionData.start_date || sessionData.session_date;
+                        const eDate = sessionData.end_date || sessionData.session_date;
+                        const date = Utils.formatSessionDate(sDate, eDate);
+                        // Derive day of week from start_date by parsing YYYY-MM-DD parts
+                        const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+                        let dayOfWeek = '';
+                        if (sDate) {
+                            const dp = sDate.split('-');
+                            const dtObj = new Date(parseInt(dp[0]), parseInt(dp[1]) - 1, parseInt(dp[2]));
+                            dayOfWeek = dayNames[dtObj.getDay()];
+                        }
                         const grandTotal = sessionData.total_earnings || 0;
                         const typeBadge = sessionData.type === 'private'
                             ? '<span class="session-type-badge session-type-private"><i class="fas fa-user"></i> Private</span>'
@@ -706,7 +770,9 @@ class SessionStore {
                 this._loading = true;
                 this._sessionId = sessionData.id;
                 this._location = sessionData.location || '';
-                this._sessionDate = sessionData.session_date || '';
+                // Map start_date/end_date; fallback to session_date for backwards compat
+                this._startDate = sessionData.start_date || sessionData.session_date || '';
+                this._endDate = sessionData.end_date || sessionData.session_date || '';
                 this._price = sessionData.reading_price || 40;
                 this._type = (sessionData.type === 'private') ? 'private' : 'event';
                 this._format = sessionData.format || null;
@@ -730,7 +796,7 @@ class SessionStore {
                 this.updateTotals();
                 this.updateUI();
                 
-                showSnackbar(`Loaded session: ${sessionData.location} on ${sessionData.session_date}`);
+                showSnackbar(`Loaded session: ${sessionData.location} on ${sessionData.start_date || sessionData.session_date}`);
             }
 
             updateSessionBar() {
@@ -782,11 +848,10 @@ class SessionStore {
                     priceEl.textContent = '· $' + this._price;
                     priceEl.style.display = '';
                     
-                    // Format date as MM/DD from YYYY-MM-DD
-                    if (this._sessionDate) {
-                        const parts = this._sessionDate.split('-');
-                        const mmdd = parts[1] + '/' + parts[2];
-                        dateEl.textContent = '· ' + mmdd;
+                    // Format date using smart date formatting
+                    if (this._startDate) {
+                        const formatted = Utils.formatSessionDate(this._startDate, this._endDate);
+                        dateEl.textContent = '· ' + formatted;
                         dateEl.style.display = '';
                     } else {
                         dateEl.style.display = 'none';
@@ -865,7 +930,8 @@ class SessionStore {
                 if (!fieldsContainer) return;
 
                 const today = Utils.toISODate();
-                const dateValue = mode === 'edit' ? (this._sessionDate || today) : today;
+                const startDateValue = mode === 'edit' ? (this._startDate || today) : today;
+                const endDateValue = mode === 'edit' ? (this._endDate || today) : today;
                 const editLocation = mode === 'edit' ? Utils.sanitize(this._location) : '';
                 const priceValue = mode === 'edit' ? this._price : this._price;
 
@@ -876,8 +942,12 @@ class SessionStore {
                             <input type="text" id="sessionSheetLocation" maxlength="100" placeholder="Event Name / Location" value="${editLocation}">
                         </div>
                         <div class="input-group">
-                            <label>Date</label>
-                            <input type="date" id="sessionSheetDate" value="${dateValue}" onclick="this.showPicker()">
+                            <label>Start Date</label>
+                            <input type="date" id="sessionSheetStartDate" value="${startDateValue}" onclick="this.showPicker()">
+                        </div>
+                        <div class="input-group">
+                            <label>End Date</label>
+                            <input type="date" id="sessionSheetEndDate" value="${endDateValue}" onclick="this.showPicker()">
                         </div>
                         <div class="input-group">
                             <label>Price</label>
@@ -933,8 +1003,12 @@ class SessionStore {
                             <input type="text" id="sessionSheetLocation" maxlength="100" placeholder="Client Name" value="${editLocation}">
                         </div>
                         <div class="input-group">
-                            <label>Date</label>
-                            <input type="date" id="sessionSheetDate" value="${dateValue}" onclick="this.showPicker()">
+                            <label>Start Date</label>
+                            <input type="date" id="sessionSheetStartDate" value="${startDateValue}" onclick="this.showPicker()">
+                        </div>
+                        <div class="input-group">
+                            <label>End Date</label>
+                            <input type="date" id="sessionSheetEndDate" value="${endDateValue}" onclick="this.showPicker()">
                         </div>
                         ${priceHtml}
                         ${sourcesHtml}`;
@@ -1028,11 +1102,13 @@ class SessionStore {
 
                 // Read values from form
                 const locationInput = document.getElementById('sessionSheetLocation');
-                const dateInput = document.getElementById('sessionSheetDate');
+                const startDateInput = document.getElementById('sessionSheetStartDate');
+                const endDateInput = document.getElementById('sessionSheetEndDate');
                 const priceInput = document.getElementById('sessionSheetPrice');
 
                 const location = locationInput ? locationInput.value.trim() : '';
-                const date = dateInput ? dateInput.value : '';
+                const startDate = startDateInput ? startDateInput.value : '';
+                const endDate = endDateInput ? endDateInput.value : '';
 
                 // For private type with presets, use selected preset price; otherwise use input
                 let price;
@@ -1062,12 +1138,29 @@ class SessionStore {
                     hasError = true;
                 }
 
-                // Date: must be a valid date (YYYY-MM-DD format)
-                if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || isNaN(new Date(date + 'T00:00:00').getTime())) {
-                    if (dateInput) {
-                        dateInput.classList.add('input-error');
+                // Start Date: must be a valid date (YYYY-MM-DD format)
+                if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate) || isNaN(new Date(startDate + 'T00:00:00').getTime())) {
+                    if (startDateInput) {
+                        startDateInput.classList.add('input-error');
                     }
                     hasError = true;
+                }
+
+                // End Date: must be a valid date (YYYY-MM-DD format)
+                if (!endDate || !/^\d{4}-\d{2}-\d{2}$/.test(endDate) || isNaN(new Date(endDate + 'T00:00:00').getTime())) {
+                    if (endDateInput) {
+                        endDateInput.classList.add('input-error');
+                    }
+                    hasError = true;
+                }
+
+                // End date must be on or after start date
+                if (startDate && endDate && endDate < startDate) {
+                    if (endDateInput) {
+                        endDateInput.classList.add('input-error');
+                    }
+                    showSnackbar('End date must be on or after start date', 'error', 6000);
+                    return;
                 }
 
                 // Format: must be selected (required field)
@@ -1080,7 +1173,7 @@ class SessionStore {
                 }
 
                 if (hasError) {
-                    showSnackbar('Please fill in required fields', 'error');
+                    showSnackbar('Please fill in required fields', 'error', 6000);
                     return;
                 }
 
@@ -1095,21 +1188,25 @@ class SessionStore {
                     if (this._sheetMode === 'edit') {
                         // UPDATE existing session (type is locked - never changed on edit)
                         if (this._sessionId) {
-                            await supabaseClient
+                            const { error } = await supabaseClient
                                 .from('blacksheep_reading_tracker_sessions')
                                 .update({
                                     location: location,
-                                    session_date: date,
+                                    start_date: startDate,
+                                    end_date: endDate,
+                                    session_date: startDate, // backwards compat
                                     reading_price: price,
                                     format: this._sheetSelectedFormat || null
                                 })
                                 .eq('id', this._sessionId);
+                            if (error) throw error;
                         }
 
                         // Update local state
                         this._loading = true;
                         this._location = location;
-                        this._sessionDate = date;
+                        this._startDate = startDate;
+                        this._endDate = endDate;
                         this._price = price;
                         this._format = this._sheetSelectedFormat || null;
                         this._loading = false;
@@ -1125,7 +1222,7 @@ class SessionStore {
                         const { data: existing } = await supabaseClient
                             .from('blacksheep_reading_tracker_sessions')
                             .select('*')
-                            .eq('session_date', date)
+                            .eq('start_date', startDate)
                             .eq('user_id', this.userId)
                             .eq('location', location)
                             .limit(1);
@@ -1135,7 +1232,7 @@ class SessionStore {
                                 saveBtn.disabled = false;
                                 saveBtn.textContent = 'Save';
                             }
-                            const message = `${existing[0].location} on ${existing[0].session_date} already exists`;
+                            const message = `${existing[0].location} on ${existing[0].start_date || existing[0].session_date} already exists`;
                             showSnackbar(message);
                             if (confirm(`${message}. Load existing session?`)) {
                                 await this.loadExistingSession(existing[0]);
@@ -1145,10 +1242,12 @@ class SessionStore {
                         }
 
                         // Insert new session with type
-                        const { data: newData } = await supabaseClient
+                        const { data: newData, error: insertError } = await supabaseClient
                             .from('blacksheep_reading_tracker_sessions')
                             .insert([{
-                                session_date: date,
+                                start_date: startDate,
+                                end_date: endDate,
+                                session_date: startDate, // backwards compat
                                 user_id: this.userId,
                                 user_name: this.userName,
                                 location: location,
@@ -1157,12 +1256,14 @@ class SessionStore {
                                 format: this._sheetSelectedFormat || null
                             }])
                             .select();
+                        if (insertError) throw insertError;
 
                         if (newData && newData[0]) {
                             this._loading = true;
                             this._sessionId = newData[0].id;
                             this._location = location;
-                            this._sessionDate = date;
+                            this._startDate = startDate;
+                            this._endDate = endDate;
                             this._price = price;
                             this._type = this._sheetType;
                             this._format = this._sheetSelectedFormat || null;
@@ -1197,7 +1298,8 @@ class SessionStore {
                     // Offline fallback: save locally anyway
                     this._loading = true;
                     this._location = location;
-                    this._sessionDate = date;
+                    this._startDate = startDate;
+                    this._endDate = endDate;
                     this._price = price;
                     this._type = this._sheetType;
                     this._format = this._sheetSelectedFormat || null;
@@ -1244,7 +1346,8 @@ class SessionStore {
                 this._loading = true;
                 this._sessionId = null;
                 this._location = '';
-                this._sessionDate = '';
+                this._startDate = '';
+                this._endDate = '';
                 this._price = 40;
                 this._readings = [];
                 this._type = 'event';

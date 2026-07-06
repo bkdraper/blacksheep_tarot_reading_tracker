@@ -67,4 +67,42 @@ describe('Utils', () => {
       expect(typeof Utils.hideSheet).toBe('function');
     });
   });
+
+  describe('formatSessionDate', () => {
+    test('single day (startDate equals endDate) returns MM/DD format', () => {
+      expect(Utils.formatSessionDate('2025-06-20', '2025-06-20')).toBe('06/20');
+    });
+
+    test('no end date (null) returns MM/DD format', () => {
+      expect(Utils.formatSessionDate('2025-06-20', null)).toBe('06/20');
+    });
+
+    test('no end date (undefined) returns MM/DD format', () => {
+      expect(Utils.formatSessionDate('2025-06-20', undefined)).toBe('06/20');
+    });
+
+    test('no end date (empty string) returns MM/DD format', () => {
+      expect(Utils.formatSessionDate('2025-06-20', '')).toBe('06/20');
+    });
+
+    test('same month multi-day returns "Mon DD\u2013DD" format', () => {
+      expect(Utils.formatSessionDate('2025-06-20', '2025-06-22')).toBe('Jun 20\u201322');
+    });
+
+    test('different months returns "Mon DD\u2013Mon DD" format', () => {
+      expect(Utils.formatSessionDate('2025-06-30', '2025-07-02')).toBe('Jun 30\u2013Jul 2');
+    });
+
+    test('cross-year returns "Mon DD, YYYY\u2013Mon DD, YYYY" format', () => {
+      expect(Utils.formatSessionDate('2025-12-31', '2026-01-01')).toBe('Dec 31, 2025\u2013Jan 1, 2026');
+    });
+
+    test('empty startDate returns empty string', () => {
+      expect(Utils.formatSessionDate('', '2025-06-20')).toBe('');
+    });
+
+    test('null startDate returns empty string', () => {
+      expect(Utils.formatSessionDate(null, '2025-06-20')).toBe('');
+    });
+  });
 });

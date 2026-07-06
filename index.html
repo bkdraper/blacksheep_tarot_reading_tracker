@@ -7,7 +7,7 @@
       http-equiv="Cache-Control"
       content="no-cache, no-store, must-revalidate"
     />
-    <meta http-equiv="version" content="v4.5.0" />
+    <meta http-equiv="version" content="v4.6.7" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#2d1b3e" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -78,7 +78,7 @@
       <h1 id="headerTitle">Tarot Reading Tracker</h1>
       <div class="header-actions">
         <span id="offlineIndicator" class="offline-badge" style="display: none"
-          >Offline</span
+          >⚡ OFFLINE — changes saved locally</span
         >
         <button
           id="btn-user-profile"
@@ -1209,10 +1209,12 @@
       function updateOnlineStatus() {
         const indicator = document.getElementById("offlineIndicator");
         if (!navigator.onLine) {
-          indicator.style.display = "inline-block";
+          indicator.style.display = "block";
+          document.body.classList.add("is-offline");
           showSnackbar("Offline - changes saved locally", "error");
         } else {
           indicator.style.display = "none";
+          document.body.classList.remove("is-offline");
           window.offlineQueue.flush();
         }
       }

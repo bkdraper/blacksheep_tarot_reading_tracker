@@ -37,13 +37,24 @@
             font-weight: 500;
         }
         .offline-badge {
-            background: #dc3545;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: #d32f2f;
             color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 10px;
+            padding: 8px 16px;
+            font-size: 14px;
             font-weight: 600;
-            margin-right: 8px;
+            text-align: center;
+            z-index: 3001;
+            height: 36px;
+            line-height: 20px;
+            letter-spacing: 0.5px;
+        }
+        body.is-offline {
+            padding-top: 36px;
         }
         /* ========================================
            BUTTON SYSTEM - Base Classes
@@ -482,6 +493,21 @@
         }
         .reading-item:last-child { 
             border-bottom: none; 
+        }
+        .reading-day-separator {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted, #888);
+            padding: 8px 0 4px;
+            border-top: 1px solid var(--border-color, #333);
+            margin-top: 8px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .reading-day-separator:first-child {
+            border-top: none;
+            margin-top: 0;
         }
         .reading-left {
             display: flex;

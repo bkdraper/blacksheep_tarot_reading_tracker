@@ -21,7 +21,23 @@ describe('Integration: index.html + session-store.js', () => {
     global.vibrate = jest.fn();
     global.registerBackgroundSync = jest.fn();
     global.Utils = {
-      sanitize: jest.fn((str) => str)
+      sanitize: jest.fn((str) => str),
+      formatSessionDate: jest.fn((start, end) => {
+        if (!start) return '';
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const sParts = start.split('-');
+        const sMonth = parseInt(sParts[1]);
+        const sDay = parseInt(sParts[2]);
+        const sYear = parseInt(sParts[0]);
+        if (!end || start === end) return String(sMonth).padStart(2, '0') + '/' + String(sDay).padStart(2, '0');
+        const eParts = end.split('-');
+        const eMonth = parseInt(eParts[1]);
+        const eDay = parseInt(eParts[2]);
+        const eYear = parseInt(eParts[0]);
+        if (sYear !== eYear) return `${months[sMonth-1]} ${sDay}, ${sYear}\u2013${months[eMonth-1]} ${eDay}, ${eYear}`;
+        if (sMonth === eMonth) return `${months[sMonth-1]} ${sDay}\u2013${eDay}`;
+        return `${months[sMonth-1]} ${sDay}\u2013${months[eMonth-1]} ${eDay}`;
+      })
     };
     global.window.offlineQueue = { enqueue: jest.fn(), flush: jest.fn(), count: jest.fn(), peek: jest.fn(), setUserId: jest.fn() };
 
@@ -44,7 +60,7 @@ describe('Integration: index.html + session-store.js', () => {
     beforeEach(() => {
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
       session._price = 40;
     });
 
@@ -95,7 +111,7 @@ describe('Integration: index.html + session-store.js', () => {
     test('should show sections in ACTIVE phase', () => {
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
       session.updateUI();
       expect(document.querySelector('.buttons').style.display).toBe('flex');
       expect(document.querySelector('.totals').style.display).toBe('block');
@@ -186,7 +202,23 @@ describe('Integration: index.html + readings-manager.js', () => {
       showSheet: jest.fn(),
       hideSheet: jest.fn(),
       showSnackbar: jest.fn(),
-      sanitize: jest.fn((str) => str)
+      sanitize: jest.fn((str) => str),
+      formatSessionDate: jest.fn((start, end) => {
+        if (!start) return '';
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const sParts = start.split('-');
+        const sMonth = parseInt(sParts[1]);
+        const sDay = parseInt(sParts[2]);
+        const sYear = parseInt(sParts[0]);
+        if (!end || start === end) return String(sMonth).padStart(2, '0') + '/' + String(sDay).padStart(2, '0');
+        const eParts = end.split('-');
+        const eMonth = parseInt(eParts[1]);
+        const eDay = parseInt(eParts[2]);
+        const eYear = parseInt(eParts[0]);
+        if (sYear !== eYear) return `${months[sMonth-1]} ${sDay}, ${sYear}\u2013${months[eMonth-1]} ${eDay}, ${eYear}`;
+        if (sMonth === eMonth) return `${months[sMonth-1]} ${sDay}\u2013${eDay}`;
+        return `${months[sMonth-1]} ${sDay}\u2013${months[eMonth-1]} ${eDay}`;
+      })
     };
     global.window.handleBackgroundBackup = jest.fn();
 
@@ -199,7 +231,7 @@ describe('Integration: index.html + readings-manager.js', () => {
     session = new SessionStore();
     session._sessionId = 'test-id';
     session._location = 'Test';
-    session._sessionDate = '2025-01-15';
+    session._startDate = '2025-01-15';
     session._price = 40;
     global.window.auth = { userId: 'user-123', getUserName: jest.fn(() => 'Amanda') };
     global.window.session = session;
@@ -280,7 +312,7 @@ describe('Integration: index.html + readings-manager.js', () => {
       session._sessionId = 'test-id';
       session.user = 'Amanda';
       session.location = 'Test';
-      session.sessionDate = '2025-01-15';
+      session.startDate = '2025-01-15';
     });
 
     test('addReading should add reading to session', async () => {

@@ -16,8 +16,16 @@ class ReadingsManager {
         
         Utils.vibrate([50]);
         const now = new Date();
-        const timestamp = now.toISOString();
-        window.session.addReading({ timestamp, tip: 0, price: window.session.price });
+        // Local clock time — no UTC conversion. "What time did the clock say?"
+        const timestamp = now.getFullYear() + '-' +
+            String(now.getMonth() + 1).padStart(2, '0') + '-' +
+            String(now.getDate()).padStart(2, '0') + 'T' +
+            String(now.getHours()).padStart(2, '0') + ':' +
+            String(now.getMinutes()).padStart(2, '0') + ':' +
+            String(now.getSeconds()).padStart(2, '0') + '.' +
+            String(now.getMilliseconds()).padStart(3, '0');
+        const tz_offset = -(now.getTimezoneOffset() / 60);
+        window.session.addReading({ timestamp, tz_offset, tip: 0, price: window.session.price });
         
         // Trigger background backup after adding reading
         if (window.handleBackgroundBackup) {

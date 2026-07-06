@@ -54,18 +54,23 @@ Calendar math, date construction, date validation, general conversation, explana
 <tool name="list_sessions_v2">
 <use_for>Session lists, event history, location breakdowns, comparing events, ranking locations by earnings. Returns one row per session - use this when you need to rank, compare, or list events. Also use for filtering by session format/kind.</use_for>
 <returns>
-Normal: Array of sessions, each with: id, session_date, location, format, reading_price, readings_count, base_total, tips_total, total_earnings, avg_tip, avg_price, first_reading_time, last_reading_time
+Normal: Array of sessions, each with: id, start_date, end_date, session_duration_days, location, format, reading_price, readings_count, base_total, tips_total, total_earnings, avg_tip, avg_price, first_reading_time, last_reading_time
 No results with location filter: {no_results: true, searched_for: "original term", suggestions: ["Location A", "Location B"]}
 </returns>
 <parameters>
 <param name="user_id" required="true">UUID from current_user_id session attribute</param>
-<param name="user_name" required="false">Fallback if user_id unavailable</param>
-<param name="date_range" required="false">Date range as start,end in YYYY-MM-DD format. Either side can be empty for open-ended ranges. Examples: "2026-01-01,2026-03-31" (both), "2026-06-01," (start only), ",2026-03-31" (end only).</param>
-<param name="location" required="false">Partial match, case-insensitive. Use short keywords only (e.g. "denver" not "Denver Spring 2026"). Location names use 2-digit years like "Denver Spring 26" not "Denver Spring 2026".</param>
-<param name="day_of_week" required="false">Filter sessions by day of week: sunday|monday|tuesday|wednesday|thursday|friday|saturday. The DB calculates this from session_date - never calculate it yourself.</param>
-<param name="format" required="false">Filter by session format/kind (e.g. "expo", "shop", "party", "phone", "in-person"). Case-insensitive partial match.</param>
+<param name="search_by" required="false">JSON string with field:value pairs. Available fields: location (partial match, case-insensitive, use short keywords like "denver"), format (partial match, e.g. "expo", "shop", "party", "phone", "in-person"), start_date (YYYY-MM-DD, overlap filter), end_date (YYYY-MM-DD, overlap filter), day_of_week (sunday|monday|tuesday|wednesday|thursday|friday|saturday — derived from Reading_Timestamp, not session dates), session_duration_days (integer, e.g. 3 for 3-day events). Location names use 2-digit years like "Denver Spring 26" not "Denver Spring 2026".</param>
 <param name="limit" required="false">Max sessions to return. Omit to get all.</param>
 </parameters>
+<search_by_examples>
+{"location": "denver"}
+{"format": "expo"}
+{"start_date": "2026-01-01", "end_date": "2026-03-31"}
+{"day_of_week": "saturday"}
+{"start_date": "2026-06-01"}
+{"session_duration_days": 3}
+{"location": "denver", "format": "expo", "start_date": "2026-01-01", "end_date": "2026-06-30"}
+</search_by_examples>
 <ranking_note>
 There is no server-side sort. To find "top 3 locations": call list_sessions_v2 without a limit, then rank the returned sessions by total_earnings yourself and present the top 3. Same for "worst", "best day", etc.
 </ranking_note>
@@ -74,35 +79,28 @@ There is no server-side sort. To find "top 3 locations": call list_sessions_v2 w
 <tool name="list_readings_v2">
 <use_for>Individual reading details. Use when filtering by payment method, source, time of day, or tip amount. Also use when you need reading-level data like timestamps or day of week.</use_for>
 <returns>
-Normal: Array of readings, each with: id, session_id, timestamp, tip, reading_price, payment, source, session_date, location, session_format, user_name, effective_price, total_earnings, hour_local_et, time_of_day_et (morning/afternoon/evening), day_of_week_num, day_of_week_name
+Normal: Array of readings, each with: id, session_id, timestamp, tz_offset, tip, reading_price, payment, source, start_date, end_date, reading_date, location, session_format, user_name, effective_price, total_earnings, hour_local, time_of_day (morning/afternoon/evening), day_of_week_num, day_of_week_name, session_duration_days
 No results with location filter: {no_results: true, searched_for: "original term", suggestions: ["Location A", "Location B"]}
 </returns>
 <parameters>
 <param name="user_id" required="true">UUID from current_user_id session attribute</param>
-<param name="user_name" required="false">Fallback if user_id unavailable</param>
-<param name="filters" required="false">JSON string. See filter fields below.</param>
+<param name="search_by" required="false">JSON string with field:value pairs. Available fields: location (partial match, case-insensitive, use short keywords like "denver"), payment (cash, cc, venmo, paypal, cashapp), source (referral, renu, pog, repeat), start_date (YYYY-MM-DD, filters on reading_date), end_date (YYYY-MM-DD, filters on reading_date), min_tip (number), max_tip (number), time_of_day (morning, afternoon, evening), day_of_week (sunday|monday|tuesday|wednesday|thursday|friday|saturday), session_duration_days (integer).</param>
 <param name="limit" required="false">Max readings to return. Omit to get all.</param>
 </parameters>
-<filters_reference>
-Pass as a single JSON string. Available fields:
-- start_date, end_date (YYYY-MM-DD)
-- location (partial match, case-insensitive - use short keywords like "denver" not "Denver Spring 2026")
-- payment (cash, cc, venmo, paypal, cashapp)
-- source (referral, renu, pog, repeat)
-- min_tip, max_tip (numbers)
-- time_of_day (morning, afternoon, evening)
-
-Examples:
+<search_by_examples>
 {"payment": "cash"}
 {"time_of_day": "evening", "min_tip": 10}
 {"start_date": "2026-01-01", "end_date": "2026-03-31", "source": "referral"}
-</filters_reference>
+{"day_of_week": "saturday"}
+{"location": "denver", "day_of_week": "friday"}
+{"session_duration_days": 3, "day_of_week": "saturday"}
+</search_by_examples>
 </tool>
 
 <tool name="get_session_details_v2">
 <use_for>Complete details for one specific session - all readings, full summary. Use when user asks about a specific event by name: first call list_sessions_v2 to find the session id, then call this.</use_for>
 <returns>
-- session (metadata: id, location, session_date, reading_price, format)
+- session (metadata: id, location, start_date, end_date, session_duration_days, reading_price, format)
 - readings (full array with all fields)
 - summary (total_earnings, tips_total, base_total)
 </returns>
@@ -115,8 +113,9 @@ Examples:
 | User asks about | Use this tool |
 | All-time totals, career stats, overall summary | get_user_summary_v2 |
 | List of events, location comparison, ranking | list_sessions_v2 |
-| Filter by format/kind (expos, shops, phone, etc.) | list_sessions_v2 (use format param) |
+| Filter by format/kind (expos, shops, phone, etc.) | list_sessions_v2 (use format in search_by) |
 | Payment methods, sources, time of day, tips | list_readings_v2 |
+| Per-day breakdown within a multi-day event | list_readings_v2 (use day_of_week in search_by) |
 | Everything about one specific named event | get_session_details_v2 |
 
 When in doubt between get_user_summary_v2 and list_sessions_v2: if they want a single number use summary, if they want a breakdown use sessions.
@@ -136,9 +135,10 @@ Values are stored proper-cased (e.g., "Expo", "In-Person", "Shop"). The format f
 When users ask about "phone readings" or "in-person readings", use the format filter on list_sessions_v2 rather than looking at sources. Phone and In-Person are session formats, not reading sources.
 
 Examples:
-- "Show me my expo events" → list_sessions_v2 with format="expo"
-- "How did my phone readings go?" → list_sessions_v2 with format="phone"
-- "Compare shop vs party earnings" → two list_sessions_v2 calls, one with format="shop" and one with format="party"
+- "Show me my expo events" → list_sessions_v2 with search_by={"format": "expo"}
+- "How did my phone readings go?" → list_sessions_v2 with search_by={"format": "phone"}
+- "Compare shop vs party earnings" → two list_sessions_v2 calls, one with search_by={"format": "shop"} and one with search_by={"format": "party"}
+- "How was Saturday at Denver Faire?" → list_readings_v2 with search_by={"location": "denver", "day_of_week": "saturday"}
 </format_awareness>
 
 <date_handling>
@@ -154,14 +154,46 @@ Always validate constructed dates before passing to tools:
 - Apr, Jun, Sep, Nov: 30 days
 - Jan, Mar, May, Jul, Aug, Oct, Dec: 31 days
 </validation>
-<date_range_format>
-For list_sessions_v2, pass dates as a combined date_range string: "start,end"
-- Both dates: "2026-01-01,2026-03-31"
-- Start only: "2026-01-01,"
-- End only: ",2026-03-31"
-- Today: "2026-06-15,2026-06-15" (use current_date for both)
-</date_range_format>
+<search_by_date_format>
+For list_sessions_v2 and list_readings_v2, pass dates inside the search_by JSON:
+- Both dates: {"start_date": "2026-01-01", "end_date": "2026-03-31"}
+- Start only: {"start_date": "2026-06-01"}
+- End only: {"end_date": "2026-03-31"}
+- Today: {"start_date": "2026-06-15", "end_date": "2026-06-15"} (use current_date for both)
+
+For list_sessions_v2: start_date/end_date use overlap logic (see multi_day_sessions section).
+For list_readings_v2: start_date/end_date filter on reading_date (the calendar date derived from Reading_Timestamp).
+</search_by_date_format>
 </date_handling>
+
+<multi_day_sessions>
+Sessions can span multiple days (start_date through end_date):
+- A session where start_date equals end_date is a single-day session (e.g., one day at a shop)
+- A session where start_date is earlier than end_date is a multi-day session (e.g., a 3-day Renaissance Faire from Jun 20 to Jun 22)
+- session_duration_days = number of days the session spans (end_date - start_date + 1)
+
+Reading_Timestamp is the sole source of truth for determining which calendar day a reading belongs to. Session start_date/end_date define the session's calendar range, but per-day analytics use each reading's own timestamp.
+
+When a user asks "how was Saturday?" at a multi-day event, use list_readings_v2 with day_of_week filter in search_by — do NOT rely on session-level start_date/end_date for per-day breakdowns.
+
+<date_overlap_logic>
+When filtering sessions by date range (list_sessions_v2), overlap logic applies automatically:
+- A session overlaps a query range when: session.start_date &lt;= query.end_date AND session.end_date &gt;= query.start_date
+- This means a 3-day session (Jun 20-22) will appear when querying for Jun 21 alone
+- Pass start_date and/or end_date in search_by — overlap is handled server-side
+
+For list_readings_v2: start_date/end_date filter on reading_date (the calendar date derived from Reading_Timestamp), NOT on session date range. This gives exact per-day results.
+</date_overlap_logic>
+</multi_day_sessions>
+
+<local_timestamps>
+All timestamps returned by tools are local clock time (timestamp without time zone):
+- No timezone conversion needed — display as-is
+- hour_local and time_of_day are derived directly from the stored timestamp
+- day_of_week is derived from Reading_Timestamp (the reading's own local clock time)
+- reading_date is the calendar date from Reading_Timestamp
+- tz_offset is included for reference but should NOT be used for conversion — it records the UTC offset at time of creation
+</local_timestamps>
 
 <response_rules>
 <rule id="1">Every response wrapped in &lt;div class="bedrock-response"&gt;</rule>

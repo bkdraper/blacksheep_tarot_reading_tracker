@@ -351,7 +351,7 @@ describe('MCP Server — Format Support', () => {
 
   // ─── Action Group Schema Tests ──────────────────────────────────────
 
-  describe('action-group-schema.json format parameter', () => {
+  describe('action-group-schema.json search_by includes format', () => {
     let schema;
 
     beforeAll(() => {
@@ -370,30 +370,30 @@ describe('MCP Server — Format Support', () => {
       expect(listSessions).toBeDefined();
     });
 
-    test('list_sessions_v2 has format parameter', () => {
+    test('list_sessions_v2 has search_by parameter', () => {
       const listSessions = schema.functions.find(f => f.name === 'list_sessions_v2');
-      expect(listSessions.parameters).toHaveProperty('format');
+      expect(listSessions.parameters).toHaveProperty('search_by');
     });
 
-    test('format parameter has type string', () => {
+    test('search_by parameter has type string', () => {
       const listSessions = schema.functions.find(f => f.name === 'list_sessions_v2');
-      expect(listSessions.parameters.format.type).toBe('string');
+      expect(listSessions.parameters.search_by.type).toBe('string');
     });
 
-    test('format parameter is not required', () => {
+    test('search_by parameter is not required', () => {
       const listSessions = schema.functions.find(f => f.name === 'list_sessions_v2');
-      expect(listSessions.parameters.format.required).toBe(false);
+      expect(listSessions.parameters.search_by.required).toBe(false);
     });
 
-    test('format parameter description mentions case-insensitive', () => {
+    test('search_by description mentions format as available field', () => {
       const listSessions = schema.functions.find(f => f.name === 'list_sessions_v2');
-      expect(listSessions.parameters.format.description.toLowerCase()).toContain('case-insensitive');
+      expect(listSessions.parameters.search_by.description.toLowerCase()).toContain('format');
     });
 
-    test('format parameter description mentions kind of event or reading', () => {
+    test('search_by description mentions format examples (expo, shop, etc.)', () => {
       const listSessions = schema.functions.find(f => f.name === 'list_sessions_v2');
-      const desc = listSessions.parameters.format.description.toLowerCase();
-      expect(desc).toMatch(/kind|event|reading/);
+      const desc = listSessions.parameters.search_by.description.toLowerCase();
+      expect(desc).toMatch(/expo|shop|party/);
     });
   });
 
@@ -409,19 +409,17 @@ describe('MCP Server — Format Support', () => {
 
     test('list_sessions_v2 inputSchema includes format property', () => {
       // Verify the tool definition in server.js mentions format in the schema
-      // The inputSchema for list_sessions_v2 should have a format property
       expect(serverSource).toContain("format");
     });
 
-    test('listSessionsV2 method applies ilike filter for format', () => {
-      // Verify the actual filter logic exists in the source
-      expect(serverSource).toMatch(/format\s*&&\s*format\.trim\(\)/);
-      expect(serverSource).toMatch(/\.ilike\('format'/);
+    test('sessionFilterMap applies ilike filter for format', () => {
+      // Verify the filterMap-based format logic exists in the source
+      expect(serverSource).toMatch(/format:\s*\(q,\s*v\)\s*=>\s*q\.ilike\('format'/);
     });
 
-    test('listSessionsV2 method destructures format from args', () => {
-      // Verify format is destructured in listSessionsV2
-      expect(serverSource).toMatch(/const\s*\{[^}]*format[^}]*\}\s*=\s*args/);
+    test('listSessionsV2 method maps format from individual params for backward compat', () => {
+      // Verify format is mapped from individual args to filters for backward compat
+      expect(serverSource).toMatch(/if\s*\(args\.format\)\s*filters\.format\s*=\s*args\.format/);
     });
   });
 });

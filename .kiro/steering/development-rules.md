@@ -5,7 +5,7 @@ description: Core development rules, deployment commands, data structures, and t
 
 # Development Rules
 
-## Version: v4.5.0
+## Version: v4.6.6
 
 CRITICAL: Bump version on EVERY code change (cache-busting). Update version in: index.html, README.md, and this file.
 
@@ -29,7 +29,12 @@ All in `modules/`:
 ## Critical Rules
 
 ### Timezone Handling
-- Use raw YYYY-MM-DD strings for display
+- Reading timestamps are `timestamp without time zone` — local clock time, no UTC
+- Display the stored value directly — NO `new Date(timestamp)` conversion for display
+- `tz_offset` column = integer hours from UTC (e.g., -7). Reference only, not used in display math
+- Frontend creates timestamps as local ISO strings (no 'Z' suffix): `YYYY-MM-DDTHH:MM:SS.mmm`
+- Views derive date/time directly: `r.timestamp::date`, `EXTRACT(hour FROM r.timestamp)`
+- Use raw YYYY-MM-DD strings for session date display
 - NEVER convert through Date() without normalizing
 - Normalize: YYYY-MM-DD → MM/DD/YYYY before Date()
 - YYYY-MM-DD creates UTC dates, MM/DD/YYYY creates local
@@ -61,11 +66,21 @@ All in `modules/`:
 - User can fake role in browser but can't fake user_id (from auth token)
 - user_name is snapshot in sessions table at creation time (preserves history)
 
+### Production Data Safety — IMMUTABLE GUARDRAIL
+- **NEVER modify production data directly.** Always: copy → modify copy → validate → promote.
+- Create a temp table with affected rows, make changes there, run validation queries (count checks, constraint checks, spot-checks), then UPDATE production from the validated temp.
+- **Backups are immutable snapshots.** Never DROP/recreate or UPDATE an existing backup table. If you need a new backup, create a new table with a different name (e.g., `readings_backup_2`).
+- **Promotions update only affected records.** Targeted UPDATEs on specific rows, not bulk overwrites.
+- **Verify SQL math on a single row BEFORE running against all data.** Never trust arithmetic in interval expressions without a test query first.
+- **Sign errors kill:** `interval '-7 hours' * -1` = +7 hours, not -7. Use `interval '1 hour' * offset` where offset is already negative.
+
 ## Data Structures (DO NOT BREAK)
 
 ```javascript
 // Reading (in-memory + normalized DB table)
-{ id, timestamp, tip, price, payment, source }
+{ id, timestamp, tz_offset, tip, price, payment, source }
+// timestamp = local clock time string (no Z suffix, no UTC)
+// tz_offset = integer hours from UTC (e.g., -7 for PDT)
 
 // Session State
 { sessionId, location, sessionDate, price, readings, _loading }

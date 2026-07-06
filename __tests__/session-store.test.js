@@ -31,7 +31,22 @@ document.body.innerHTML = `
 global.showSnackbar = jest.fn();
 global.vibrate = jest.fn();
 global.registerBackgroundSync = jest.fn();
-global.Utils = { sanitize: jest.fn((str) => str), toISODate: jest.fn(() => '2025-01-15') };
+global.Utils = { sanitize: jest.fn((str) => str), toISODate: jest.fn(() => '2025-01-15'), formatSessionDate: jest.fn((start, end) => {
+  if (!start) return '';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const sParts = start.split('-');
+  const sMonth = parseInt(sParts[1]);
+  const sDay = parseInt(sParts[2]);
+  const sYear = parseInt(sParts[0]);
+  if (!end || start === end) return String(sMonth).padStart(2, '0') + '/' + String(sDay).padStart(2, '0');
+  const eParts = end.split('-');
+  const eMonth = parseInt(eParts[1]);
+  const eDay = parseInt(eParts[2]);
+  const eYear = parseInt(eParts[0]);
+  if (sYear !== eYear) return `${months[sMonth-1]} ${sDay}, ${sYear}\u2013${months[eMonth-1]} ${eDay}, ${eYear}`;
+  if (sMonth === eMonth) return `${months[sMonth-1]} ${sDay}\u2013${eDay}`;
+  return `${months[sMonth-1]} ${sDay}\u2013${months[eMonth-1]} ${eDay}`;
+}) };
 
 global.window.offlineQueue = {
   enqueue: jest.fn(),
@@ -100,7 +115,8 @@ describe('SessionStore', () => {
     test('should validate canCreateSession', () => {
       expect(session.canCreateSession).toBeFalsy();
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
       session._price = 40;
       expect(session.canCreateSession).toBeTruthy();
     });
@@ -109,14 +125,15 @@ describe('SessionStore', () => {
       expect(session.hasValidSession).toBeFalsy();
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
       expect(session.hasValidSession).toBeTruthy();
     });
 
     test('should determine correct session phase', () => {
       expect(session.sessionPhase).toBe('SETUP');
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
       expect(session.sessionPhase).toBe('READY_TO_CREATE');
       session._sessionId = 'test-id';
       expect(session.sessionPhase).toBe('ACTIVE');
@@ -124,7 +141,8 @@ describe('SessionStore', () => {
 
     test('should create session and set sessionId', async () => {
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
       session._price = 40;
 
       await session.createSession();
@@ -135,7 +153,8 @@ describe('SessionStore', () => {
 
     test('should not include readings in session insert', async () => {
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
       session._price = 40;
 
       await session.createSession();
@@ -147,7 +166,8 @@ describe('SessionStore', () => {
 
     test('should show buttons after creating session', async () => {
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
       session._price = 40;
       session.updateUI();
       expect(document.querySelector('.buttons').style.display).toBe('none');
@@ -164,7 +184,7 @@ describe('SessionStore', () => {
     beforeEach(() => {
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
     });
 
     test('should add reading and insert to DB', async () => {
@@ -346,7 +366,8 @@ describe('SessionStore', () => {
 
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
 
       await session.save();
 
@@ -355,16 +376,19 @@ describe('SessionStore', () => {
       expect(updateData.readings).toBeUndefined();
     });
 
-    test('should not include empty session_date in update', async () => {
+    test('should not include empty start_date in update', async () => {
       const updateMock = jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) }));
       global.supabaseClient.from.mockImplementation(() => ({ update: updateMock }));
 
       session._sessionId = 'test-id';
-      session._sessionDate = '';
+      session._startDate = '';
+      session._endDate = '';
 
       await session.save();
 
       const updateData = updateMock.mock.calls[0][0];
+      expect(updateData.start_date).toBeUndefined();
+      expect(updateData.end_date).toBeUndefined();
       expect(updateData.session_date).toBeUndefined();
     });
 
@@ -389,7 +413,8 @@ describe('SessionStore', () => {
 
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
       session._price = 40;
       await session.save();
 
@@ -399,6 +424,8 @@ describe('SessionStore', () => {
           sessionId: 'test-id',
           payload: expect.objectContaining({
             location: 'Test Location',
+            start_date: '2025-01-15',
+            end_date: '2025-01-15',
             session_date: '2025-01-15',
             reading_price: 40
           })
@@ -459,7 +486,7 @@ describe('SessionStore', () => {
       expect(document.querySelector('.buttons').style.display).toBe('none');
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
       session.updateSections();
       expect(document.querySelector('.buttons').style.display).toBe('flex');
     });
@@ -473,7 +500,8 @@ describe('SessionStore', () => {
 
     test('should activate create button in READY_TO_CREATE phase', () => {
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
       session.updateUI();
       const createBtn = document.querySelector('.btn-create-session');
       expect(createBtn.classList.contains('active')).toBe(true);
@@ -483,7 +511,7 @@ describe('SessionStore', () => {
     test('should hide create button and show new session button in ACTIVE phase', () => {
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
       session.updateUI();
       expect(document.querySelector('.btn-create-session').style.display).toBe('none');
       expect(document.querySelector('.btn-new-session').style.display).toBe('block');
@@ -537,7 +565,8 @@ describe('SessionStore', () => {
     test('should reset all state with startOver', () => {
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
       session._price = 50;
       session._readings = [{ id: 'r1', timestamp: new Date().toISOString(), tip: 5 }];
 
@@ -545,7 +574,8 @@ describe('SessionStore', () => {
 
       expect(session.sessionId).toBeNull();
       expect(session.location).toBe('');
-      expect(session.sessionDate).toBe('');
+      expect(session.startDate).toBe('');
+      expect(session.endDate).toBe('');
       expect(session.price).toBe(40);
       expect(session.readings).toEqual([]);
     });
@@ -698,7 +728,8 @@ describe('SessionStore', () => {
       session.openSessionSheet('create', 'event');
       // Fill required fields
       document.getElementById('sessionSheetLocation').value = 'Ren Fest';
-      document.getElementById('sessionSheetDate').value = '2025-06-01';
+      document.getElementById('sessionSheetStartDate').value = '2025-06-01';
+      document.getElementById('sessionSheetEndDate').value = '2025-06-01';
       document.getElementById('sessionSheetPrice').value = '40';
       // Format defaults to 'Expo' for event
 
@@ -720,7 +751,8 @@ describe('SessionStore', () => {
 
       session._sessionId = 'existing-id';
       session._location = 'Old Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
       session._type = 'event';
       session._format = 'Fair';
 
@@ -738,14 +770,15 @@ describe('SessionStore', () => {
       session.openSessionSheet('create', 'event');
       session._sheetSelectedFormat = null;
       document.getElementById('sessionSheetLocation').value = 'Test';
-      document.getElementById('sessionSheetDate').value = '2025-06-01';
+      document.getElementById('sessionSheetStartDate').value = '2025-06-01';
+      document.getElementById('sessionSheetEndDate').value = '2025-06-01';
       document.getElementById('sessionSheetPrice').value = '40';
 
       await session.saveSessionSheet();
 
       // Should not have called insert due to validation failure
       expect(global.supabaseClient.from).not.toHaveBeenCalledWith('blacksheep_reading_tracker_sessions');
-      expect(global.showSnackbar).toHaveBeenCalledWith('Please fill in required fields', 'error');
+      expect(global.showSnackbar).toHaveBeenCalledWith('Please fill in required fields', 'error', 6000);
     });
   });
 
@@ -763,7 +796,8 @@ describe('SessionStore', () => {
       `;
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
     });
 
     test('null format hides the format element', () => {
@@ -807,7 +841,8 @@ describe('SessionStore', () => {
     test('format with no valid session hides element', () => {
       session._sessionId = null;
       session._location = '';
-      session._sessionDate = '';
+      session._startDate = '';
+      session._endDate = '';
       session._format = 'Expo';
       session.updateSessionBar();
       const el = document.getElementById('session-bar-format');
@@ -931,12 +966,13 @@ describe('SessionStore', () => {
       session._sheetSelectedFormat = null;
 
       document.getElementById('sessionSheetLocation').value = 'Valid Location';
-      document.getElementById('sessionSheetDate').value = '2025-06-01';
+      document.getElementById('sessionSheetStartDate').value = '2025-06-01';
+      document.getElementById('sessionSheetEndDate').value = '2025-06-01';
       document.getElementById('sessionSheetPrice').value = '40';
 
       await session.saveSessionSheet();
 
-      expect(global.showSnackbar).toHaveBeenCalledWith('Please fill in required fields', 'error');
+      expect(global.showSnackbar).toHaveBeenCalledWith('Please fill in required fields', 'error', 6000);
     });
 
     test('save proceeds when format is selected', async () => {
@@ -962,7 +998,8 @@ describe('SessionStore', () => {
       session.openSessionSheet('create', 'event');
       // Format should default to 'Expo'
       document.getElementById('sessionSheetLocation').value = 'Valid Location';
-      document.getElementById('sessionSheetDate').value = '2025-06-01';
+      document.getElementById('sessionSheetStartDate').value = '2025-06-01';
+      document.getElementById('sessionSheetEndDate').value = '2025-06-01';
       document.getElementById('sessionSheetPrice').value = '40';
 
       await session.saveSessionSheet();
@@ -975,7 +1012,8 @@ describe('SessionStore', () => {
       session._sheetSelectedFormat = null;
 
       document.getElementById('sessionSheetLocation').value = 'Valid Location';
-      document.getElementById('sessionSheetDate').value = '2025-06-01';
+      document.getElementById('sessionSheetStartDate').value = '2025-06-01';
+      document.getElementById('sessionSheetEndDate').value = '2025-06-01';
       document.getElementById('sessionSheetPrice').value = '40';
 
       await session.saveSessionSheet();
@@ -1016,7 +1054,8 @@ describe('SessionStore', () => {
     test('edit mode pre-fills format with session current format', () => {
       session._sessionId = 'test-id';
       session._location = 'Ren Fest';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
       session._type = 'event';
       session._format = 'Fair';
 
@@ -1030,7 +1069,8 @@ describe('SessionStore', () => {
     test('edit mode shows format even if not in current settings list', () => {
       session._sessionId = 'test-id';
       session._location = 'Old Event';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
       session._type = 'event';
       session._format = 'Defunct Format';
 
@@ -1045,7 +1085,8 @@ describe('SessionStore', () => {
     test('edit mode with null format defaults correctly', () => {
       session._sessionId = 'test-id';
       session._location = 'Some Place';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
+      session._endDate = '2025-01-15';
       session._type = 'event';
       session._format = null;
 
@@ -1137,6 +1178,80 @@ describe('SessionStore', () => {
     });
   });
 
+  describe('Session Sheet — Date Validation', () => {
+    beforeEach(() => {
+      document.body.innerHTML += `
+        <div id="sessionSheetTitle"></div>
+        <div id="sessionSheetFields"></div>
+        <div id="sessionSheetOverlay"></div>
+        <div id="sessionCreationSheet"></div>
+        <button id="btn-session-save">Save</button>
+        <span id="session-bar-location"></span>
+        <div id="session-bar-badges" style="display: none">
+          <span id="session-bar-type"></span>
+          <span id="session-bar-format"></span>
+        </div>
+        <span id="session-bar-price"></span>
+        <span id="session-bar-date"></span>
+        <button id="btn-session-edit"></button>
+      `;
+      global.showSheet = jest.fn();
+      global.hideSheet = jest.fn();
+      global.vibrate = jest.fn();
+      global.window.settings = {
+        get: jest.fn((key) => {
+          if (key === 'formats') return [
+            { name: 'Expo', scope: 'event' },
+            { name: 'Fair', scope: 'event' },
+            { name: 'Phone', scope: 'private' },
+            { name: 'In-Person', scope: 'private' }
+          ];
+          if (key === 'sources') return [];
+          if (key === 'privatePricePresets') return [];
+          return null;
+        })
+      };
+    });
+
+    test('end date before start date shows error and does not call supabase', async () => {
+      session.openSessionSheet('create', 'event');
+      // Fill required fields with valid data except dates are reversed
+      document.getElementById('sessionSheetLocation').value = 'Test Location';
+      document.getElementById('sessionSheetStartDate').value = '2025-06-20';
+      document.getElementById('sessionSheetEndDate').value = '2025-06-18';
+      document.getElementById('sessionSheetPrice').value = '40';
+      session._sheetSelectedFormat = 'Expo';
+
+      await session.saveSessionSheet();
+
+      expect(global.showSnackbar).toHaveBeenCalledWith('End date must be on or after start date', 'error', 6000);
+      expect(global.supabaseClient.from).not.toHaveBeenCalled();
+    });
+
+    test('both dates default to today in create mode', () => {
+      session.openSessionSheet('create', 'event');
+
+      const startInput = document.getElementById('sessionSheetStartDate');
+      const endInput = document.getElementById('sessionSheetEndDate');
+      expect(startInput.value).toBe('2025-01-15');
+      expect(endInput.value).toBe('2025-01-15');
+    });
+
+    test('edit mode populates dates from stored values', () => {
+      session._startDate = '2025-06-20';
+      session._endDate = '2025-06-22';
+      session._location = 'Ren Fest';
+      session._price = 40;
+
+      session.openSessionSheet('edit', 'event');
+
+      const startInput = document.getElementById('sessionSheetStartDate');
+      const endInput = document.getElementById('sessionSheetEndDate');
+      expect(startInput.value).toBe('2025-06-20');
+      expect(endInput.value).toBe('2025-06-22');
+    });
+  });
+
   describe('Load Session Filtering and Search', () => {
     const mockSessions = [
       { id: 'sess-1', location: 'Renaissance Festival', session_date: '2025-01-10', type: 'event', readings_count: 5, total_earnings: 200 },
@@ -1212,6 +1327,325 @@ describe('SessionStore', () => {
       expect(html).toContain('fa-user');
       expect(html).toContain('session-type-event');
       expect(html).toContain('session-type-private');
+    });
+  });
+
+  describe('Multi-Day Sessions — startDate/endDate', () => {
+    test('constructor initializes _startDate and _endDate as empty strings', () => {
+      expect(session._startDate).toBe('');
+      expect(session._endDate).toBe('');
+    });
+
+    test('startDate getter returns _startDate', () => {
+      session._startDate = '2025-06-01';
+      expect(session.startDate).toBe('2025-06-01');
+    });
+
+    test('endDate getter returns _endDate', () => {
+      session._endDate = '2025-06-03';
+      expect(session.endDate).toBe('2025-06-03');
+    });
+
+    test('startDate setter updates _startDate and triggers updateUI', () => {
+      const spy = jest.spyOn(session, 'updateUI');
+      session.startDate = '2025-06-01';
+      expect(session._startDate).toBe('2025-06-01');
+      expect(spy).toHaveBeenCalled();
+    });
+
+    test('endDate setter updates _endDate and triggers updateUI', () => {
+      const spy = jest.spyOn(session, 'updateUI');
+      session.endDate = '2025-06-03';
+      expect(session._endDate).toBe('2025-06-03');
+      expect(spy).toHaveBeenCalled();
+    });
+
+    test('canCreateSession requires BOTH _startDate AND _endDate', () => {
+      session._location = 'Test Location';
+      session._price = 40;
+
+      // Neither date set
+      expect(session.canCreateSession).toBeFalsy();
+
+      // Only startDate set
+      session._startDate = '2025-06-01';
+      expect(session.canCreateSession).toBeFalsy();
+
+      // Only endDate set
+      session._startDate = '';
+      session._endDate = '2025-06-03';
+      expect(session.canCreateSession).toBeFalsy();
+
+      // Both dates set
+      session._startDate = '2025-06-01';
+      session._endDate = '2025-06-03';
+      expect(session.canCreateSession).toBeTruthy();
+    });
+
+    test('canCreateSession still requires userId, location, and price', () => {
+      session._startDate = '2025-06-01';
+      session._endDate = '2025-06-03';
+      session._price = 40;
+
+      // Missing location
+      session._location = '';
+      expect(session.canCreateSession).toBeFalsy();
+
+      // Missing userId
+      session._location = 'Test Location';
+      const savedAuth = global.window.auth;
+      global.window.auth = null;
+      expect(session.canCreateSession).toBeFalsy();
+      global.window.auth = savedAuth;
+    });
+
+    test('hasValidSession requires _startDate but NOT _endDate', () => {
+      session._sessionId = 'test-id';
+      session._location = 'Test Location';
+
+      // No startDate — invalid
+      expect(session.hasValidSession).toBeFalsy();
+
+      // startDate set, endDate empty — valid
+      session._startDate = '2025-06-01';
+      expect(session.hasValidSession).toBeTruthy();
+
+      // Both dates set — still valid
+      session._endDate = '2025-06-03';
+      expect(session.hasValidSession).toBeTruthy();
+    });
+
+    test('createSession sends start_date, end_date, and session_date in INSERT payload', async () => {
+      const insertMock = jest.fn(() => ({
+        select: jest.fn(() => Promise.resolve({ data: [{ id: 'new-id' }], error: null }))
+      }));
+      const selectMock = jest.fn(() => ({
+        eq: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              limit: jest.fn(() => Promise.resolve({ data: [], error: null }))
+            }))
+          }))
+        }))
+      }));
+      global.supabaseClient.from.mockImplementation((table) => {
+        if (table === 'blacksheep_reading_tracker_sessions') {
+          return { select: selectMock, insert: insertMock };
+        }
+        return { select: jest.fn(() => ({ eq: jest.fn(() => ({ order: jest.fn(() => Promise.resolve({ data: [] })) })) })) };
+      });
+
+      session._location = 'Ren Fest';
+      session._startDate = '2025-06-01';
+      session._endDate = '2025-06-03';
+      session._price = 40;
+
+      await session.createSession();
+
+      expect(insertMock).toHaveBeenCalled();
+      const payload = insertMock.mock.calls[0][0][0];
+      expect(payload.start_date).toBe('2025-06-01');
+      expect(payload.end_date).toBe('2025-06-03');
+      expect(payload.session_date).toBe('2025-06-01'); // backwards compat = start_date
+    });
+
+    test('save sends start_date, end_date, and session_date in UPDATE payload', async () => {
+      const updateMock = jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) }));
+      global.supabaseClient.from.mockImplementation(() => ({ update: updateMock }));
+
+      session._sessionId = 'test-id';
+      session._location = 'Ren Fest';
+      session._startDate = '2025-06-01';
+      session._endDate = '2025-06-03';
+      session._price = 40;
+
+      await session.save();
+
+      const updateData = updateMock.mock.calls[0][0];
+      expect(updateData.start_date).toBe('2025-06-01');
+      expect(updateData.end_date).toBe('2025-06-03');
+      expect(updateData.session_date).toBe('2025-06-01'); // backwards compat
+    });
+
+    test('loadExistingSession maps start_date/end_date from DB to _startDate/_endDate', async () => {
+      global.supabaseClient.from.mockImplementation((table) => {
+        if (table === 'blacksheep_reading_tracker_readings') {
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                order: jest.fn(() => Promise.resolve({ data: [] }))
+              }))
+            }))
+          };
+        }
+        return { update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) })) };
+      });
+
+      await session.loadExistingSession({
+        id: 'sess-1',
+        location: 'Ren Fest',
+        start_date: '2025-06-01',
+        end_date: '2025-06-03',
+        reading_price: 40,
+        type: 'event'
+      });
+
+      expect(session._startDate).toBe('2025-06-01');
+      expect(session._endDate).toBe('2025-06-03');
+    });
+
+    test('loadExistingSession backwards-compat: session_date maps to both _startDate and _endDate', async () => {
+      global.supabaseClient.from.mockImplementation((table) => {
+        if (table === 'blacksheep_reading_tracker_readings') {
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                order: jest.fn(() => Promise.resolve({ data: [] }))
+              }))
+            }))
+          };
+        }
+        return { update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) })) };
+      });
+
+      await session.loadExistingSession({
+        id: 'sess-2',
+        location: 'Old Event',
+        session_date: '2025-01-15',
+        reading_price: 40,
+        type: 'event'
+        // no start_date or end_date fields
+      });
+
+      expect(session._startDate).toBe('2025-01-15');
+      expect(session._endDate).toBe('2025-01-15');
+    });
+  });
+
+  describe('Offline Queue — Multi-Day Session Payload', () => {
+    beforeEach(() => {
+      global.supabaseClient.from.mockImplementation(() => ({
+        update: jest.fn(() => ({ eq: jest.fn(() => Promise.reject(new Error('Network error'))) }))
+      }));
+      session._sessionId = 'test-id';
+      session._location = 'Ren Fest';
+      session._price = 40;
+    });
+
+    test('enqueued payload includes start_date and end_date', async () => {
+      session._startDate = '2025-06-01';
+      session._endDate = '2025-06-03';
+
+      await session.save();
+
+      const payload = window.offlineQueue.enqueue.mock.calls[0][0].payload;
+      expect(payload.start_date).toBe('2025-06-01');
+      expect(payload.end_date).toBe('2025-06-03');
+    });
+
+    test('enqueued payload includes session_date for backwards compatibility', async () => {
+      session._startDate = '2025-06-01';
+      session._endDate = '2025-06-03';
+
+      await session.save();
+
+      const payload = window.offlineQueue.enqueue.mock.calls[0][0].payload;
+      expect(payload.session_date).toBe('2025-06-01');
+    });
+
+    test('payload does NOT contain session_date without start_date/end_date', async () => {
+      session._startDate = '';
+      session._endDate = '';
+
+      await session.save();
+
+      const payload = window.offlineQueue.enqueue.mock.calls[0][0].payload;
+      expect(payload.start_date).toBeUndefined();
+      expect(payload.end_date).toBeUndefined();
+      expect(payload.session_date).toBeUndefined();
+    });
+  });
+
+  describe('Timestamp Creation — addReading Payload', () => {
+    beforeEach(() => {
+      session._sessionId = 'test-id';
+      session._location = 'Test Location';
+      session._startDate = '2025-01-15';
+    });
+
+    test('timestamp without Z suffix is sent as-is in INSERT payload', async () => {
+      const insertMock = jest.fn(() => ({
+        select: jest.fn(() => Promise.resolve({ data: [{ id: 'r-new' }], error: null }))
+      }));
+      global.supabaseClient.from.mockImplementation((table) => {
+        if (table === 'blacksheep_reading_tracker_readings') {
+          return { insert: insertMock };
+        }
+        return { update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) })) };
+      });
+
+      const localTimestamp = '2025-07-04T21:38:00.000';
+      await session.addReading({ timestamp: localTimestamp, tz_offset: -7, tip: 0, price: 40 });
+
+      const insertPayload = insertMock.mock.calls[0][0][0];
+      expect(insertPayload.timestamp).toBe('2025-07-04T21:38:00.000');
+      expect(insertPayload.timestamp).not.toContain('Z');
+    });
+
+    test('tz_offset value is included in INSERT payload', async () => {
+      const insertMock = jest.fn(() => ({
+        select: jest.fn(() => Promise.resolve({ data: [{ id: 'r-new' }], error: null }))
+      }));
+      global.supabaseClient.from.mockImplementation((table) => {
+        if (table === 'blacksheep_reading_tracker_readings') {
+          return { insert: insertMock };
+        }
+        return { update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) })) };
+      });
+
+      await session.addReading({ timestamp: '2025-07-04T21:38:00.000', tz_offset: -7, tip: 5, price: 40 });
+
+      const insertPayload = insertMock.mock.calls[0][0][0];
+      expect(insertPayload.tz_offset).toBe(-7);
+    });
+  });
+
+  describe('Multi-Day Timestamp Display — formatTimestamp', () => {
+    test('local timestamp without Z produces correct PM time', () => {
+      expect(session.formatTimestamp('2025-07-04T21:38:00.000')).toBe('9:38 PM');
+    });
+
+    test('local timestamp without Z produces correct AM time', () => {
+      expect(session.formatTimestamp('2025-07-04T09:05:00.000')).toBe('9:05 AM');
+    });
+
+    test('midnight timestamp formats as 12:XX AM', () => {
+      expect(session.formatTimestamp('2025-07-04T00:15:00.000')).toBe('12:15 AM');
+    });
+
+    test('noon timestamp formats as 12:XX PM', () => {
+      expect(session.formatTimestamp('2025-07-04T12:00:00.000')).toBe('12:00 PM');
+    });
+
+    test('empty or null timestamp returns empty string', () => {
+      expect(session.formatTimestamp('')).toBe('');
+      expect(session.formatTimestamp(null)).toBe('');
+      expect(session.formatTimestamp(undefined)).toBe('');
+    });
+
+    test('legacy format passes through unchanged', () => {
+      expect(session.formatTimestamp('2:30 PM')).toBe('2:30 PM');
+    });
+
+    test('timestamp with milliseconds ignores seconds/ms', () => {
+      expect(session.formatTimestamp('2025-07-04T14:30:45.123')).toBe('2:30 PM');
+    });
+
+    test('no Date() conversion — timezone-independent string parsing', () => {
+      // This timestamp represents 9:38 PM local. If Date() were used,
+      // the result would vary by runner timezone. String parsing always gives 9:38 PM.
+      const result = session.formatTimestamp('2025-07-04T21:38:00.000');
+      expect(result).toBe('9:38 PM');
     });
   });
 });

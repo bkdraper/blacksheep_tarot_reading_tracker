@@ -65,7 +65,7 @@ class Utils {
     }
 
     // Snackbar notification
-    static showSnackbar(message, type = 'info') {
+    static showSnackbar(message, type = 'info', duration = 3000) {
         const snackbar = document.createElement('div');
         snackbar.className = `snackbar ${type}`;
         snackbar.textContent = message;
@@ -75,7 +75,42 @@ class Utils {
             if (snackbar.parentElement) {
                 snackbar.remove();
             }
-        }, 2000);
+        }, duration);
+    }
+
+    // Smart date formatting for session display
+    // Input: YYYY-MM-DD strings. Does NOT use new Date() to avoid timezone issues.
+    static formatSessionDate(startDate, endDate) {
+        if (!startDate) return '';
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        
+        const sParts = startDate.split('-');
+        const sYear = parseInt(sParts[0]);
+        const sMonth = parseInt(sParts[1]);
+        const sDay = parseInt(sParts[2]);
+        
+        // Single day or no end date
+        if (!endDate || startDate === endDate) {
+            return String(sMonth).padStart(2, '0') + '/' + String(sDay).padStart(2, '0');
+        }
+        
+        const eParts = endDate.split('-');
+        const eYear = parseInt(eParts[0]);
+        const eMonth = parseInt(eParts[1]);
+        const eDay = parseInt(eParts[2]);
+        
+        // Cross-year: "Dec 31, 2025–Jan 1, 2026"
+        if (sYear !== eYear) {
+            return `${months[sMonth-1]} ${sDay}, ${sYear}\u2013${months[eMonth-1]} ${eDay}, ${eYear}`;
+        }
+        
+        // Same month: "Jun 20–22"
+        if (sMonth === eMonth) {
+            return `${months[sMonth-1]} ${sDay}\u2013${eDay}`;
+        }
+        
+        // Different months: "Jun 30–Jul 2"
+        return `${months[sMonth-1]} ${sDay}\u2013${months[eMonth-1]} ${eDay}`;
     }
 
     // Sheet management

@@ -34,7 +34,22 @@ document.body.innerHTML = `
 global.showSnackbar = jest.fn();
 global.vibrate = jest.fn();
 global.registerBackgroundSync = jest.fn();
-global.Utils = { sanitize: jest.fn((str) => str) };
+global.Utils = { sanitize: jest.fn((str) => str), formatSessionDate: jest.fn((start, end) => {
+  if (!start) return '';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const sParts = start.split('-');
+  const sMonth = parseInt(sParts[1]);
+  const sDay = parseInt(sParts[2]);
+  const sYear = parseInt(sParts[0]);
+  if (!end || start === end) return String(sMonth).padStart(2, '0') + '/' + String(sDay).padStart(2, '0');
+  const eParts = end.split('-');
+  const eMonth = parseInt(eParts[1]);
+  const eDay = parseInt(eParts[2]);
+  const eYear = parseInt(eParts[0]);
+  if (sYear !== eYear) return `${months[sMonth-1]} ${sDay}, ${sYear}\u2013${months[eMonth-1]} ${eDay}, ${eYear}`;
+  if (sMonth === eMonth) return `${months[sMonth-1]} ${sDay}\u2013${eDay}`;
+  return `${months[sMonth-1]} ${sDay}\u2013${months[eMonth-1]} ${eDay}`;
+}) };
 global.hideSheet = jest.fn();
 global.window.offlineQueue = { enqueue: jest.fn(), flush: jest.fn(), count: jest.fn(), peek: jest.fn(), setUserId: jest.fn() };
 
@@ -87,7 +102,7 @@ describe('App Mode Behavior', () => {
     beforeEach(() => {
       session._sessionId = 'test-session-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-06-14';
+      session._startDate = '2025-06-14';
       session._price = 65;
     });
 
@@ -122,7 +137,7 @@ describe('App Mode Behavior', () => {
     test('timer visible when session active', () => {
       session._sessionId = 'test-session-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-06-14';
+      session._startDate = '2025-06-14';
       session.updateUI();
       const timer = document.getElementById('container-timer');
       expect(timer.style.display).not.toBe('none');
@@ -133,7 +148,8 @@ describe('App Mode Behavior', () => {
     test('creating session transitions readings from hidden to visible', async () => {
       // Start in SETUP - readings hidden
       session._location = 'Test Location';
-      session._sessionDate = '2025-06-14';
+      session._startDate = '2025-06-14';
+      session._endDate = '2025-06-14';
       session._price = 65;
       session.updateUI();
       expect(document.querySelector('.buttons').style.display).toBe('none');
@@ -149,7 +165,7 @@ describe('App Mode Behavior', () => {
 
     test('setting sessionId directly triggers updateUI and shows readings', () => {
       session._location = 'Test Location';
-      session._sessionDate = '2025-06-14';
+      session._startDate = '2025-06-14';
       // Manually set _sessionId to simulate load without DB call
       session._sessionId = 'loaded-session-id';
       session.updateUI();
@@ -164,7 +180,7 @@ describe('App Mode Behavior', () => {
     beforeEach(() => {
       session._sessionId = 'test-session-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-06-14';
+      session._startDate = '2025-06-14';
       session._price = 65;
       session._readings = [{ id: 'r1', timestamp: '2025-06-14T10:00:00Z', tip: 5, price: 65 }];
       session.updateUI();

@@ -54,7 +54,22 @@ document.body.innerHTML = `
 global.showSnackbar = jest.fn();
 global.vibrate = jest.fn();
 global.registerBackgroundSync = jest.fn();
-global.Utils = { sanitize: jest.fn((str) => str) };
+global.Utils = { sanitize: jest.fn((str) => str), formatSessionDate: jest.fn((start, end) => {
+  if (!start) return '';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const sParts = start.split('-');
+  const sMonth = parseInt(sParts[1]);
+  const sDay = parseInt(sParts[2]);
+  const sYear = parseInt(sParts[0]);
+  if (!end || start === end) return String(sMonth).padStart(2, '0') + '/' + String(sDay).padStart(2, '0');
+  const eParts = end.split('-');
+  const eMonth = parseInt(eParts[1]);
+  const eDay = parseInt(eParts[2]);
+  const eYear = parseInt(eParts[0]);
+  if (sYear !== eYear) return `${months[sMonth-1]} ${sDay}, ${sYear}\u2013${months[eMonth-1]} ${eDay}, ${eYear}`;
+  if (sMonth === eMonth) return `${months[sMonth-1]} ${sDay}\u2013${eDay}`;
+  return `${months[sMonth-1]} ${sDay}\u2013${months[eMonth-1]} ${eDay}`;
+}) };
 global.window.offlineQueue = { enqueue: jest.fn(), flush: jest.fn(), count: jest.fn(), peek: jest.fn(), setUserId: jest.fn() };
 
 global.window.auth = {
@@ -101,7 +116,7 @@ describe('Hamburger Menu', () => {
     test('should not have disabled class when active session exists', () => {
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
       expect(session.hasValidSession).toBeTruthy();
       session.toggleHamburgerMenu();
       const endItem = document.getElementById('hamburger-end-session');
@@ -176,7 +191,7 @@ describe('Hamburger Menu', () => {
     test('should clear state when confirmed with active session', () => {
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
       session._readings = [{ id: 'r1', timestamp: '2025-01-15T14:00:00Z', tip: 5 }];
       global.confirm = jest.fn(() => true);
 
@@ -191,7 +206,7 @@ describe('Hamburger Menu', () => {
     test('should not clear state when cancelled', () => {
       session._sessionId = 'test-id';
       session._location = 'Test Location';
-      session._sessionDate = '2025-01-15';
+      session._startDate = '2025-01-15';
       global.confirm = jest.fn(() => false);
 
       session.endSession();

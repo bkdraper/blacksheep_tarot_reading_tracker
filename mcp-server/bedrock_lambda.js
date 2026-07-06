@@ -12,7 +12,7 @@ const convertBedrockParameters = (parameters) => {
   }
   parameters.forEach(param => {
     let value = param.value;
-    if ((param.name === 'filters' || param.name === 'options') && typeof value === 'string') {
+    if ((param.name === 'filters' || param.name === 'options' || param.name === 'search_by') && typeof value === 'string') {
       try {
         value = JSON.parse(value);
         console.log(`[PARAMS] Parsed ${param.name} JSON:`, JSON.stringify(value));

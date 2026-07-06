@@ -7,6 +7,33 @@ function getSupabase() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
+// Day-of-week name → number mapping (PostgreSQL dow: 0=Sunday)
+const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+
+// FilterMap for list_sessions_v2 — each key maps to a Supabase query builder operation
+const sessionFilterMap = {
+  location: (q, v) => q.ilike('location', `%${v}%`),
+  format: (q, v) => q.ilike('format', `%${v.trim()}%`),
+  start_date: (q, v) => q.gte('end_date', v),       // overlap: session ends on or after filter start
+  end_date: (q, v) => q.lte('start_date', v),        // overlap: session starts on or before filter end
+  session_duration_days: (q, v) => q.eq('session_duration_days', v),
+  // day_of_week handled separately (requires subquery)
+};
+
+// FilterMap for list_readings_v2 — each key maps to a Supabase query builder operation
+const readingFilterMap = {
+  location: (q, v) => q.ilike('location', `%${v}%`),
+  payment: (q, v) => q.eq('payment', v),
+  source: (q, v) => q.eq('source', v),
+  start_date: (q, v) => q.gte('reading_date', v),
+  end_date: (q, v) => q.lte('reading_date', v),
+  min_tip: (q, v) => q.gte('tip', v),
+  max_tip: (q, v) => q.lte('tip', v),
+  time_of_day: (q, v) => q.eq('time_of_day', v),
+  day_of_week: (q, v) => { const dow = dayMap[v.toLowerCase()]; return dow !== undefined ? q.eq('day_of_week_num', dow) : q; },
+  session_duration_days: (q, v) => q.eq('session_duration_days', v),
+};
+
 export class TarotTrackerMCPServer {
   constructor() {
     this.tools = [
@@ -18,11 +45,13 @@ export class TarotTrackerMCPServer {
           properties: {
             user_name: { type: 'string', description: 'User name' },
             user_id: { type: 'string', description: 'User UUID (preferred over user_name)' },
-            start_date: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
-            end_date: { type: 'string', description: 'End date (YYYY-MM-DD)' },
+            search_by: { type: 'string', description: 'JSON object with field:value pairs. Available fields: location, format, start_date, end_date, day_of_week (sunday-saturday), session_duration_days' },
+            start_date: { type: 'string', description: 'Start date (YYYY-MM-DD) — filters sessions overlapping this date' },
+            end_date: { type: 'string', description: 'End date (YYYY-MM-DD) — filters sessions overlapping this date' },
             location: { type: 'string', description: 'Location filter (partial match)' },
             format: { type: 'string', description: 'Session format filter (e.g., Expo, Shop, Party, Phone, In-Person)' },
             day_of_week: { type: 'string', description: 'Filter by day of week: sunday|monday|tuesday|wednesday|thursday|friday|saturday' },
+            session_duration_days: { type: 'number', description: 'Filter by session duration in days (1 = single day)' },
             limit: { type: 'number', description: 'Max results', default: 50 }
           },
           required: ['user_name']
@@ -35,6 +64,8 @@ export class TarotTrackerMCPServer {
           type: 'object',
           properties: {
             user_name: { type: 'string', description: 'User name' },
+            user_id: { type: 'string', description: 'User UUID (preferred over user_name)' },
+            search_by: { type: 'string', description: 'JSON object with field:value pairs. Available fields: location, payment, source, start_date, end_date, min_tip, max_tip, time_of_day (morning/afternoon/evening), day_of_week (sunday-saturday), session_duration_days' },
             start_date: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
             end_date: { type: 'string', description: 'End date (YYYY-MM-DD)' },
             location: { type: 'string', description: 'Location filter (partial match)' },
@@ -43,6 +74,8 @@ export class TarotTrackerMCPServer {
             min_tip: { type: 'number', description: 'Minimum tip amount' },
             max_tip: { type: 'number', description: 'Maximum tip amount' },
             time_of_day: { type: 'string', description: 'Time of day filter: morning, afternoon, evening' },
+            day_of_week: { type: 'string', description: 'Filter by day of week: sunday|monday|tuesday|wednesday|thursday|friday|saturday' },
+            session_duration_days: { type: 'number', description: 'Filter by session duration in days (1 = single day)' },
             limit: { type: 'number', description: 'Max results', default: 100 }
           },
           required: ['user_name']
@@ -138,24 +171,43 @@ export class TarotTrackerMCPServer {
   async listSessionsV2(args) {
     console.log('[listSessionsV2] args:', JSON.stringify(args));
     const supabase = getSupabase();
-    const { user_name, user_id, location, day_of_week, format, limit = 50 } = args;
+    const { user_name, user_id, limit = 50 } = args;
 
-    // Support combined date_range param (Bedrock action group has 5-param limit)
-    let start_date = args.start_date;
-    let end_date = args.end_date;
-    if (args.date_range && !start_date && !end_date) {
-      const parts = args.date_range.split(',');
-      start_date = parts[0]?.trim() || undefined;
-      end_date = parts[1]?.trim() || undefined;
-      console.log('[listSessionsV2] parsed date_range:', args.date_range, '→ start:', start_date, 'end:', end_date);
+    // Build filters object from search_by param OR from individual params (backward compat)
+    let filters = {};
+    if (args.search_by) {
+      // search_by takes priority — parse JSON string if needed
+      if (typeof args.search_by === 'string') {
+        try { filters = JSON.parse(args.search_by); console.log('[listSessionsV2] parsed search_by:', JSON.stringify(filters)); }
+        catch(e) { console.warn('[listSessionsV2] failed to parse search_by:', args.search_by); filters = {}; }
+      } else {
+        filters = args.search_by;
+      }
+    } else {
+      // Backward compatibility: map individual params into filters object
+      if (args.location) filters.location = args.location;
+      if (args.format) filters.format = args.format;
+      if (args.day_of_week) filters.day_of_week = args.day_of_week;
+      if (args.session_duration_days !== undefined) filters.session_duration_days = args.session_duration_days;
+      // Support combined date_range param (Bedrock action group has 5-param limit)
+      if (args.date_range && !args.start_date && !args.end_date) {
+        const parts = args.date_range.split(',');
+        if (parts[0]?.trim()) filters.start_date = parts[0].trim();
+        if (parts[1]?.trim()) filters.end_date = parts[1].trim();
+        console.log('[listSessionsV2] parsed date_range:', args.date_range, '→ start:', filters.start_date, 'end:', filters.end_date);
+      } else {
+        if (args.start_date) filters.start_date = args.start_date;
+        if (args.end_date) filters.end_date = args.end_date;
+      }
+      console.log('[listSessionsV2] mapped individual params to filters:', JSON.stringify(filters));
     }
 
-    console.log('[listSessionsV2] user_id:', user_id, '| user_name:', user_name, '| limit:', limit);
+    console.log('[listSessionsV2] user_id:', user_id, '| user_name:', user_name, '| limit:', limit, '| filters:', JSON.stringify(filters));
 
     let query = supabase
       .from('session_summaries')
       .select('*')
-      .order('session_date', { ascending: false })
+      .order('start_date', { ascending: false })
       .limit(limit);
 
     if (user_id) {
@@ -169,16 +221,46 @@ export class TarotTrackerMCPServer {
       return { content: [{ type: 'text', text: JSON.stringify({ sessions: [], warning: 'No user context provided' }) }] };
     }
 
-    if (start_date) { console.log('[listSessionsV2] start_date:', start_date); query = query.gte('session_date', start_date); }
-    if (end_date)   { console.log('[listSessionsV2] end_date:', end_date);     query = query.lte('session_date', end_date); }
-    if (location)   { console.log('[listSessionsV2] location:', location);     query = query.ilike('location', `%${location}%`); }
-    if (day_of_week) {
-      const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
-      const dow = dayMap[day_of_week.toLowerCase()];
-      console.log('[listSessionsV2] day_of_week:', day_of_week, '→ dow_num:', dow);
-      if (dow !== undefined) query = query.eq('day_of_week_num', dow);
+    // Handle day_of_week separately (requires subquery against readings_with_context)
+    if (filters.day_of_week) {
+      const dow = dayMap[filters.day_of_week.toLowerCase()];
+      console.log('[listSessionsV2] day_of_week:', filters.day_of_week, '→ dow_num:', dow);
+      if (dow !== undefined) {
+        // Query readings_with_context for session_ids that have readings on this day
+        let readingsQuery = supabase
+          .from('readings_with_context')
+          .select('session_id')
+          .eq('day_of_week_num', dow);
+        if (user_id) readingsQuery = readingsQuery.eq('user_id', user_id);
+        else if (user_name) readingsQuery = readingsQuery.ilike('user_name', user_name);
+
+        const { data: readingRows, error: readingsError } = await readingsQuery;
+        if (readingsError) {
+          console.error('[listSessionsV2] day_of_week subquery error:', readingsError.message);
+        } else {
+          const sessionIds = [...new Set(readingRows.map(r => r.session_id))];
+          console.log('[listSessionsV2] day_of_week matched', sessionIds.length, 'sessions');
+          if (sessionIds.length === 0) {
+            // No sessions match — return empty
+            return { content: [{ type: 'text', text: JSON.stringify({ sessions: [] }, null, 2) }] };
+          }
+          query = query.in('id', sessionIds);
+        }
+      }
     }
-    if (format && format.trim()) { console.log('[listSessionsV2] format:', format); query = query.ilike('format', `%${format.trim()}%`); }
+
+    // Apply all other filters via the filterMap (skip day_of_week, already handled)
+    for (const [field, value] of Object.entries(filters)) {
+      if (field === 'day_of_week') continue; // already handled above
+      if (value === undefined || value === null || value === '') continue;
+      const filterFn = sessionFilterMap[field];
+      if (filterFn) {
+        console.log('[listSessionsV2] applying filter:', field, '=', value);
+        query = filterFn(query, value);
+      } else {
+        console.log('[listSessionsV2] ignoring unknown filter field:', field);
+      }
+    }
 
     console.log('[listSessionsV2] executing query...');
     const t = Date.now();
@@ -187,10 +269,10 @@ export class TarotTrackerMCPServer {
 
     if (error) throw new Error(`Database error: ${error.message}`);
 
-    if (location && data.length === 0) {
+    if (filters.location && data.length === 0) {
       console.log('[listSessionsV2] no results for location, trying fuzzy...');
-      const suggestions = await this.fuzzyLocationSuggestions(user_id, user_name, location);
-      return { content: [{ type: 'text', text: JSON.stringify({ no_results: true, searched_for: location, suggestions }, null, 2) }] };
+      const suggestions = await this.fuzzyLocationSuggestions(user_id, user_name, filters.location);
+      return { content: [{ type: 'text', text: JSON.stringify({ no_results: true, searched_for: filters.location, suggestions }, null, 2) }] };
     }
 
     console.log('[listSessionsV2] returning', data.length, 'sessions');
@@ -200,13 +282,42 @@ export class TarotTrackerMCPServer {
   async listReadingsV2(args) {
     console.log('[listReadingsV2] args:', JSON.stringify(args));
     const supabase = getSupabase();
-    let filters = args.filters || {};
-    if (typeof filters === 'string') {
-      try { filters = JSON.parse(filters); console.log('[listReadingsV2] parsed filters string:', JSON.stringify(filters)); }
-      catch(e) { console.warn('[listReadingsV2] failed to parse filters string:', args.filters); filters = {}; }
-    }
     const { user_name, user_id, limit = 100 } = args;
-    const { start_date, end_date, location, payment, source, min_tip, max_tip, time_of_day } = filters;
+
+    // Build filters object from search_by param OR from individual params (backward compat)
+    let filters = {};
+    if (args.search_by) {
+      // search_by takes priority — parse JSON string if needed
+      if (typeof args.search_by === 'string') {
+        try { filters = JSON.parse(args.search_by); console.log('[listReadingsV2] parsed search_by:', JSON.stringify(filters)); }
+        catch(e) { console.warn('[listReadingsV2] failed to parse search_by:', args.search_by); filters = {}; }
+      } else {
+        filters = args.search_by;
+      }
+    } else {
+      // Backward compatibility: map individual params into filters object
+      // Support legacy 'filters' object param (existing MCP IDE client behavior)
+      let legacyFilters = args.filters || {};
+      if (typeof legacyFilters === 'string') {
+        try { legacyFilters = JSON.parse(legacyFilters); console.log('[listReadingsV2] parsed legacy filters string:', JSON.stringify(legacyFilters)); }
+        catch(e) { console.warn('[listReadingsV2] failed to parse legacy filters string:', args.filters); legacyFilters = {}; }
+      }
+      // Merge legacy filters object with top-level individual params (top-level wins)
+      const merged = { ...legacyFilters };
+      if (args.start_date) merged.start_date = args.start_date;
+      if (args.end_date) merged.end_date = args.end_date;
+      if (args.location) merged.location = args.location;
+      if (args.payment) merged.payment = args.payment;
+      if (args.source) merged.source = args.source;
+      if (args.min_tip !== undefined) merged.min_tip = args.min_tip;
+      if (args.max_tip !== undefined) merged.max_tip = args.max_tip;
+      if (args.time_of_day) merged.time_of_day = args.time_of_day;
+      if (args.day_of_week) merged.day_of_week = args.day_of_week;
+      if (args.session_duration_days !== undefined) merged.session_duration_days = args.session_duration_days;
+      filters = merged;
+      console.log('[listReadingsV2] mapped individual/legacy params to filters:', JSON.stringify(filters));
+    }
+
     console.log('[listReadingsV2] user_id:', user_id, '| user_name:', user_name, '| filters:', JSON.stringify(filters), '| limit:', limit);
 
     let query = supabase
@@ -226,14 +337,17 @@ export class TarotTrackerMCPServer {
       return { content: [{ type: 'text', text: JSON.stringify({ readings: [], warning: 'No user context provided' }) }] };
     }
 
-    if (start_date) { console.log('[listReadingsV2] start_date:', start_date); query = query.gte('session_date', start_date); }
-    if (end_date)   { console.log('[listReadingsV2] end_date:', end_date);     query = query.lte('session_date', end_date); }
-    if (location)   { console.log('[listReadingsV2] location:', location);     query = query.ilike('location', `%${location}%`); }
-    if (payment)    { console.log('[listReadingsV2] payment:', payment);       query = query.ilike('payment', payment); }
-    if (source)     { console.log('[listReadingsV2] source:', source);         query = query.ilike('source', source); }
-    if (min_tip !== undefined) { console.log('[listReadingsV2] min_tip:', min_tip); query = query.gte('tip', min_tip); }
-    if (max_tip !== undefined) { console.log('[listReadingsV2] max_tip:', max_tip); query = query.lte('tip', max_tip); }
-    if (time_of_day) { console.log('[listReadingsV2] time_of_day:', time_of_day); query = query.eq('time_of_day_et', time_of_day); }
+    // Apply all filters via the filterMap
+    for (const [field, value] of Object.entries(filters)) {
+      if (value === undefined || value === null || value === '') continue;
+      const filterFn = readingFilterMap[field];
+      if (filterFn) {
+        console.log('[listReadingsV2] applying filter:', field, '=', value);
+        query = filterFn(query, value);
+      } else {
+        console.log('[listReadingsV2] ignoring unknown filter field:', field);
+      }
+    }
 
     console.log('[listReadingsV2] executing query...');
     const t = Date.now();
@@ -242,10 +356,10 @@ export class TarotTrackerMCPServer {
 
     if (error) throw new Error(`Database error: ${error.message}`);
 
-    if (location && data.length === 0) {
+    if (filters.location && data.length === 0) {
       console.log('[listReadingsV2] no results for location, trying fuzzy...');
-      const suggestions = await this.fuzzyLocationSuggestions(user_id, user_name, location);
-      return { content: [{ type: 'text', text: JSON.stringify({ no_results: true, searched_for: location, suggestions }, null, 2) }] };
+      const suggestions = await this.fuzzyLocationSuggestions(user_id, user_name, filters.location);
+      return { content: [{ type: 'text', text: JSON.stringify({ no_results: true, searched_for: filters.location, suggestions }, null, 2) }] };
     }
 
     console.log('[listReadingsV2] returning', data.length, 'readings');

@@ -6,6 +6,7 @@ class Timer {
         this._seconds = 900; // 15 minutes default
         this._totalSeconds = 900;
         this._isRunning = false;
+        this._isPaused = false;
         this._isBlinking = false;
         this._interval = null;
         this._alarmInterval = null;
@@ -36,6 +37,7 @@ class Timer {
         vibrate([80]);
         if (!this._isRunning && this._seconds > 0) {
             this._isRunning = true;
+            this._isPaused = false;
             this._totalSeconds = this._seconds;
             this.stopBlinking();
             this.requestWakeLock();
@@ -54,6 +56,7 @@ class Timer {
                 
                 if (this._seconds <= 0) {
                     this.pause();
+                    this._isPaused = false; // Timer expired, not user-paused
                     this.stopWarningBlink();
                     this.startBlinking();
                     this.startAlarm();
@@ -66,6 +69,7 @@ class Timer {
     pause() {
         vibrate([50]);
         this._isRunning = false;
+        this._isPaused = true;
         this.releaseWakeLock();
         
         if (this._canvasAnimationId) {
@@ -77,11 +81,15 @@ class Timer {
             clearInterval(this._interval);
             this._interval = null;
         }
+        
+        // Redraw canvas to show PAUSED state
+        this.drawTimer();
     }
 
     reset(showToast = false) {
         vibrate([100]);
         this.pause();
+        this._isPaused = false;
         this.stopBlinking();
         this.stopWarningBlink();
         this.stopAlarm();
@@ -249,7 +257,14 @@ class Timer {
         this._ctx.font = 'bold 72px monospace';
         this._ctx.textAlign = 'center';
         this._ctx.textBaseline = 'middle';
-        this._ctx.fillText(timeText, centerX, centerY);
+        this._ctx.fillText(timeText, centerX, this._isPaused ? centerY - 10 : centerY);
+        
+        // Show "PAUSED" label below time only when actively paused
+        if (this._isPaused) {
+            this._ctx.fillStyle = '#888';
+            this._ctx.font = '600 20px sans-serif';
+            this._ctx.fillText('PAUSED', centerX, centerY + 40);
+        }
         
         if (this._isRunning) {
             this._canvasAnimationId = requestAnimationFrame(() => this.drawTimer());

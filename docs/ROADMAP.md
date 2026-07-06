@@ -433,8 +433,27 @@ All CSS for Phase 1-2 features already exists:
 - Clear button to start fresh
 
 ### Streaming responses
-- Bedrock Agent currently buffers entire response before sending
-- Infrastructure already in place (SSE), waiting on AWS streaming support
+- Enable `streamFinalResponse: true` in InvokeAgent call (already supported by Bedrock Agents API)
+- Update `proxy_lambda.js` to forward token chunks over SSE as they arrive instead of buffering
+- Tool-call wait is still synchronous, but final answer streams token-by-token
+- Users see text appearing within 1-2 seconds of model starting to respond instead of full buffer dump
+- Infrastructure already in place (SSE + thinking indicator); this is the Lambda-side change
+- AgentCore (newer service) supports full bi-directional streaming but is a bigger migration — evaluate after this ships
+
+### User prompt appears immediately in chat
+- Bug: User's message doesn't render in the chat thread until after Gpsy responds
+- Fix: Append user bubble to DOM immediately on send (before the API call starts)
+- Currently the prompt is likely batched with the response render cycle
+- Should show: user bubble → thinking indicator → response bubble (sequential)
+- Small fix in `modules/gpsy-chat.js` send flow
+
+### Pre-computed totals in tool responses (HIGH PRIORITY)
+- **Problem**: LLM receives individual readings and tries to sum prices/tips itself — gets it wrong (reported $527.50 when DB has $554.00, reported $538 when DB has $507)
+- **Fix**: Tool responses should include pre-calculated `total_earnings`, `total_tips`, `reading_count` summary alongside individual readings
+- **Approach**: When `list_readings_v2` returns results, append a `summary` object with aggregates computed DB-side
+- **System prompt update**: Instruct agent "NEVER calculate totals yourself — always report the summary values returned by the tool"
+- **Scope**: `list_readings_v2` response shape change + system prompt instruction
+- **Why urgent**: If Gpsy returns wrong dollar amounts, users lose trust in the entire feature
 
 ### Response quality
 - Audit system prompt against real query failures
@@ -574,9 +593,9 @@ Amanda wants to label individual readings in private sessions (e.g., client name
 
 ---
 
-## Phase 7.7: Multi-Day Sessions & Reading Timestamps
+## Phase 7.7: Multi-Day Sessions & Reading Timestamps ✅ COMPLETE
 **Goal**: Change sessions from single-date to start/end date range; derive per-day analytics from reading timestamps instead of session date
-**Status**: 0/? complete
+**Status**: Complete as of v4.6.7
 
 ### Problem Statement
 Amanda now prefers creating one session for an entire weekend event (e.g., a 3-day Renaissance Faire) rather than a separate session per day. But per-day analytics must still work — "How was Friday vs Saturday?" needs to use the reading's own timestamp to determine which day it belongs to, not the session date.
@@ -668,7 +687,19 @@ The old approach saved full session state to localStorage on every change and ra
 
 ## Phase 8: Operations & Reliability
 **Goal**: Protect production data and ensure operational health
-**Status**: 0/2 complete
+**Status**: 0/3 complete
+
+### Schema-Per-Environment (Dev/Test Isolation)
+**Priority**: Low | **Effort**: Medium
+- Create `dev` and `test` schemas alongside `public` (prod) in the same Supabase project
+- Mirror table structures per schema for safe experimentation
+- Use RPC wrappers to route supabase-js calls to the target schema (PostgREST defaults to `public`)
+- RLS policies per schema for isolation
+- **Why**: Allows running migrations, testing destructive operations, and validating changes without risking production data
+- **Constraint**: supabase-js + PostgREST can't natively "point to" a non-public schema — RPC functions that `SET search_path` or explicitly reference `dev.table_name` are the cleanest workaround
+- **Free plan note**: All schemas share the 500MB cap, so env tables should use minimal data (seed scripts, not full prod copies)
+- **Approach**: Manual switch via RPC — no app-driven routing, no separate projects
+- **Alternative considered**: Supabase Branches (full isolated DB instances per branch) — rejected because it requires Pro Plan ($25/mo minimum + per-branch compute costs). Schemas achieve the same goal for $0 on Free.
 
 ### Database Backup Strategy
 **Priority**: High | **Effort**: Small (one-time setup, then recurring)
