@@ -41,7 +41,13 @@ inclusion: manual
 - **#7 Voice Input** — Web Speech API, microphone button (Low priority, Large effort)
 
 ### Phase 4: Data Visualization (0/2)
-- **#9 Inline Charts** — Apache ECharts (300KB/100KB gzipped), render in chat bubbles
+- **#9 Gpsy Chart Responses** — Gpsy returns structured JSON in a `<chart>` tag when data lends itself to a visual. Frontend intercepts, renders with Chart.js (single CDN script, canvas-based). Falls back to bedrock-table if JSON malformed. Gpsy still provides narrative alongside chart. Data comes from calculate_stats (already chart-ready shape with groups/labels).
+  - **Prompt addition:** Tell Gpsy to emit `<chart type="bar|line|pie|stack" title="...">` with a flat JSON array body when grouped data has 3+ items or user explicitly asks for a visual. Only 4 chart types — keeps renderer simple.
+  - **Frontend:** `<gpsy-chart>` web component (custom element, no Shadow DOM). gpsy-chat.js scans response for `<chart>` tags, replaces with `<gpsy-chart type="bar" data='[...]'>`. The custom element handles its own Chart.js canvas lifecycle (connectedCallback → render, disconnectedCallback → destroy). Encapsulated, no global state, works naturally with innerHTML insertion. Styled from main styles.css using element-tag namespace (`gpsy-chart .chart-container`, `gpsy-chart canvas`, `gpsy-chart .chart-title`) — no Shadow DOM needed since tag name provides sufficient isolation.
+  - **Why web component:** Fits the vanilla JS stack. No framework needed. Self-contained rendering. Survives DOM manipulation (chat clearing, scrolling). Can lazy-load Chart.js on first use.
+  - **JSON contract:** `[{"group":"Friday","total_earnings":507}, ...]` — flat array of objects, same shape as calculate_stats groups output. LLM doesn't need to learn Chart.js config.
+  - **Fallback:** bedrock-table always emitted alongside for accessibility + if chart parsing fails.
+  - **Rules for Gpsy:** Only emit chart when 3+ comparable items. Two items → sentence. Explicit "show me a chart" → always emit. Proactive on group_by results.
 - **#10a Sparklines** — tiny inline trend indicators
 
 ### Phase 5: Polish & Refinement (0/4)

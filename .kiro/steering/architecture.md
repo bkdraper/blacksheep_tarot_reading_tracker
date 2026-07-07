@@ -45,7 +45,7 @@ The three Lambdas exist due to protocol incompatibility, not experimentation:
 - **Bedrock Lambda** (`bedrock_lambda.handler`): Vanilla REST for AWS Bedrock Agent action group
   - Invoked directly by Bedrock Agent (no URL)
   - Action Group: "TarotDataTools" (ID: MOFZI2VIQW)
-  - Only v2 tools exposed to agent (list_sessions_v2, list_readings_v2, get_session_details_v2, get_user_summary_v2)
+  - Only v2 tools exposed to agent (list_sessions_v2, list_readings_v2, get_session_details_v2, get_user_summary_v2, calculate_stats)
 - **Chat Proxy Lambda** (`proxy_lambda.handler`): SSE for frontend (security boundary, user context injection)
   - URL: https://57h2jhw5tcjn35yzuitv4zjmfu0snuom.lambda-url.us-east-2.on.aws/
   - Auth: NONE (Bearer token validated in code), CORS: POST from *, allows authorization header
@@ -92,6 +92,7 @@ All share the same tool definitions in `server.js`. Only difference is response 
 - `get_session_with_readings(session_uuid uuid)` → json — complete session + all readings in one RPC
 - `get_user_summary(p_user_name text, p_start_date date, p_end_date date)` → json — aggregate stats (original overload)
 - `get_user_summary(p_user_name text, p_start_date date, p_end_date date, p_user_id uuid)` → json — aggregate stats with user_id support (preferred overload)
+- `calculate_reading_stats(p_user_id uuid, p_filters jsonb DEFAULT '{}', p_group_by text DEFAULT NULL)` → jsonb — pre-computed aggregates (reading_count, total_earnings, total_tips, total_base, avg_tip, avg_price, min_tip, max_tip, busiest_hour, busiest_time_of_day). Supports group_by (day_of_week, location, date, payment, source, time_of_day, format). Returns `{"error":"no_data"}` when no readings match.
 - `search_locations_fuzzy(p_user_name text, p_search_term text, p_limit int, p_threshold real, p_user_id uuid)` → TABLE(location text, sim real) — trigram fuzzy location search fallback. Uses `pg_trgm` similarity + first-word ILIKE. Normalizes year formats (2025 → 25).
 
 ## MCP Server Tools (v2, active)
@@ -100,6 +101,7 @@ All share the same tool definitions in `server.js`. Only difference is response 
 2. **list_readings_v2** — queries `readings_with_context` view (full filter support: payment, source, date, tip range, time_of_day)
 3. **get_session_details_v2** — calls `get_session_with_readings()` RPC
 4. **get_user_summary_v2** — calls `get_user_summary()` RPC
+5. **calculate_stats** — calls `calculate_reading_stats()` RPC. All arithmetic happens in Postgres. Supports filters (search_by JSON) and group_by for comparisons. Agent MUST use this for any numeric question.
 
 Legacy tools (list_sessions, list_readings, search_locations, aggregate_readings) still in server.js but not used by Bedrock Agent.
 

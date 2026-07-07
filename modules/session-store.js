@@ -346,8 +346,8 @@ class SessionStore {
                                 <div class="field-input-container">
                                     <span class="dollar-sign">$</span>
                                     <input type="number" class="price-input" placeholder="${this._price}" 
-                                           value="${reading.price || ''}" step="0.01" min="0" inputmode="decimal"
-                                           onchange="session.updateReading(${index}, 'price', parseFloat(this.value) || null)"
+                                           value="${reading.price != null ? reading.price : ''}" step="0.01" min="0" inputmode="decimal"
+                                           onchange="session.updateReading(${index}, 'price', this.value === '' ? null : parseFloat(this.value))"
                                            onkeydown="if(event.key==='Enter') this.blur()">
                                 </div>
                             </div>
@@ -396,7 +396,7 @@ class SessionStore {
 
             updateTotals() {
                 const count = this._readings.length;
-                const baseTotal = this._readings.reduce((sum, reading) => sum + (reading.price || this._price), 0);
+                const baseTotal = this._readings.reduce((sum, reading) => sum + (reading.price != null ? reading.price : this._price), 0);
                 const tipsTotal = this._readings.reduce((sum, reading) => sum + (reading.tip || 0), 0);
                 const grandTotal = baseTotal + tipsTotal;
 

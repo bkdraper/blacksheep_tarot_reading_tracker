@@ -14,7 +14,7 @@
 - AI assistant "Gpsy" (ChatGPSY) for data queries via Bedrock Agent
 - PWA installable on mobile devices
 - Pure vanilla JS — no frameworks, keeping it simple and fast
-- Currently at v4.5.1 with 409 passing tests across 13 suites
+- Currently at v4.6.8 with 493 passing tests across 15 suites
 
 ## Development Team
 
@@ -118,11 +118,17 @@ Despite SSE infrastructure, Bedrock Agent buffers the entire response and sends 
 - **Fix:** Always destructure `error` and `if (error) throw error;` after every Supabase data operation.
 - **Impact:** Offline queue was broken from v4.5.0 to v4.6.6 — errors were swallowed silently, readings were lost when offline.
 
-### LLM Arithmetic — Bedrock Can't Do Math (v4.6.7)
+### LLM Arithmetic — Bedrock Can't Do Math (v4.6.7 → v4.6.8 DEPLOYED)
 - **Claude (Haiku 4.5) confidently reports wrong totals.** Given 17 raw readings, it summed them to $527.50 when the actual total is $554.00. Did it twice in one QE session.
 - **Root cause:** LLMs are fundamentally bad at arithmetic. They approximate. They're language models, not calculators.
-- **Solution:** `calculate_stats` tool — a Postgres RPC function that does ALL math. Agent calls it and reports numbers verbatim. System prompt says "you are BAD at arithmetic, never compute."
+- **Solution:** `calculate_stats` tool — a Postgres RPC function (`calculate_reading_stats`) that does ALL math. Agent calls it and reports numbers verbatim.
+- **Architecture:** DB function `calculate_reading_stats(p_user_id uuid, p_filters jsonb, p_group_by text)` → JSONB. Queries `readings_with_context` view. Returns overall stats + optional per-group breakdown sorted by earnings desc.
+- **Lambda:** Pure passthrough — parses `search_by` JSON, calls RPC, returns result as-is. Zero arithmetic.
+- **System prompt:** Explicit arithmetic ban + tool routing table. Agent MUST call calculate_stats for any numeric question.
+- **Filters available:** location, start_date, end_date, day_of_week, payment, source, time_of_day, format, session_duration_days.
+- **group_by values:** day_of_week, location, date, payment, source, time_of_day, format.
 - **Principle:** Math belongs in Postgres. Lambda is a passthrough. LLM is a narrator.
+- **Deployed v4.6.8:** Lambda live, Bedrock Agent updated, smoke-tested with 13+ live queries — all returning exact DB numbers.
 
 ## Environment Notes
 
@@ -157,4 +163,4 @@ The following steering docs are available:
 
 ## Last Updated
 - Date: July 5, 2026
-- Version: v4.6.7
+- Version: v4.6.8

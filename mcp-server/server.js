@@ -104,6 +104,19 @@ export class TarotTrackerMCPServer {
           },
           required: ['user_name']
         }
+      },
+      {
+        name: 'calculate_stats',
+        description: 'Calculate pre-computed statistics for readings. Use this for ANY question about totals, averages, counts, or comparisons. Returns exact numbers computed by the database.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            user_id: { type: 'string', description: 'User UUID' },
+            search_by: { type: 'string', description: 'JSON with filters: location, start_date, end_date, day_of_week, payment, source, time_of_day, format, session_duration_days' },
+            group_by: { type: 'string', description: 'Group results by: day_of_week, location, date, payment, source, time_of_day, format' }
+          },
+          required: ['user_id']
+        }
       }
     ];
   }
@@ -143,6 +156,7 @@ export class TarotTrackerMCPServer {
       case 'list_readings_v2': result = await this.listReadingsV2(args); break;
       case 'get_session_details_v2': result = await this.getSessionDetailsV2(args); break;
       case 'get_user_summary_v2': result = await this.getUserSummaryV2(args); break;
+      case 'calculate_stats': result = await this.calculateStats(args); break;
       default: throw new Error(`Unknown tool: ${toolName}`);
     }
     
@@ -400,6 +414,48 @@ export class TarotTrackerMCPServer {
 
     if (error) throw new Error(`Database error: ${error.message}`);
     console.log('[getUserSummaryV2] total_earnings:', data?.totals?.total_earnings);
+    return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+  }
+
+  async calculateStats(args) {
+    console.log('[calculateStats] args:', JSON.stringify(args));
+    const supabase = getSupabase();
+    const { user_id, search_by, group_by } = args;
+
+    // Parse search_by: string → JSON.parse, object → use directly, invalid → empty
+    let filters = {};
+    if (search_by) {
+      try {
+        filters = typeof search_by === 'string' ? JSON.parse(search_by) : search_by;
+        console.log('[calculateStats] parsed filters:', JSON.stringify(filters));
+      } catch (e) {
+        console.warn('[calculateStats] failed to parse search_by:', search_by, '— using empty filters');
+        filters = {};
+      }
+    }
+
+    console.log('[calculateStats] user_id:', user_id, '| group_by:', group_by || 'none', '| filters:', JSON.stringify(filters));
+
+    console.log('[calculateStats] executing rpc...');
+    const t = Date.now();
+    const { data, error } = await supabase.rpc('calculate_reading_stats', {
+      p_user_id: user_id,
+      p_filters: filters,
+      p_group_by: group_by || null
+    });
+    console.log('[calculateStats] rpc completed in', Date.now() - t, 'ms | error:', error?.message ?? 'none');
+
+    if (error) {
+      console.error('[calculateStats] RPC error:', error.message);
+      return { content: [{ type: 'text', text: JSON.stringify({ error: error.message }) }] };
+    }
+
+    if (data?.error === 'no_data') {
+      console.log('[calculateStats] no data matched filters');
+      return { content: [{ type: 'text', text: JSON.stringify({ message: 'No readings found matching those filters.' }) }] };
+    }
+
+    console.log('[calculateStats] returning stats, reading_count:', data?.stats?.reading_count);
     return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
   }
 }
