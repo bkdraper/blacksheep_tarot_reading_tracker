@@ -56,11 +56,12 @@ inclusion: manual
 - **#15 Accessibility** — screen reader, keyboard nav, ARIA labels, high contrast
 - **#16 Performance** — lazy load messages, debounce, bundle size
 
-### Phase 7: Gpsy Enhancements (0/4)
+### Phase 7: Gpsy Enhancements (0/5)
 - Multi-user support in Gpsy (admin asks about other users)
 - Conversation persistence (Bedrock sessionId in localStorage)
 - Streaming responses (waiting on AWS support)
 - Response quality audit
+- **Tool schema cleanup: user_id required, user_name deprecated** — Flip all v2 tool schemas (list_sessions_v2, list_readings_v2, get_session_details_v2, get_user_summary_v2) to require `user_id` and make `user_name` optional fallback. Update server.js inputSchema, action-group-schema.json, and remove v1 dead code if still present. Small change, aligns with how calculate_stats already works and how the system prompt already instructs. Prevents breakage from user_name changes (amanda → amanda madden).
 
 ---
 
