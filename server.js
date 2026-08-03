@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { exec } = require('child_process');
 
 const PORT = 8080;
@@ -46,5 +47,23 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, '0.0.0.0', () => {
     const url = `http://localhost:${PORT}`;
     console.log(`Server running at ${url}`);
-    console.log(`Access from your phone using your computer's IP address: http://[YOUR_IP]:${PORT}`);
+    
+    // Find the real LAN IP for mobile testing
+    const nets = os.networkInterfaces();
+    const lanIps = [];
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+            if (net.family === 'IPv4' && !net.internal) {
+                lanIps.push(net.address);
+            }
+        }
+    }
+    if (lanIps.length > 0) {
+        console.log(`Access from your phone: http://${lanIps[0]}:${PORT}`);
+        if (lanIps.length > 1) {
+            console.log(`  Other interfaces: ${lanIps.slice(1).map(ip => `http://${ip}:${PORT}`).join(', ')}`);
+        }
+    } else {
+        console.log(`Access from your phone using your computer's IP address: http://[YOUR_IP]:${PORT}`);
+    }
 });
