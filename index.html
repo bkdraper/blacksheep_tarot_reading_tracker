@@ -901,7 +901,7 @@
 
         <!-- Version Info -->
         <div class="settings-version-info">
-          <span>v4.3.2</span>
+          <span id="text-app-version">v4.6.9</span>
         </div>
       </div>
     </div>
@@ -1182,6 +1182,13 @@
         // Set logos
         document.getElementById("buddyLogo").src = window.APP_LOGO;
         document.getElementById("gpsyHeaderLogo").src = window.APP_LOGO;
+
+        // Sync version display from meta tag (single source of truth)
+        const versionMeta = document.querySelector('meta[http-equiv="version"]');
+        const versionSpan = document.getElementById("text-app-version");
+        if (versionMeta && versionSpan) {
+          versionSpan.textContent = versionMeta.content;
+        }
       });
 
       // Check for saved session on page load
