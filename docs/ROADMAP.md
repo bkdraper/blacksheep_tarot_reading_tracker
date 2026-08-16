@@ -521,22 +521,40 @@ All CSS for Phase 1-2 features already exists:
 
 ---
 
-## Phase 7.2: Reading Labels (Private Sessions)
-**Goal**: Add an optional name/label to each reading logged during a private session
+## Phase 7.2: Reading Labels & Session Management
+**Goal**: Add optional name/label to readings; add session delete and session type switching
 **Status**: 0/? complete
 
 ### Problem Statement
 Amanda wants to label individual readings in private sessions (e.g., client name). Currently readings are just tip + payment + source — there's no way to identify who a private reading was for. The label defaults to the name entered when the private session is first created, so for single-client sessions it's zero extra taps.
 
+Additionally, Amanda needs the ability to:
+- **Delete a session** — accidentally created a private reading and had no way to remove it
+- **Change session type** — switch between event and private after creation (e.g., made an event when it should have been private)
+
 ### Data Model
 - New `label` text column on `blacksheep_reading_tracker_readings` (nullable, optional)
 - Only relevant for private sessions (events have too many readings to label)
+- Session delete: CASCADE delete readings when session is deleted
+- Session type change: just update `type` column ('event' ↔ 'private') — no structural remapping needed
 
-### UI
+### UI — Reading Labels
 - Text input field on the reading log entry (in the readings manager UI)
 - Defaults to the client name entered when the private session was first created
 - Editable per-reading (for multi-client private sessions, user can change it)
 - Optional — can be left blank
+
+### UI — Session Delete
+- Add "Delete Session" option (in session edit sheet or hamburger menu)
+- Confirmation dialog before delete (destructive action)
+- Cascade deletes all readings under that session
+- After delete: return to no-session state
+
+### UI — Session Type Change
+- Add type toggle/selector in session edit sheet
+- Changing type updates the `type` column on the session record
+- May need to clear or re-validate format (event formats ≠ private formats)
+- Source filtering updates immediately after type change
 
 ### MCP / Bedrock Constraint
 - `list_sessions_v2` already at 5 input params (Bedrock's limit)
@@ -550,6 +568,8 @@ Amanda wants to label individual readings in private sessions (e.g., client name
 - [ ] Update `readings_with_context` view to include label
 - [ ] Add label input field to reading log UI (defaults to session client name)
 - [ ] Persist label on addReading/updateReading
+- [ ] Add session delete functionality (UI + Supabase CASCADE delete)
+- [ ] Add session type change functionality (UI + Supabase update)
 - [ ] Refactor `list_sessions_v2` to use dynamic search_by param (replaces individual filters)
 - [ ] Refactor `list_readings_v2` similarly if needed
 - [ ] Update Bedrock agent schema + system prompt for label awareness and new search pattern
@@ -560,6 +580,7 @@ Amanda wants to label individual readings in private sessions (e.g., client name
 - Dynamic search pattern: single JSON param like `search_by: { field: value, field: value }` or similar — keeps Bedrock under 5 params
 - SQL construction must be parameterized (no injection risk)
 - Backward compatible: existing queries with no search_by still work
+- Session delete + type change are frontend-only features (no MCP/Bedrock needed)
 
 ---
 
