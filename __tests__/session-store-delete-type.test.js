@@ -13,10 +13,7 @@ document.body.innerHTML = `
   <input id="price" value="40" />
   <input id="sessionDate" />
   <div id="readingsList"></div>
-  <span id="readingCount">0</span>
-  <span id="baseTotal">0.00</span>
-  <span id="tipsTotal">0.00</span>
-  <span id="grandTotal">0.00</span>
+  <div id="totalsContent"></div>
 
   <div id="requiredFieldsNote"></div>
   <button class="btn-create-session"></button>

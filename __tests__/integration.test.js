@@ -93,10 +93,12 @@ describe('Integration: index.html + session-store.js', () => {
 
     test('should update all total elements in DOM', async () => {
       await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
-      expect(document.getElementById('readingCount').textContent).toBe('1');
-      expect(document.getElementById('baseTotal').textContent).toBe('40.00');
-      expect(document.getElementById('tipsTotal').textContent).toBe('5.00');
-      expect(document.getElementById('grandTotal').textContent).toBe('45.00');
+      const totals = document.getElementById('totalsContent');
+      const rows = totals.querySelectorAll('.totals-row-main');
+      expect(rows[0].cells[1].textContent).toBe('1');
+      expect(rows[1].cells[1].textContent).toBe('$40.00');
+      expect(rows[2].cells[1].textContent).toBe('$5.00');
+      expect(totals.querySelector('.grand-total').textContent).toContain('$45.00');
     });
   });
 

@@ -8,10 +8,7 @@ document.body.innerHTML = `
   <input id="price" value="40" />
   <input id="sessionDate" />
   <div id="readingsList"></div>
-  <span id="readingCount">0</span>
-  <span id="baseTotal">0.00</span>
-  <span id="tipsTotal">0.00</span>
-  <span id="grandTotal">0.00</span>
+  <div id="totalsContent"></div>
 
   <div id="requiredFieldsNote"></div>
   <button class="btn-create-session"></button>
@@ -295,25 +292,31 @@ describe('SessionStore', () => {
 
     test('should calculate totals with default price', async () => {
       await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: null });
-      expect(document.getElementById('readingCount').textContent).toBe('1');
-      expect(document.getElementById('baseTotal').textContent).toBe('40.00');
-      expect(document.getElementById('tipsTotal').textContent).toBe('5.00');
-      expect(document.getElementById('grandTotal').textContent).toBe('45.00');
+      const totals = document.getElementById('totalsContent');
+      const rows = totals.querySelectorAll('.totals-row-main');
+      expect(rows[0].cells[1].textContent).toBe('1'); // reading count
+      expect(rows[1].cells[1].textContent).toBe('$40.00'); // base
+      expect(rows[2].cells[1].textContent).toBe('$5.00'); // tips
+      expect(totals.querySelector('.grand-total').textContent).toContain('$45.00');
     });
 
     test('should calculate totals with custom price', async () => {
       await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 50 });
-      expect(document.getElementById('baseTotal').textContent).toBe('50.00');
-      expect(document.getElementById('grandTotal').textContent).toBe('55.00');
+      const totals = document.getElementById('totalsContent');
+      const rows = totals.querySelectorAll('.totals-row-main');
+      expect(rows[1].cells[1].textContent).toBe('$50.00');
+      expect(totals.querySelector('.grand-total').textContent).toContain('$55.00');
     });
 
     test('should handle multiple readings', async () => {
       await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
       await session.addReading({ timestamp: new Date().toISOString(), tip: 10, price: 50 });
-      expect(document.getElementById('readingCount').textContent).toBe('2');
-      expect(document.getElementById('baseTotal').textContent).toBe('90.00');
-      expect(document.getElementById('tipsTotal').textContent).toBe('15.00');
-      expect(document.getElementById('grandTotal').textContent).toBe('105.00');
+      const totals = document.getElementById('totalsContent');
+      const rows = totals.querySelectorAll('.totals-row-main');
+      expect(rows[0].cells[1].textContent).toBe('2'); // reading count
+      expect(rows[1].cells[1].textContent).toBe('$90.00'); // base
+      expect(rows[2].cells[1].textContent).toBe('$15.00'); // tips
+      expect(totals.querySelector('.grand-total').textContent).toContain('$105.00');
     });
   });
 
@@ -487,21 +490,25 @@ describe('SessionStore', () => {
 
     test('should use session price when reading price is null', async () => {
       await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: null });
-      expect(document.getElementById('baseTotal').textContent).toBe('40.00');
+      const rows = document.getElementById('totalsContent').querySelectorAll('.totals-row-main');
+      expect(rows[1].cells[1].textContent).toBe('$40.00');
     });
 
     test('should use reading price when provided', async () => {
       await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 50 });
-      expect(document.getElementById('baseTotal').textContent).toBe('50.00');
+      const rows = document.getElementById('totalsContent').querySelectorAll('.totals-row-main');
+      expect(rows[1].cells[1].textContent).toBe('$50.00');
     });
 
     test('should handle mixed prices correctly', async () => {
       await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: null });
       await session.addReading({ timestamp: new Date().toISOString(), tip: 10, price: 50 });
       await session.addReading({ timestamp: new Date().toISOString(), tip: 0, price: 30 });
-      expect(document.getElementById('baseTotal').textContent).toBe('120.00');
-      expect(document.getElementById('tipsTotal').textContent).toBe('15.00');
-      expect(document.getElementById('grandTotal').textContent).toBe('135.00');
+      const totals = document.getElementById('totalsContent');
+      const rows = totals.querySelectorAll('.totals-row-main');
+      expect(rows[1].cells[1].textContent).toBe('$120.00');
+      expect(rows[2].cells[1].textContent).toBe('$15.00');
+      expect(totals.querySelector('.grand-total').textContent).toContain('$135.00');
     });
   });
 

@@ -7,7 +7,7 @@
       http-equiv="Cache-Control"
       content="no-cache, no-store, must-revalidate"
     />
-    <meta http-equiv="version" content="v4.7.0" />
+    <meta http-equiv="version" content="v4.7.3" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#2d1b3e" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -228,34 +228,7 @@
       </div>
 
       <div id="container-readings-totals" class="totals">
-        <table class="totals-table">
-          <tr>
-            <td>
-              <i class="fas fa-book-open" style="margin-right: 8px"></i
-              >Readings:
-            </td>
-            <td><span id="readingCount">0</span></td>
-          </tr>
-          <tr>
-            <td>
-              <i class="fas fa-coins" style="margin-right: 8px"></i>Base Total:
-            </td>
-            <td>$<span id="baseTotal">0.00</span></td>
-          </tr>
-          <tr>
-            <td>
-              <i class="fas fa-hand-holding-usd" style="margin-right: 8px"></i
-              >Tips Total:
-            </td>
-            <td>$<span id="tipsTotal">0.00</span></td>
-          </tr>
-        </table>
-        <div class="grand-total">
-          <i class="fas fa-wallet" style="margin-right: 8px"></i>Total: $<span
-            id="grandTotal"
-            >0.00</span
-          >
-        </div>
+        <div id="totalsContent"></div>
       </div>
 
       <div id="container-readings-list" class="readings-list">

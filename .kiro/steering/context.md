@@ -14,7 +14,7 @@
 - AI assistant "Gpsy" (ChatGPSY) for data queries via Bedrock Agent
 - PWA installable on mobile devices
 - Pure vanilla JS — no frameworks, keeping it simple and fast
-- Currently at v4.7.0 with 537 passing tests across 18 suites
+- Currently at v4.7.3 with 537 passing tests across 18 suites
 
 ## Development Team
 
@@ -154,6 +154,17 @@ Despite SSE infrastructure, Bedrock Agent buffers the entire response and sends 
 - **`get_session_with_readings` function** returns `label` in reading objects.
 - **`calculate_reading_stats` function** supports `label` filter (ILIKE) and `group_by: 'label'`.
 
+### Reading Log & Totals UI (v4.7.3)
+- **Reading items are cards** — light background, rounded corners, subtle border, margin between items. No more run-on divider lines.
+- **Day separators are pill badges** — dark background, white text, uppercase, centered. Visually distinct from reading cards.
+- **Day separators have IDs** — `id="day-YYYY-MM-DD"` for scroll targeting from totals.
+- **`updateTotals()` renders full HTML dynamically** into `<div id="totalsContent">`. No more static spans (`readingCount`, `baseTotal`, `tipsTotal`, `grandTotal`). Those IDs no longer exist in index.html.
+- **Multi-day totals show per-day sub-rows** — indented, smaller font, under each category (readings, base, tips, grand total). Single-day sessions show flat totals only.
+- **Day labels in totals are tappable links** — `scrollIntoView({behavior:'smooth'})` to the corresponding day separator in the reading log.
+- **Grand total sub-items are green** — matching the main grand total color.
+- **Divider lines are below the last sub-row** of each group, not below the category header. This prevents visual ambiguity about which total belongs to which group.
+- **Inline day subtotals in reading log** — "3 readings · $75.00" between day groups (multi-day only).
+
 ## Environment Notes
 
 ### Windows
@@ -186,4 +197,4 @@ The following steering docs are available:
 
 ## Last Updated
 - Date: August 20, 2026
-- Version: v4.7.0
+- Version: v4.7.3

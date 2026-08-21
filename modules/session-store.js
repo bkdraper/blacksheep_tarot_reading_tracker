@@ -409,27 +409,45 @@ class SessionStore {
                 const isMultiDay = this._startDate && this._endDate && this._startDate !== this._endDate;
                 let lastDate = null;
                 
-                list.innerHTML = this._readings.map((reading, index) => {
+                // For multi-day sessions, pre-compute per-day totals
+                let dayTotals = {};
+                if (isMultiDay) {
+                    this._readings.forEach(reading => {
+                        if (reading.timestamp) {
+                            const date = reading.timestamp.substring(0, 10);
+                            if (!dayTotals[date]) dayTotals[date] = { count: 0, earnings: 0 };
+                            dayTotals[date].count++;
+                            dayTotals[date].earnings += (reading.price != null ? reading.price : this._price) + (reading.tip || 0);
+                        }
+                    });
+                }
+                
+                let html = '';
+                this._readings.forEach((reading, index) => {
                     const displayTime = this.formatTimestamp(reading.timestamp);
-                    let separator = '';
                     
                     if (isMultiDay && reading.timestamp) {
-                        const readingDate = reading.timestamp.substring(0, 10); // YYYY-MM-DD
+                        const readingDate = reading.timestamp.substring(0, 10);
+                        
+                        // Close previous day with subtotal
+                        if (lastDate && readingDate !== lastDate && dayTotals[lastDate]) {
+                            const dt = dayTotals[lastDate];
+                            html += `<div class="day-subtotal">${dt.count} reading${dt.count !== 1 ? 's' : ''} · $${dt.earnings.toFixed(2)}</div>`;
+                        }
+                        
                         if (readingDate !== lastDate) {
                             lastDate = readingDate;
-                            // Format: "Friday, Apr 24"
                             const [year, month, day] = readingDate.split('-').map(Number);
                             const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
                             const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                            // Create date using UTC to avoid timezone shifts on YYYY-MM-DD
                             const dateObj = new Date(Date.UTC(year, month - 1, day));
                             const dayName = days[dateObj.getUTCDay()];
                             const monthName = months[month - 1];
-                            separator = `<div class="reading-day-separator">${dayName}, ${monthName} ${day}</div>`;
+                            html += `<div class="reading-day-separator" id="day-${readingDate}">${dayName}, ${monthName} ${day}</div>`;
                         }
                     }
                     
-                    return `${separator}
+                    html += `
                     <div class="reading-item" data-index="${index}">
                         <div class="reading-header">
                             <span class="reading-header-text"><span class="index">${index + 1}.</span> ${displayTime}</span>
@@ -480,8 +498,16 @@ class SessionStore {
                                 </button>
                             </div>
                         </div>
-                    </div>
-                `}).join('');
+                    </div>`;
+                });
+                
+                // Close final day with subtotal
+                if (isMultiDay && lastDate && dayTotals[lastDate]) {
+                    const dt = dayTotals[lastDate];
+                    html += `<div class="day-subtotal">${dt.count} reading${dt.count !== 1 ? 's' : ''} · $${dt.earnings.toFixed(2)}</div>`;
+                }
+                
+                list.innerHTML = html;
             }
 
             formatTimestamp(timestamp) {
@@ -503,11 +529,86 @@ class SessionStore {
                 const baseTotal = this._readings.reduce((sum, reading) => sum + (reading.price != null ? reading.price : this._price), 0);
                 const tipsTotal = this._readings.reduce((sum, reading) => sum + (reading.tip || 0), 0);
                 const grandTotal = baseTotal + tipsTotal;
-
-                document.getElementById('readingCount').textContent = count;
-                document.getElementById('baseTotal').textContent = baseTotal.toFixed(2);
-                document.getElementById('tipsTotal').textContent = tipsTotal.toFixed(2);
-                document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+                
+                const isMultiDay = this._startDate && this._endDate && this._startDate !== this._endDate;
+                const container = document.getElementById('totalsContent');
+                if (!container) return;
+                
+                const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                
+                // Compute per-day stats for multi-day sessions
+                let dayStats = {};
+                let dayOrder = [];
+                if (isMultiDay && count > 0) {
+                    this._readings.forEach(reading => {
+                        if (reading.timestamp) {
+                            const date = reading.timestamp.substring(0, 10);
+                            if (!dayStats[date]) {
+                                dayStats[date] = { count: 0, base: 0, tips: 0 };
+                                dayOrder.push(date);
+                            }
+                            dayStats[date].count++;
+                            dayStats[date].base += (reading.price != null ? reading.price : this._price);
+                            dayStats[date].tips += (reading.tip || 0);
+                        }
+                    });
+                }
+                
+                const formatDayLabel = (date) => {
+                    const [year, month, day] = date.split('-').map(Number);
+                    const dateObj = new Date(Date.UTC(year, month - 1, day));
+                    const dayName = days[dateObj.getUTCDay()];
+                    return `${dayName} ${day}`;
+                };
+                
+                const dayLink = (date, label) => {
+                    return `<a class="day-jump-link" onclick="document.getElementById('day-${date}').scrollIntoView({behavior:'smooth',block:'start'})">${label}</a>`;
+                };
+                
+                let html = '<table class="totals-table">';
+                
+                // Readings count
+                html += `<tr class="totals-row-main"><td><i class="fas fa-book-open" style="margin-right:8px"></i>Readings:</td><td>${count}</td></tr>`;
+                if (isMultiDay && dayOrder.length > 1) {
+                    dayOrder.forEach((date, i) => {
+                        const lastClass = i === dayOrder.length - 1 ? ' totals-row-sub-last' : '';
+                        html += `<tr class="totals-row-sub${lastClass}"><td>${dayLink(date, formatDayLabel(date))}</td><td>${dayStats[date].count}</td></tr>`;
+                    });
+                }
+                
+                // Base total
+                html += `<tr class="totals-row-main"><td><i class="fas fa-coins" style="margin-right:8px"></i>Base Total:</td><td>$${baseTotal.toFixed(2)}</td></tr>`;
+                if (isMultiDay && dayOrder.length > 1) {
+                    dayOrder.forEach((date, i) => {
+                        const lastClass = i === dayOrder.length - 1 ? ' totals-row-sub-last' : '';
+                        html += `<tr class="totals-row-sub${lastClass}"><td>${dayLink(date, formatDayLabel(date))}</td><td>$${dayStats[date].base.toFixed(2)}</td></tr>`;
+                    });
+                }
+                
+                // Tips total
+                html += `<tr class="totals-row-main"><td><i class="fas fa-hand-holding-usd" style="margin-right:8px"></i>Tips Total:</td><td>$${tipsTotal.toFixed(2)}</td></tr>`;
+                if (isMultiDay && dayOrder.length > 1) {
+                    dayOrder.forEach((date, i) => {
+                        const lastClass = i === dayOrder.length - 1 ? ' totals-row-sub-last' : '';
+                        html += `<tr class="totals-row-sub${lastClass}"><td>${dayLink(date, formatDayLabel(date))}</td><td>$${dayStats[date].tips.toFixed(2)}</td></tr>`;
+                    });
+                }
+                
+                html += '</table>';
+                
+                // Grand total
+                html += `<div class="grand-total"><i class="fas fa-wallet" style="margin-right:8px"></i>Total: $${grandTotal.toFixed(2)}</div>`;
+                if (isMultiDay && dayOrder.length > 1) {
+                    html += '<div class="grand-total-breakdown">';
+                    dayOrder.forEach(date => {
+                        const dayTotal = dayStats[date].base + dayStats[date].tips;
+                        html += `<div class="grand-total-sub">${dayLink(date, formatDayLabel(date))}<span>$${dayTotal.toFixed(2)}</span></div>`;
+                    });
+                    html += '</div>';
+                }
+                
+                container.innerHTML = html;
             }
 
             clearUserData() {

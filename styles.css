@@ -596,14 +596,29 @@
         }
         .totals-table td {
             padding: 6px 8px;
-            border-bottom: 1px solid #eee;
         }
-        .totals-table td:first-child {
+        .totals-row-main td {
+            font-weight: 600;
+        }
+        .totals-row-main td:first-child {
+            color: #333;
+        }
+        .totals-row-main td:last-child {
+            text-align: right;
+        }
+        .totals-row-sub td {
+            font-weight: 400;
+            font-size: 12px;
+            padding: 3px 8px 3px 28px;
             color: #666;
         }
-        .totals-table td:last-child {
+        .totals-row-sub td:last-child {
             text-align: right;
-            font-weight: 500;
+            color: #555;
+        }
+        .totals-row-sub-last td {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 6px;
         }
         .grand-total {
             text-align: center;
@@ -612,6 +627,29 @@
             color: #28a745;
             padding-top: 8px;
             border-top: 2px solid #28a745;
+        }
+        .grand-total-breakdown {
+            margin-top: 6px;
+            padding-top: 4px;
+        }
+        .grand-total-sub {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #28a745;
+            padding: 2px 12px;
+        }
+        .grand-total-sub span {
+            font-weight: 500;
+        }
+        .day-jump-link {
+            color: #007bff;
+            text-decoration: none;
+            cursor: pointer;
+            border-bottom: 1px dotted #007bff;
+        }
+        .day-jump-link:active {
+            color: #0056b3;
         }
         .readings-list { 
             background: white; 
@@ -623,11 +661,14 @@
             display: flex; 
             flex-direction: column;
             gap: 8px;
-            padding: 12px 0; 
-            border-bottom: 2px solid #ddd; 
+            padding: 12px; 
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
         }
         .reading-item:last-child { 
-            border-bottom: none; 
+            margin-bottom: 0; 
         }
         .reading-header {
             display: flex;
@@ -656,18 +697,31 @@
         }
         .reading-day-separator {
             text-align: center;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted, #888);
-            padding: 8px 0 4px;
-            border-top: 1px solid var(--border-color, #333);
-            margin-top: 8px;
-            letter-spacing: 0.5px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            background: #6c757d;
+            padding: 6px 12px;
+            border-radius: 20px;
+            margin: 16px auto 10px;
+            letter-spacing: 0.8px;
             text-transform: uppercase;
+            width: fit-content;
         }
         .reading-day-separator:first-child {
-            border-top: none;
             margin-top: 0;
+        }
+        .day-subtotal {
+            text-align: right;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            padding: 6px 12px;
+            margin-top: 4px;
+            margin-bottom: 12px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
         }
         .reading-field {
             display: flex;
@@ -1402,6 +1456,44 @@
         body.dark-mode .timer {
             background: #2d2d2d;
             color: #ffffff;
+        }
+        body.dark-mode .reading-item {
+            background: #363636;
+            border-color: #444;
+        }
+        body.dark-mode .reading-day-separator {
+            background: #555;
+            color: #eee;
+        }
+        body.dark-mode .day-subtotal {
+            background: #363636;
+            border-color: #444;
+            color: #ccc;
+        }
+        body.dark-mode .totals-row-main td:first-child {
+            color: #eee;
+        }
+        body.dark-mode .totals-row-main td {
+            border-bottom-color: #444;
+        }
+        body.dark-mode .totals-row-sub-last td {
+            border-bottom-color: #444;
+        }
+        body.dark-mode .totals-row-sub td {
+            color: #aaa;
+        }
+        body.dark-mode .totals-row-sub td:last-child {
+            color: #ccc;
+        }
+        body.dark-mode .grand-total-sub {
+            color: #5dd879;
+        }
+        body.dark-mode .grand-total-sub span {
+            color: #5dd879;
+        }
+        body.dark-mode .day-jump-link {
+            color: #6db3f8;
+            border-bottom-color: #6db3f8;
         }
         body.dark-mode h3,
         body.dark-mode label {

@@ -17,10 +17,7 @@ document.body.innerHTML = `
       </button>
   </div>
   <div id="readingsList"></div>
-  <span id="readingCount">0</span>
-  <span id="baseTotal">0.00</span>
-  <span id="tipsTotal">0.00</span>
-  <span id="grandTotal">0.00</span>
+  <div id="totalsContent"></div>
   <div id="hamburger-end-session"></div>
   <div id="hamburger-overlay" style="display: none;"></div>
   <div id="hamburger-menu" style="display: none;"></div>
