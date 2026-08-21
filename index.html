@@ -7,7 +7,7 @@
       http-equiv="Cache-Control"
       content="no-cache, no-store, must-revalidate"
     />
-    <meta http-equiv="version" content="v4.7.3" />
+    <meta http-equiv="version" content="v4.7.4" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#2d1b3e" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -181,6 +181,10 @@
         </button>
       </div>
 
+      <button class="btn-jump-timer" onclick="document.getElementById('container-timer').scrollIntoView({behavior:'smooth',block:'start'})">
+        <i class="fas fa-stopwatch"></i> Jump to Timer
+      </button>
+
       <div id="session-bar" class="session-bar">
         <div class="session-bar-main">
           <span id="session-bar-location" class="session-bar-location no-session"
@@ -210,6 +214,10 @@
         </div>
       </div>
 
+      <div id="container-readings-totals" class="totals">
+        <div id="totalsContent"></div>
+      </div>
+
       <div id="container-readings-buttons" class="buttons">
         <button
           id="btn-readings-add"
@@ -223,12 +231,8 @@
           class="btn-remove btn btn-danger btn-large"
           onclick="readingsManager.removeReading()"
         >
-          -
+          Delete Last Reading
         </button>
-      </div>
-
-      <div id="container-readings-totals" class="totals">
-        <div id="totalsContent"></div>
       </div>
 
       <div id="container-readings-list" class="readings-list">

@@ -5,7 +5,7 @@ description: Core development rules, deployment commands, data structures, and t
 
 # Development Rules
 
-## Version: v4.7.3
+## Version: v4.7.4
 
 CRITICAL: Bump version on EVERY code change (cache-busting). Update version in: index.html, README.md, and this file.
 
