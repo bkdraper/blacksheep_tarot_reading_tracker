@@ -32,6 +32,7 @@ const readingFilterMap = {
   time_of_day: (q, v) => q.eq('time_of_day', v),
   day_of_week: (q, v) => { const dow = dayMap[v.toLowerCase()]; return dow !== undefined ? q.eq('day_of_week_num', dow) : q; },
   session_duration_days: (q, v) => q.eq('session_duration_days', v),
+  label: (q, v) => q.ilike('label', `%${v}%`),
 };
 
 export class TarotTrackerMCPServer {
@@ -65,7 +66,7 @@ export class TarotTrackerMCPServer {
           properties: {
             user_name: { type: 'string', description: 'User name' },
             user_id: { type: 'string', description: 'User UUID (preferred over user_name)' },
-            search_by: { type: 'string', description: 'JSON object with field:value pairs. Available fields: location, payment, source, start_date, end_date, min_tip, max_tip, time_of_day (morning/afternoon/evening), day_of_week (sunday-saturday), session_duration_days' },
+            search_by: { type: 'string', description: 'JSON object with field:value pairs. Available fields: location, payment, source, start_date, end_date, min_tip, max_tip, time_of_day (morning/afternoon/evening), day_of_week (sunday-saturday), session_duration_days, label' },
             start_date: { type: 'string', description: 'Start date (YYYY-MM-DD)' },
             end_date: { type: 'string', description: 'End date (YYYY-MM-DD)' },
             location: { type: 'string', description: 'Location filter (partial match)' },
@@ -112,8 +113,8 @@ export class TarotTrackerMCPServer {
           type: 'object',
           properties: {
             user_id: { type: 'string', description: 'User UUID' },
-            search_by: { type: 'string', description: 'JSON with filters: location, start_date, end_date, day_of_week, payment, source, time_of_day, format, session_duration_days' },
-            group_by: { type: 'string', description: 'Group results by: day_of_week, location, date, payment, source, time_of_day, format' }
+            search_by: { type: 'string', description: 'JSON with filters: location, start_date, end_date, day_of_week, payment, source, time_of_day, format, session_duration_days, label' },
+            group_by: { type: 'string', description: 'Group results by: day_of_week, location, date, payment, source, time_of_day, format, label' }
           },
           required: ['user_id']
         }

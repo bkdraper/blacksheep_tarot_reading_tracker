@@ -318,6 +318,138 @@
         }
 
         /* ========================================
+           SESSION CONTEXT MENU
+           ======================================== */
+        .session-context-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 2000;
+            overflow: hidden;
+            min-width: 160px;
+        }
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+            text-align: left;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+        .context-menu-item:active {
+            background: #f5f5f5;
+        }
+        .context-menu-danger {
+            color: #e53935;
+        }
+
+        /* ========================================
+           CONFIRM DELETE DIALOG
+           ======================================== */
+        .confirm-dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .confirm-dialog-overlay.visible {
+            opacity: 1;
+        }
+        .confirm-dialog {
+            background: white;
+            border-radius: 16px;
+            padding: 28px 24px 20px;
+            width: 85%;
+            max-width: 320px;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.2s ease;
+        }
+        .confirm-dialog-overlay.visible .confirm-dialog {
+            transform: scale(1);
+        }
+        .confirm-dialog-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #fce4ec;
+            color: #e53935;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 20px;
+        }
+        .confirm-dialog-title {
+            margin: 0 0 8px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        .confirm-dialog-message {
+            margin: 0 0 4px;
+            font-size: 14px;
+            color: #555;
+            line-height: 1.4;
+        }
+        .confirm-dialog-date {
+            color: #888;
+            font-size: 13px;
+        }
+        .confirm-dialog-warning {
+            margin: 8px 0 20px;
+            font-size: 12px;
+            color: #999;
+        }
+        .confirm-dialog-actions {
+            display: flex;
+            gap: 12px;
+        }
+        .confirm-dialog-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+        .confirm-dialog-cancel {
+            background: #f5f5f5;
+            color: #333;
+        }
+        .confirm-dialog-cancel:active {
+            background: #e8e8e8;
+        }
+        .confirm-dialog-delete {
+            background: #e53935;
+            color: white;
+        }
+        .confirm-dialog-delete:active {
+            background: #c62828;
+        }
+
+        /* ========================================
            HAMBURGER MENU
            ======================================== */
         .hamburger-btn {
@@ -489,14 +621,38 @@
         }
         .reading-item { 
             display: flex; 
-            align-items: flex-start; 
-            gap: 15px;
-            padding: 15px 0; 
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px 0; 
             border-bottom: 2px solid #ddd; 
-            min-height: 50px;
         }
         .reading-item:last-child { 
             border-bottom: none; 
+        }
+        .reading-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #eee;
+        }
+        .reading-header .delete-btn {
+            margin-left: auto;
+        }
+        .reading-header-text {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+        .reading-header-text .index {
+            font-weight: bold;
+            color: #999;
+        }
+        .reading-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-left: 0;
         }
         .reading-day-separator {
             text-align: center;
@@ -513,18 +669,6 @@
             border-top: none;
             margin-top: 0;
         }
-        .reading-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 120px;
-        }
-        .reading-right {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
         .reading-field {
             display: flex;
             align-items: center;
@@ -536,8 +680,6 @@
             min-width: 45px;
             font-weight: 500;
         }
-        .index { font-size: 14px; color: #999; font-weight: bold; }
-        .timestamp { font-size: 15px; color: #666; }
         .tip-input { 
             width: 80px !important; 
             padding: 8px 6px 8px 25px !important; 
@@ -563,6 +705,16 @@
             appearance: none !important;
             box-sizing: border-box !important;
             min-height: 36px !important;
+        }
+        .label-input {
+            flex: 1;
+            padding: 8px 10px;
+            font-size: 14px;
+            border: 2px solid #ccc;
+            background-color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
+            min-height: 44px;
         }
         .field-input-container {
             position: relative;
@@ -857,6 +1009,25 @@
             transition: all 0.2s;
         }
         .format-toggle-btn.active {
+            border-color: #28a745;
+            background: #e8f5e9;
+            font-weight: 600;
+        }
+        .type-toggle {
+            display: flex;
+            gap: 8px;
+        }
+        .type-toggle-btn {
+            padding: 8px 14px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            background: white;
+            font-size: 16px;
+            min-height: 44px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .type-toggle-btn.active {
             border-color: #28a745;
             background: #e8f5e9;
             font-weight: 600;
@@ -1286,14 +1457,16 @@
         }
         body.dark-mode .preset-btn,
         body.dark-mode .source-toggle-btn,
-        body.dark-mode .format-toggle-btn {
+        body.dark-mode .format-toggle-btn,
+        body.dark-mode .type-toggle-btn {
             background: #3d3d3d;
             color: #ffffff;
             border-color: #555;
         }
         body.dark-mode .preset-btn.active,
         body.dark-mode .source-toggle-btn.active,
-        body.dark-mode .format-toggle-btn.active {
+        body.dark-mode .format-toggle-btn.active,
+        body.dark-mode .type-toggle-btn.active {
             border-color: #28a745;
             background: #1a4d2e;
         }
@@ -1309,6 +1482,51 @@
         }
         body.dark-mode .session-bar-edit:active {
             background: rgba(255,255,255,0.1);
+        }
+        body.dark-mode .session-context-menu {
+            background: #2d2d2d;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        body.dark-mode .context-menu-item {
+            color: #e0e0e0;
+        }
+        body.dark-mode .context-menu-item:active {
+            background: #3d3d3d;
+        }
+        body.dark-mode .context-menu-danger {
+            color: #ef5350;
+        }
+        body.dark-mode .confirm-dialog {
+            background: #2d2d2d;
+        }
+        body.dark-mode .confirm-dialog-icon {
+            background: #3d1a1a;
+            color: #ef5350;
+        }
+        body.dark-mode .confirm-dialog-title {
+            color: #ffffff;
+        }
+        body.dark-mode .confirm-dialog-message {
+            color: #cccccc;
+        }
+        body.dark-mode .confirm-dialog-date {
+            color: #999;
+        }
+        body.dark-mode .confirm-dialog-warning {
+            color: #777;
+        }
+        body.dark-mode .confirm-dialog-cancel {
+            background: #3d3d3d;
+            color: #e0e0e0;
+        }
+        body.dark-mode .confirm-dialog-cancel:active {
+            background: #4d4d4d;
+        }
+        body.dark-mode .confirm-dialog-delete {
+            background: #d32f2f;
+        }
+        body.dark-mode .confirm-dialog-delete:active {
+            background: #b71c1c;
         }
         body.dark-mode .session-sheet-content {
             background: #1a1a1a;

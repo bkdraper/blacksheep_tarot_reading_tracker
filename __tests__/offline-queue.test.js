@@ -443,6 +443,77 @@ describe('OfflineQueue', () => {
         });
     });
 
+    describe('flush — new operation payloads (soft delete, type change, label)', () => {
+        let mockUpdate;
+        let mockEq;
+
+        beforeEach(() => {
+            mockEq = jest.fn(() => Promise.resolve({ data: null, error: null }));
+            mockUpdate = jest.fn(() => ({ eq: mockEq }));
+            global.supabaseClient = {
+                from: jest.fn(() => ({
+                    insert: jest.fn(() => ({
+                        select: jest.fn(() => Promise.resolve({ data: [{ id: 'new-id' }], error: null }))
+                    })),
+                    update: mockUpdate,
+                    delete: jest.fn(() => ({
+                        eq: jest.fn(() => Promise.resolve({ data: null, error: null }))
+                    }))
+                }))
+            };
+            Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        });
+
+        test('update_session with { deleted_at } payload flushes correctly', async () => {
+            const deletedAt = '2026-07-10T14:30:00.000';
+            queue.enqueue({
+                type: 'update_session',
+                createdAt: new Date().toISOString(),
+                sessionId: 'sess-to-delete',
+                payload: { deleted_at: deletedAt }
+            });
+
+            await queue.flush();
+
+            expect(queue.count()).toBe(0);
+            expect(supabaseClient.from).toHaveBeenCalledWith('blacksheep_reading_tracker_sessions');
+            expect(mockUpdate).toHaveBeenCalledWith({ deleted_at: deletedAt });
+            expect(mockEq).toHaveBeenCalledWith('id', 'sess-to-delete');
+        });
+
+        test('update_session with { type } payload flushes correctly', async () => {
+            queue.enqueue({
+                type: 'update_session',
+                createdAt: new Date().toISOString(),
+                sessionId: 'sess-type-change',
+                payload: { type: 'private' }
+            });
+
+            await queue.flush();
+
+            expect(queue.count()).toBe(0);
+            expect(supabaseClient.from).toHaveBeenCalledWith('blacksheep_reading_tracker_sessions');
+            expect(mockUpdate).toHaveBeenCalledWith({ type: 'private' });
+            expect(mockEq).toHaveBeenCalledWith('id', 'sess-type-change');
+        });
+
+        test('update_reading with { field: "label", value } payload flushes correctly', async () => {
+            queue.enqueue({
+                type: 'update_reading',
+                createdAt: new Date().toISOString(),
+                readingId: 'reading-label-1',
+                payload: { field: 'label', value: 'Sarah' }
+            });
+
+            await queue.flush();
+
+            expect(queue.count()).toBe(0);
+            expect(supabaseClient.from).toHaveBeenCalledWith('blacksheep_reading_tracker_readings');
+            expect(mockUpdate).toHaveBeenCalledWith({ label: 'Sarah' });
+            expect(mockEq).toHaveBeenCalledWith('id', 'reading-label-1');
+        });
+    });
+
     describe('user isolation', () => {
         test('switching userId loads independent queue', () => {
             const user1Queue = [makeInsertMessage({ sessionId: 'user1-sess' })];

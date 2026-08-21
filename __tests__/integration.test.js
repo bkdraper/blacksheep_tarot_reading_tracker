@@ -123,22 +123,6 @@ describe('Integration: index.html + session-store.js', () => {
 
 
 
-  describe('Global Function Calls', () => {
-    test('should call window.offlineQueue.enqueue with update_session message on save error', async () => {
-      global.supabaseClient.from = jest.fn(() => ({
-        update: jest.fn(() => ({ 
-          eq: jest.fn(() => Promise.reject(new Error('Network error')))
-        }))
-      }));
-      session._sessionId = 'test-id';
-      global.window.offlineQueue.enqueue.mockClear();
-      await session.save();
-      expect(global.window.offlineQueue.enqueue).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'update_session', sessionId: 'test-id' })
-      );
-    });
-  });
-
   describe('User Selection Functions (onclick handlers)', () => {
     beforeEach(() => {
       global.showSheet = jest.fn();
@@ -331,9 +315,12 @@ describe('Integration: index.html + readings-manager.js', () => {
     });
 
     test('deleteReading should prompt and remove specific reading', async () => {
-      global.confirm = jest.fn(() => true);
       await session.addReading({ timestamp: new Date().toISOString(), tip: 5, price: 40 });
       readingsManager.deleteReading(0);
+      await new Promise(r => setTimeout(r, 0));
+      // Click the delete button in the confirm dialog
+      const deleteBtn = document.querySelector('.confirm-dialog-delete');
+      deleteBtn.click();
       await new Promise(r => setTimeout(r, 0));
       expect(session.readings.length).toBe(0);
     });

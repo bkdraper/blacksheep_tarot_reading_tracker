@@ -14,7 +14,7 @@
 - AI assistant "Gpsy" (ChatGPSY) for data queries via Bedrock Agent
 - PWA installable on mobile devices
 - Pure vanilla JS — no frameworks, keeping it simple and fast
-- Currently at v4.6.8 with 493 passing tests across 15 suites
+- Currently at v4.7.0 with 537 passing tests across 18 suites
 
 ## Development Team
 
@@ -48,6 +48,7 @@ Despite SSE infrastructure, Bedrock Agent buffers the entire response and sends 
 - **Lambda**: You zip locally, Kiro/Q runs AWS CLI commands. Zip doesn't work in Kiro's shell.
 - **Frontend**: Manual zip upload to AWS Amplify console (NOT git-connected).
 - **Bedrock System Prompt**: Manual copy/paste to AWS console from `mcp-server/bedrock-agent-system-prompt.txt`.
+- **Bedrock Action Group**: Manual per-tool edit in AWS console. No bulk upload. 500-char limit on parameter descriptions. `action-group-schema.json` is a local reference file only.
 
 ### Pain Points Solved
 - Timezone hell: Reading timestamps now stored as local clock time (`timestamp without time zone`). No more UTC→local conversion nightmares. Display the stored value directly.
@@ -125,10 +126,33 @@ Despite SSE infrastructure, Bedrock Agent buffers the entire response and sends 
 - **Architecture:** DB function `calculate_reading_stats(p_user_id uuid, p_filters jsonb, p_group_by text)` → JSONB. Queries `readings_with_context` view. Returns overall stats + optional per-group breakdown sorted by earnings desc.
 - **Lambda:** Pure passthrough — parses `search_by` JSON, calls RPC, returns result as-is. Zero arithmetic.
 - **System prompt:** Explicit arithmetic ban + tool routing table. Agent MUST call calculate_stats for any numeric question.
-- **Filters available:** location, start_date, end_date, day_of_week, payment, source, time_of_day, format, session_duration_days.
-- **group_by values:** day_of_week, location, date, payment, source, time_of_day, format.
+- **Filters available:** location, start_date, end_date, day_of_week, payment, source, time_of_day, format, session_duration_days, label.
+- **group_by values:** day_of_week, location, date, payment, source, time_of_day, format, label.
 - **Principle:** Math belongs in Postgres. Lambda is a passthrough. LLM is a narrator.
 - **Deployed v4.6.8:** Lambda live, Bedrock Agent updated, smoke-tested with 13+ live queries — all returning exact DB numbers.
+
+### Session Persistence Architecture (v4.7.0 — refactored)
+- **Session-level setters are pure store + UI.** They do NOT call the database. No `save()`, no `debouncedSave()`. Those methods were removed entirely as dead code.
+- **`saveSessionSheet()` is the single DB persistence point** for session values. Triggered only by the Save button.
+- **The session edit sheet is a pure input collector.** Type toggle, format selector, etc. update sheet-local state (`_sheetType`, `_sheetSelectedFormat`). Nothing touches `this._type` or `this._format` until Save is clicked.
+- **Reading-level methods persist immediately.** `addReading()`, `removeReading()`, `updateReading()` each do their own INSERT/UPDATE/DELETE on the readings table in real-time.
+- **Removed dead code:** `save()`, `debouncedSave()`, `createSession()`, `handleCreateSession()` — all from a pre-sheet-era design. Do not recreate.
+- **Why this matters:** AI assistants kept adding DB calls to setters or the type toggle. The rule is: session sheet = input collector, Save button = persist. Nothing else writes session values.
+
+### Reading Labels & Session Management (v4.7.0)
+- **Reading `label` column** — nullable text on `blacksheep_reading_tracker_readings`. Client name for private session readings.
+- **Label defaults to session location** on new private readings (single-client session = zero taps).
+- **Session soft delete** — `deleted_at` timestamp column on sessions. Views/functions exclude `WHERE deleted_at IS NULL`.
+- **Session type change** — event↔private post-creation. Invalid format cleared to NULL on type switch.
+- **Format validation rules**: event = ['Expo', 'Shop', 'Party'], private = ['In-Person', 'Phone']. Type change invalidates format if not in the new type's list.
+- **3-dot context menu** replaced session bar pencil icon. Contains "Edit Session" and "Delete Session".
+- **Soft delete offline fallback** — enqueues `update_session` with `{ deleted_at }` payload, calls `startOver()` locally.
+- **MCP tools updated** — `list_readings_v2` and `calculate_stats` support `label` filter (ILIKE). `calculate_stats` supports `group_by: 'label'`.
+- **Bedrock Agent action group** — manual update in console. Tool descriptions have 500-char limit on parameter descriptions. Shortened syntax (slashes, no "Available fields:" prefix) to fit.
+- **`readings_with_context` view** now includes `r.label` and `WHERE s.deleted_at IS NULL`.
+- **`session_summaries` view** now has `WHERE s.deleted_at IS NULL`.
+- **`get_session_with_readings` function** returns `label` in reading objects.
+- **`calculate_reading_stats` function** supports `label` filter (ILIKE) and `group_by: 'label'`.
 
 ## Environment Notes
 
@@ -152,7 +176,6 @@ The following steering docs are available:
 - `development-rules.md` (auto) — always-on rules, deployment commands, data structures
 - `architecture.md` (fileMatch) — loads when working on modules/, mcp-server/, index.html
 - `roadmap.md` (manual) — #Roadmap to see feature progress and priorities
-- `session-ux-spec.md` (manual) — #SessionUXSpec for the session redesign plan
 
 ## Project Docs (in /docs)
 - `README.md` — User-facing guide and quick start
@@ -162,5 +185,5 @@ The following steering docs are available:
 - `SESSION-UX-SPEC.md` — Original session UX brainstorm
 
 ## Last Updated
-- Date: July 5, 2026
-- Version: v4.6.8
+- Date: August 20, 2026
+- Version: v4.7.0

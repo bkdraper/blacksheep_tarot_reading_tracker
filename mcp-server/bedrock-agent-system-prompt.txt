@@ -87,7 +87,8 @@ No results with location filter: {no_results: true, searched_for: "original term
 </returns>
 <parameters>
 <param name="user_id" required="true">UUID from current_user_id session attribute</param>
-<param name="search_by" required="false">JSON string with field:value pairs. Available fields: location (partial match, case-insensitive, use short keywords like "denver"), payment (cash, cc, venmo, paypal, cashapp), source (referral, renu, pog, repeat), start_date (YYYY-MM-DD, filters on reading_date), end_date (YYYY-MM-DD, filters on reading_date), min_tip (number), max_tip (number), time_of_day (morning, afternoon, evening), day_of_week (sunday|monday|tuesday|wednesday|thursday|friday|saturday), session_duration_days (integer).</param>
+<param name="label">Client name/label for the reading — only populated for private sessions. Partial match, case-insensitive.</param>
+<param name="search_by" required="false">JSON string with field:value pairs. Available fields: location (partial match, case-insensitive, use short keywords like "denver"), payment (cash, cc, venmo, paypal, cashapp), source (referral, renu, pog, repeat), start_date (YYYY-MM-DD, filters on reading_date), end_date (YYYY-MM-DD, filters on reading_date), min_tip (number), max_tip (number), time_of_day (morning, afternoon, evening), day_of_week (sunday|monday|tuesday|wednesday|thursday|friday|saturday), session_duration_days (integer), label (partial match on client name).</param>
 <param name="limit" required="false">Max readings to return. Omit to get all.</param>
 </parameters>
 <search_by_examples>
@@ -117,8 +118,8 @@ No data: { message: "No readings found matching those filters." }
 </returns>
 <parameters>
 <param name="user_id" required="true">UUID from context. Pass this ALWAYS.</param>
-<param name="search_by" required="false">JSON string with field:value filter pairs. Available fields: location (partial match, case-insensitive), start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), day_of_week (friday, saturday, etc.), payment (cash, cc, venmo, paypal, cashapp), source (referral, renu, pog, repeat), time_of_day (morning, afternoon, evening), format (expo, shop, party, phone, in-person), session_duration_days (integer)</param>
-<param name="group_by" required="false">Split results into groups for comparison. Valid values: day_of_week, location, date, payment, source, time_of_day, format</param>
+<param name="search_by" required="false">JSON string with field:value filter pairs. Available fields: location (partial match, case-insensitive), start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), day_of_week (friday, saturday, etc.), payment (cash, cc, venmo, paypal, cashapp), source (referral, renu, pog, repeat), time_of_day (morning, afternoon, evening), format (expo, shop, party, phone, in-person), session_duration_days (integer), label (partial match on client name)</param>
+<param name="group_by" required="false">Split results into groups for comparison. Valid values: day_of_week, location, date, payment, source, time_of_day, format, label</param>
 </parameters>
 <examples>
 "How was Friday?" → search_by: {"day_of_week": "friday"}
@@ -160,6 +161,15 @@ Sessions have a "format" field (Expo, Shop, Party, Phone, In-Person, Fair, Conve
 For numeric questions about formats ("how did expos do?") → calculate_stats with format filter.
 For listing sessions of a format ("show me my expos") → list_sessions_v2 with format filter.
 </format_awareness>
+
+<label_awareness>
+Private session readings have an optional `label` field containing the client name (who the reading was for).
+Event session readings typically have no label. Use label filter when the user asks about a specific client:
+- "How much did Sarah tip?" → calculate_stats with search_by: {"label": "sarah"}
+- "Show readings for John" → list_readings_v2 with search_by: {"label": "john"}
+- "Client breakdown" → calculate_stats with group_by: "label"
+Session type can be changed after creation. Queries always return the current type.
+</label_awareness>
 
 <date_handling>
 - "today" = current_date for both start/end. "this week" = Mon-Sun. "this month" = first-last of month.

@@ -68,8 +68,8 @@ All share the same tool definitions in `server.js`. Only difference is response 
 ## Database Schema
 
 ### Tables
-- `blacksheep_reading_tracker_sessions` — id (uuid PK), session_date (date), location (text), selected_day (text, legacy/deprecated), reading_price (numeric), readings (jsonb, legacy, no longer written), user_name (text NOT NULL), user_id (uuid), created_at, updated_at
-- `blacksheep_reading_tracker_readings` — id (uuid PK), session_id (uuid FK), timestamp (timestamptz NOT NULL), tip (numeric, default 0), price (numeric, nullable), payment (text), source (text), created_at. Indexes: session_id, timestamp, LOWER(payment), LOWER(source)
+- `blacksheep_reading_tracker_sessions` — id (uuid PK), session_date (date), start_date (date), end_date (date), location (text), selected_day (text, legacy/deprecated), reading_price (numeric), readings (jsonb, legacy, no longer written), user_name (text NOT NULL), user_id (uuid), type (text, 'event'|'private'), format (text, nullable), deleted_at (timestamp without time zone, nullable — soft delete), created_at, updated_at
+- `blacksheep_reading_tracker_readings` — id (uuid PK), session_id (uuid FK), timestamp (timestamp without time zone NOT NULL), tz_offset (integer), tip (numeric, default 0), price (numeric, nullable), payment (text), source (text), label (text, nullable — client name for private sessions), created_at. Indexes: session_id, timestamp, LOWER(payment), LOWER(source)
 - `blacksheep_reading_tracker_user_profiles` — user_id (uuid PK), role (text, default 'user'), user_name (text), created_at
 
 ### Indexes (notable)
@@ -85,14 +85,14 @@ All share the same tool definitions in `server.js`. Only difference is response 
 - `pgcrypto` — cryptographic functions
 
 ### Views
-- `session_summaries` — sessions LEFT JOIN readings, pre-aggregates: readings_count, base_total, tips_total, total_earnings, avg_tip, avg_price, first_reading_time, last_reading_time, day_of_week_num (EXTRACT dow), day_of_week_name (trimmed). Grouped by session.
-- `readings_with_context` — readings INNER JOIN sessions, includes: reading_price, session_default_price, effective_price (COALESCE reading/session), total_earnings, location, user_name, user_id, hour_local_et (AT TIME ZONE 'America/New_York'), time_of_day_et (morning/afternoon/evening), day_of_week_num, day_of_week_name
+- `session_summaries` — sessions LEFT JOIN readings, pre-aggregates: readings_count, base_total, tips_total, total_earnings, avg_tip, avg_price, first_reading_time, last_reading_time, day_of_week_num (EXTRACT dow), day_of_week_name (trimmed). Grouped by session. Excludes soft-deleted sessions (WHERE deleted_at IS NULL).
+- `readings_with_context` — readings INNER JOIN sessions, includes: reading_price, session_default_price, effective_price (COALESCE reading/session), total_earnings, location, user_name, user_id, label, hour_local (EXTRACT hour FROM timestamp), time_of_day (morning/afternoon/evening), day_of_week_num, day_of_week_name, session_duration_days. Excludes readings from soft-deleted sessions (WHERE s.deleted_at IS NULL).
 
 ### Functions
-- `get_session_with_readings(session_uuid uuid)` → json — complete session + all readings in one RPC
-- `get_user_summary(p_user_name text, p_start_date date, p_end_date date)` → json — aggregate stats (original overload)
-- `get_user_summary(p_user_name text, p_start_date date, p_end_date date, p_user_id uuid)` → json — aggregate stats with user_id support (preferred overload)
-- `calculate_reading_stats(p_user_id uuid, p_filters jsonb DEFAULT '{}', p_group_by text DEFAULT NULL)` → jsonb — pre-computed aggregates (reading_count, total_earnings, total_tips, total_base, avg_tip, avg_price, min_tip, max_tip, busiest_hour, busiest_time_of_day). Supports group_by (day_of_week, location, date, payment, source, time_of_day, format). Returns `{"error":"no_data"}` when no readings match.
+- `get_session_with_readings(session_uuid uuid)` → json — complete session + all readings (including label) in one RPC
+- `get_user_summary(p_user_name text, p_start_date date, p_end_date date)` → json — aggregate stats (original overload). Excludes soft-deleted sessions.
+- `get_user_summary(p_user_name text, p_start_date date, p_end_date date, p_user_id uuid)` → json — aggregate stats with user_id support (preferred overload). Excludes soft-deleted sessions.
+- `calculate_reading_stats(p_user_id uuid, p_filters jsonb DEFAULT '{}', p_group_by text DEFAULT NULL)` → jsonb — pre-computed aggregates (reading_count, total_earnings, total_tips, total_base, avg_tip, avg_price, min_tip, max_tip, busiest_hour, busiest_time_of_day). Supports filters: location, start_date, end_date, day_of_week, payment, source, time_of_day, format, session_duration_days, label (ILIKE). Supports group_by: day_of_week, location, date, payment, source, time_of_day, format, label. Returns `{"error":"no_data"}` when no readings match. Automatically excludes soft-deleted sessions via readings_with_context view.
 - `search_locations_fuzzy(p_user_name text, p_search_term text, p_limit int, p_threshold real, p_user_id uuid)` → TABLE(location text, sim real) — trigram fuzzy location search fallback. Uses `pg_trgm` similarity + first-word ILIKE. Normalizes year formats (2025 → 25).
 
 ## MCP Server Tools (v2, active)
@@ -101,7 +101,7 @@ All share the same tool definitions in `server.js`. Only difference is response 
 2. **list_readings_v2** — queries `readings_with_context` view (full filter support: payment, source, date, tip range, time_of_day)
 3. **get_session_details_v2** — calls `get_session_with_readings()` RPC
 4. **get_user_summary_v2** — calls `get_user_summary()` RPC
-5. **calculate_stats** — calls `calculate_reading_stats()` RPC. All arithmetic happens in Postgres. Supports filters (search_by JSON) and group_by for comparisons. Agent MUST use this for any numeric question.
+5. **calculate_stats** — calls `calculate_reading_stats()` RPC. All arithmetic happens in Postgres. Supports filters (search_by JSON including label) and group_by (including label) for comparisons. Agent MUST use this for any numeric question.
 
 Legacy tools (list_sessions, list_readings, search_locations, aggregate_readings) still in server.js but not used by Bedrock Agent.
 
@@ -121,8 +121,7 @@ Legacy tools (list_sessions, list_readings, search_locations, aggregate_readings
 ## Supabase Connection
 - URL: `https://uuindvqgdblkjzvjsyrz.supabase.co`
 - Auth: Google OAuth provider
-- 2 registered users (Kelly Draper = admin, Amanda Madden = user)
-- Data: 53 sessions, 377 readings
+- Data: 38+ sessions, 493+ readings (2 registered users: Kelly Draper = admin, Amanda Madden = user)
 
 ### Auth Configuration
 - Provider: Google OAuth
@@ -222,6 +221,12 @@ None on app tables.
 - A sign error in `interval '-7 hours' * -1` corrupted all timestamps. Use `interval '1 hour' * offset`.
 - Always test SQL math on one row first. Never modify production directly.
 - Copy → temp table → validate → promote affected rows only.
+
+### Bedrock Agent Action Group — Manual Console Update (v4.7.0)
+- Action group tool definitions are NOT deployed via Lambda or any automated process. They are manually edited in the AWS Bedrock console.
+- Parameter descriptions have a **500-character limit**. Use shorthand (slashes instead of pipes, drop "Available fields:" prefix, remove examples) when descriptions get long.
+- There is no bulk JSON upload — each tool is edited individually in the console UI.
+- File `mcp-server/action-group-schema.json` is a local reference copy only. It is NOT read by any AWS service.
 
 ### Delta Reconciliation During Migrations
 - Amanda adds readings while you're migrating. Record snapshot timestamp, fix anything with `created_at > snapshot_time`.

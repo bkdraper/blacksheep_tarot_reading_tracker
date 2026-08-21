@@ -4,7 +4,7 @@ inclusion: manual
 
 # Development Roadmap
 
-## Current Version: v4.0.1
+## Current Version: v4.7.0
 
 ## Completed Phases
 

@@ -81,7 +81,7 @@ Three related capabilities bundled into one release: (1) optional name/label on 
 3. WHEN the user confirms deletion via the dialog confirm button, THE Session_Store SHALL update the session's `deleted_at` column via Supabase
 4. WHEN the soft-delete update succeeds, THE Session_Store SHALL call `startOver()` to return to the no-session state
 5. WHEN the soft-delete update fails due to network error, THE Session_Store SHALL keep the user in the current session and display an error message
-6. THE delete action SHALL be accessible from either the session edit sheet or the hamburger menu
+6. THE session bar SHALL display a 3-dot context menu icon (replacing the pencil edit button) that opens a dropdown containing "Edit Session" and "Delete Session" actions; THE delete action SHALL only be accessible from this session bar context menu
 7. WHEN viewing the load-session list, THE frontend SHALL NOT display sessions where `deleted_at` is not NULL
 
 ### Requirement 6: Session Type Change — Database and Views

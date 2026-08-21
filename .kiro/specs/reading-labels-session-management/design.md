@@ -341,8 +341,11 @@ confirmDeleteSession() {
 
 #### Access Points
 
-1. **Session edit sheet** — Delete button at bottom of edit form
-2. **Hamburger menu** — "Delete Session" option (only visible when session is active)
+1. **Session bar 3-dot menu** — The session bar pencil icon is replaced with a `fa-ellipsis-vertical` (⋮) icon. Tapping it opens a small dropdown/popover with:
+   - ✏️ Edit Session — opens the session edit sheet (same as current pencil behavior)
+   - 🗑️ Delete Session — triggers `confirmDeleteSession()`
+
+The dropdown closes on outside click or after an action is selected. This pattern is extensible for future session-level actions.
 
 ### Frontend: Type Change UI
 

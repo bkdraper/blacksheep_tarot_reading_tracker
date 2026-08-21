@@ -138,46 +138,6 @@ describe('SessionStore', () => {
       session._sessionId = 'test-id';
       expect(session.sessionPhase).toBe('ACTIVE');
     });
-
-    test('should create session and set sessionId', async () => {
-      session._location = 'Test Location';
-      session._startDate = '2025-01-15';
-      session._endDate = '2025-01-15';
-      session._price = 40;
-
-      await session.createSession();
-
-      expect(session.sessionId).toBe('mock-id');
-      expect(session.sessionPhase).toBe('ACTIVE');
-    });
-
-    test('should not include readings in session insert', async () => {
-      session._location = 'Test Location';
-      session._startDate = '2025-01-15';
-      session._endDate = '2025-01-15';
-      session._price = 40;
-
-      await session.createSession();
-
-      const insertCall = global.supabaseClient.from.mock.calls
-        .find(c => c[0] === 'blacksheep_reading_tracker_sessions');
-      expect(insertCall).toBeTruthy();
-    });
-
-    test('should show buttons after creating session', async () => {
-      session._location = 'Test Location';
-      session._startDate = '2025-01-15';
-      session._endDate = '2025-01-15';
-      session._price = 40;
-      session.updateUI();
-      expect(document.querySelector('.buttons').style.display).toBe('none');
-
-      await session.createSession();
-
-      expect(document.querySelector('.buttons').style.display).toBe('flex');
-      expect(document.querySelector('.btn-create-session').style.display).toBe('none');
-      expect(document.querySelector('.btn-new-session').style.display).toBe('block');
-    });
   });
 
   describe('Reading Management', () => {
@@ -359,82 +319,6 @@ describe('SessionStore', () => {
 
 
 
-  describe('Save - Session Metadata Only', () => {
-    test('should update session without readings JSONB', async () => {
-      const updateMock = jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) }));
-      global.supabaseClient.from.mockImplementation(() => ({ update: updateMock }));
-
-      session._sessionId = 'test-id';
-      session._location = 'Test Location';
-      session._startDate = '2025-01-15';
-      session._endDate = '2025-01-15';
-
-      await session.save();
-
-      const updateData = updateMock.mock.calls[0][0];
-      expect(updateData.location).toBe('Test Location');
-      expect(updateData.readings).toBeUndefined();
-    });
-
-    test('should not include empty start_date in update', async () => {
-      const updateMock = jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) }));
-      global.supabaseClient.from.mockImplementation(() => ({ update: updateMock }));
-
-      session._sessionId = 'test-id';
-      session._startDate = '';
-      session._endDate = '';
-
-      await session.save();
-
-      const updateData = updateMock.mock.calls[0][0];
-      expect(updateData.start_date).toBeUndefined();
-      expect(updateData.end_date).toBeUndefined();
-      expect(updateData.session_date).toBeUndefined();
-    });
-
-    test('should not save without userId', async () => {
-      const savedAuth = global.window.auth;
-      global.window.auth = null;
-      await session.save();
-      expect(global.supabaseClient.from).not.toHaveBeenCalled();
-      global.window.auth = savedAuth;
-    });
-
-    test('should not save during loading', async () => {
-      session._loading = true;
-      await session.save();
-      expect(global.supabaseClient.from).not.toHaveBeenCalled();
-    });
-
-    test('should enqueue update_session message on save error', async () => {
-      global.supabaseClient.from.mockImplementation(() => ({
-        update: jest.fn(() => ({ eq: jest.fn(() => Promise.reject(new Error('Network error'))) }))
-      }));
-
-      session._sessionId = 'test-id';
-      session._location = 'Test Location';
-      session._startDate = '2025-01-15';
-      session._endDate = '2025-01-15';
-      session._price = 40;
-      await session.save();
-
-      expect(window.offlineQueue.enqueue).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'update_session',
-          sessionId: 'test-id',
-          payload: expect.objectContaining({
-            location: 'Test Location',
-            start_date: '2025-01-15',
-            end_date: '2025-01-15',
-            session_date: '2025-01-15',
-            reading_price: 40
-          })
-        })
-      );
-      expect(window.offlineQueue.enqueue.mock.calls[0][0].createdAt).toBeDefined();
-    });
-  });
-
   describe('loadExistingSession', () => {
     test('should load readings from normalized table', async () => {
       const mockReadings = [
@@ -594,20 +478,6 @@ describe('SessionStore', () => {
     });
   });
 
-  describe('Debounced Save', () => {
-    beforeEach(() => { jest.useFakeTimers(); });
-    afterEach(() => { jest.useRealTimers(); });
-
-    test('should debounce save calls', () => {
-      const saveSpy = jest.spyOn(session, 'save');
-      session.debouncedSave();
-      session.debouncedSave();
-      session.debouncedSave();
-      expect(saveSpy).not.toHaveBeenCalled();
-      jest.advanceTimersByTime(500);
-      expect(saveSpy).toHaveBeenCalledTimes(1);
-    });
-  });
 
   describe('Price Fallback', () => {
     beforeEach(() => {
@@ -664,6 +534,81 @@ describe('SessionStore', () => {
       const html = document.getElementById('readingsList').innerHTML;
       expect(html).toContain('1.');
       expect(html).toContain('2.');
+    });
+  });
+
+  describe('Label Input Rendering', () => {
+    beforeEach(() => {
+      session._sessionId = 'test-id';
+      session._location = 'Test Location';
+      session._startDate = '2025-01-15';
+      session._price = 40;
+    });
+
+    test('label input rendered for private sessions', async () => {
+      session._type = 'private';
+      await session.addReading({ timestamp: '2025-01-15T14:30:00.000', tip: 5, price: 40, label: 'Sarah' });
+      const html = document.getElementById('readingsList').innerHTML;
+      expect(html).toContain('label-input');
+      expect(html).toContain('reading-label-field');
+      expect(html).toContain('value="Sarah"');
+    });
+
+    test('label input hidden for event sessions', async () => {
+      session._type = 'event';
+      await session.addReading({ timestamp: '2025-01-15T14:30:00.000', tip: 5, price: 40 });
+      const html = document.getElementById('readingsList').innerHTML;
+      expect(html).not.toContain('label-input');
+      expect(html).not.toContain('reading-label-field');
+    });
+
+    test('label input onchange calls updateReading(index, label, value)', async () => {
+      session._type = 'private';
+      await session.addReading({ timestamp: '2025-01-15T14:30:00.000', tip: 5, price: 40, label: 'Sarah' });
+      const html = document.getElementById('readingsList').innerHTML;
+      expect(html).toContain("session.updateReading(0, 'label', this.value)");
+    });
+
+    test('label input has 44px minimum height via CSS class', async () => {
+      session._type = 'private';
+      await session.addReading({ timestamp: '2025-01-15T14:30:00.000', tip: 5, price: 40, label: '' });
+      const html = document.getElementById('readingsList').innerHTML;
+      // The label-input class in styles.css has min-height: 44px
+      expect(html).toContain('class="label-input"');
+
+      // Verify the CSS file actually defines 44px min-height for .label-input
+      const fs = require('fs');
+      const path = require('path');
+      const css = fs.readFileSync(path.join(__dirname, '..', 'styles.css'), 'utf8');
+      const labelInputMatch = css.match(/\.label-input\s*\{[^}]*min-height:\s*44px[^}]*\}/);
+      expect(labelInputMatch).not.toBeNull();
+    });
+
+    test('label input placeholder shows session location', async () => {
+      session._type = 'private';
+      session._location = 'Denver Spring 26';
+      await session.addReading({ timestamp: '2025-01-15T14:30:00.000', tip: 5, price: 40, label: '' });
+      const html = document.getElementById('readingsList').innerHTML;
+      expect(html).toContain('placeholder="Denver Spring 26"');
+    });
+
+    test('label input shows default location value when no label provided', async () => {
+      session._type = 'private';
+      session._location = 'Test Location';
+      await session.addReading({ timestamp: '2025-01-15T14:30:00.000', tip: 5, price: 40 });
+      const html = document.getElementById('readingsList').innerHTML;
+      expect(html).toContain('label-input');
+      // Per Req 2.3, private session readings default label to session location
+      expect(html).toContain('value="Test Location"');
+    });
+
+    test('second reading onchange references correct index', async () => {
+      session._type = 'private';
+      await session.addReading({ timestamp: '2025-01-15T14:30:00.000', tip: 5, price: 40, label: 'Sarah' });
+      await session.addReading({ timestamp: '2025-01-15T15:00:00.000', tip: 10, price: 40, label: 'John' });
+      const html = document.getElementById('readingsList').innerHTML;
+      expect(html).toContain("session.updateReading(0, 'label', this.value)");
+      expect(html).toContain("session.updateReading(1, 'label', this.value)");
     });
   });
 
@@ -1415,58 +1360,6 @@ describe('SessionStore', () => {
       expect(session.hasValidSession).toBeTruthy();
     });
 
-    test('createSession sends start_date, end_date, and session_date in INSERT payload', async () => {
-      const insertMock = jest.fn(() => ({
-        select: jest.fn(() => Promise.resolve({ data: [{ id: 'new-id' }], error: null }))
-      }));
-      const selectMock = jest.fn(() => ({
-        eq: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              limit: jest.fn(() => Promise.resolve({ data: [], error: null }))
-            }))
-          }))
-        }))
-      }));
-      global.supabaseClient.from.mockImplementation((table) => {
-        if (table === 'blacksheep_reading_tracker_sessions') {
-          return { select: selectMock, insert: insertMock };
-        }
-        return { select: jest.fn(() => ({ eq: jest.fn(() => ({ order: jest.fn(() => Promise.resolve({ data: [] })) })) })) };
-      });
-
-      session._location = 'Ren Fest';
-      session._startDate = '2025-06-01';
-      session._endDate = '2025-06-03';
-      session._price = 40;
-
-      await session.createSession();
-
-      expect(insertMock).toHaveBeenCalled();
-      const payload = insertMock.mock.calls[0][0][0];
-      expect(payload.start_date).toBe('2025-06-01');
-      expect(payload.end_date).toBe('2025-06-03');
-      expect(payload.session_date).toBe('2025-06-01'); // backwards compat = start_date
-    });
-
-    test('save sends start_date, end_date, and session_date in UPDATE payload', async () => {
-      const updateMock = jest.fn(() => ({ eq: jest.fn(() => Promise.resolve({ data: null, error: null })) }));
-      global.supabaseClient.from.mockImplementation(() => ({ update: updateMock }));
-
-      session._sessionId = 'test-id';
-      session._location = 'Ren Fest';
-      session._startDate = '2025-06-01';
-      session._endDate = '2025-06-03';
-      session._price = 40;
-
-      await session.save();
-
-      const updateData = updateMock.mock.calls[0][0];
-      expect(updateData.start_date).toBe('2025-06-01');
-      expect(updateData.end_date).toBe('2025-06-03');
-      expect(updateData.session_date).toBe('2025-06-01'); // backwards compat
-    });
-
     test('loadExistingSession maps start_date/end_date from DB to _startDate/_endDate', async () => {
       global.supabaseClient.from.mockImplementation((table) => {
         if (table === 'blacksheep_reading_tracker_readings') {
@@ -1522,49 +1415,6 @@ describe('SessionStore', () => {
     });
   });
 
-  describe('Offline Queue — Multi-Day Session Payload', () => {
-    beforeEach(() => {
-      global.supabaseClient.from.mockImplementation(() => ({
-        update: jest.fn(() => ({ eq: jest.fn(() => Promise.reject(new Error('Network error'))) }))
-      }));
-      session._sessionId = 'test-id';
-      session._location = 'Ren Fest';
-      session._price = 40;
-    });
-
-    test('enqueued payload includes start_date and end_date', async () => {
-      session._startDate = '2025-06-01';
-      session._endDate = '2025-06-03';
-
-      await session.save();
-
-      const payload = window.offlineQueue.enqueue.mock.calls[0][0].payload;
-      expect(payload.start_date).toBe('2025-06-01');
-      expect(payload.end_date).toBe('2025-06-03');
-    });
-
-    test('enqueued payload includes session_date for backwards compatibility', async () => {
-      session._startDate = '2025-06-01';
-      session._endDate = '2025-06-03';
-
-      await session.save();
-
-      const payload = window.offlineQueue.enqueue.mock.calls[0][0].payload;
-      expect(payload.session_date).toBe('2025-06-01');
-    });
-
-    test('payload does NOT contain session_date without start_date/end_date', async () => {
-      session._startDate = '';
-      session._endDate = '';
-
-      await session.save();
-
-      const payload = window.offlineQueue.enqueue.mock.calls[0][0].payload;
-      expect(payload.start_date).toBeUndefined();
-      expect(payload.end_date).toBeUndefined();
-      expect(payload.session_date).toBeUndefined();
-    });
-  });
 
   describe('Timestamp Creation — addReading Payload', () => {
     beforeEach(() => {

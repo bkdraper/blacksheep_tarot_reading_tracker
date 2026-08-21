@@ -5,7 +5,7 @@ description: Core development rules, deployment commands, data structures, and t
 
 # Development Rules
 
-## Version: v4.6.9
+## Version: v4.7.0
 
 CRITICAL: Bump version on EVERY code change (cache-busting). Update version in: index.html, README.md, and this file.
 
@@ -43,6 +43,14 @@ All in `modules/`:
 - `_loading` flag MUST prevent saves during restoration
 - Null reading price uses session price as fallback
 - Empty date strings cause 400 errors — validate first
+
+### Session vs Reading Persistence Model
+- **Session-level setters** (location, startDate, endDate, price, type, format) = store + UI only. NO DB side-effects.
+- **Reading-level methods** (addReading, removeReading, updateReading) = immediate DB persist on each call.
+- **Session edit sheet** is a pure input collector. `selectSessionType()`, `selectSessionFormat()`, etc. update sheet-local state only.
+- **`saveSessionSheet()`** is the ONLY function that persists session values to the DB. Triggered exclusively by the Save button.
+- **Removed methods** (v4.7.0): `save()`, `debouncedSave()`, `createSession()`, `handleCreateSession()` — all dead code from a previous design. Do NOT recreate them.
+- **Pattern**: Sheet opens → reads from store → user edits (local state only) → Save button → DB call → update store → updateUI()
 
 ### Variable Naming
 - Use `supabaseClient` not `supabase` (CDN conflict)
@@ -92,13 +100,17 @@ All in `modules/`:
 
 ```javascript
 // Reading (in-memory + normalized DB table)
-{ id, timestamp, tz_offset, tip, price, payment, source }
+{ id, timestamp, tz_offset, tip, price, payment, source, label }
 // timestamp = local clock time string (no Z suffix, no UTC)
 // tz_offset = integer hours from UTC (e.g., -7 for PDT)
+// label = client name (nullable, private sessions only)
 
 // Session State
-{ sessionId, location, sessionDate, price, readings, _loading }
+{ sessionId, location, sessionDate, price, readings, _loading, type, format, deleted_at }
 // userId and userName come from window.auth, not stored here
+// type = 'event' | 'private'
+// format = 'Expo' | 'Shop' | 'Party' | 'In-Person' | 'Phone' | null
+// deleted_at = ISO timestamp or null (soft delete)
 ```
 
 ## Deployment
@@ -132,6 +144,12 @@ aws lambda update-function-code --function-name blacksheep_tarot-tracker-bedrock
 ### Bedrock Agent System Prompt
 - File: `mcp-server/bedrock-agent-system-prompt.txt`
 - NOT auto-deployed — must be manually copy/pasted into AWS Bedrock Agent console
+
+### Bedrock Agent Action Group Schema
+- File: `mcp-server/action-group-schema.json` — local reference only, NOT auto-deployed
+- Tool definitions must be manually edited in the Bedrock Agent console (one tool at a time)
+- Parameter descriptions have a **500-character limit** — use shorthand when needed
+- There is NO bulk JSON upload — the schema file is purely for local reference
 
 ### Bedrock Model Access Lessons Learned
 - Haiku 4.5 requires AWS Marketplace subscription (auto-subscribed on first invoke)

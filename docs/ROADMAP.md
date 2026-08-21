@@ -761,3 +761,154 @@ The old approach saved full session state to localStorage on every change and ra
 - No backend coordination needed
 - Easier to iterate and test
 - Only 2 features need agent work (#8, #13)
+
+---
+
+## Phase 9: UI Component Library
+**Goal**: Extract reusable overlay primitives from the many one-off implementations
+**Status**: 0/1 complete
+
+### Reusable Overlay Components
+**Priority**: Medium | **Effort**: Medium
+- **Problem**: The app has proliferating one-off implementations of sheets, modals, drawers, and dialogs — each with slightly different animation, dismissal, and z-index logic. Adding new overlays requires re-implementing the same patterns.
+- **Solution**: Create three reusable component functions that handle the lifecycle (create → animate in → content → dismiss → cleanup):
+  - `Modal(content)` — centered card with backdrop (confirmations, alerts)
+  - `Sheet(content)` — bottom sheet sliding up (session edit, payment selection, creation)
+  - `Drawer(content)` — side panel sliding in (hamburger menu, settings, Gpsy chat)
+- Each component handles: backdrop overlay, animation in/out, outside-click dismiss, Escape key dismiss, z-index management, dark mode, scroll lock on body
+- Callers just provide the inner content HTML/DOM and get back open/close handles
+- Migrate existing overlays incrementally (non-breaking — old code can coexist)
+- **Candidates for migration**: session edit sheet, session creation sheet, payment sheet, settings drawer, hamburger menu, Gpsy drawer, confirm-delete dialog, load-session sheet, payment methods customization sheet
+- **Replace all `confirm()` calls with app modals**: The app uses native `confirm()` dialogs throughout (session delete, end session, remove reading, etc.). These are ugly, non-styleable, and break the app's visual flow. Once the `Modal(content)` component exists, replace every `confirm()` with a styled confirmation modal that matches the app's design language.
+- **Module**: `modules/overlays.js` (or similar)
+- **Pattern**: Vanilla JS factory functions, no framework needed
+- **Note**: Before implementation, audit the full app for other reusable UI patterns beyond overlays — context menus, collapsible panels, toggle button groups, filter pill bars, snackbar/toast system, etc. The goal is to identify all repeated UI primitives and decide which ones warrant extraction into shared components.
+
+---
+
+## Phase 10: AgentCore Migration (Gpsy Backend Rewrite)
+**Goal**: Migrate Gpsy from Bedrock Agents Classic (maintenance mode, fake streaming) to AgentCore Harness (real streaming, config-as-code, no console dependency)
+**Status**: 0/? complete
+
+### Why
+- **Bedrock Agents Classic is frozen.** Closed to new customers July 30, 2026. Maintenance mode — no new features, no planned EOL date but no investment either.
+- **Streaming is fake.** Despite SSE infrastructure, Classic buffers the entire response and dumps it at the end. AgentCore Harness supports real token-by-token streaming.
+- **Console dependency eliminated.** System prompt, model, tools — all defined in code, version-controlled, deployable via CLI. No more manual copy/paste to AWS console.
+- **Resume/skill value.** AgentCore is AWS's flagship agentic platform. GA'd June 2026. Enterprise teams are adopting it. Hands-on experience with a real production agent is differentiated.
+- **MCP native.** AgentCore Gateway speaks MCP natively. Tools are exposed as MCP endpoints — future-proof for the protocol ecosystem.
+
+### Architecture: Before vs After
+
+```
+BEFORE (Classic Agent):
+  Frontend → proxy_lambda.js → InvokeAgent API → Bedrock Agent resource
+    → Agent calls action group Lambda (bedrock_lambda.js)
+    → Lambda hits Supabase → returns JSON
+    → Agent buffers full response → dumps to proxy → SSE to frontend
+
+AFTER (AgentCore Harness):
+  Frontend → proxy_lambda.js → InvokeHarness API → AgentCore Harness (managed)
+    → Harness calls tool via AgentCore Gateway
+    → Gateway invokes tool Lambda (Node.js, same Supabase logic)
+    → Tool returns JSON → Harness streams final response token-by-token
+    → proxy_lambda.js forwards stream via SSE → frontend renders incrementally
+```
+
+### What Stays the Same
+- Frontend vanilla JS (SSE infrastructure already in place)
+- Tool logic (Supabase RPC calls — calculate_stats, list_readings, etc.)
+- Tool Lambda runtime (Node.js)
+- System prompt content (just moves from console to code)
+- Supabase database, views, functions — untouched
+
+### What Changes
+- **No more Bedrock Agent resource** — replaced by AgentCore Harness (config-based, no console)
+- **No more action group schema** — tools defined in Gateway as MCP endpoints
+- **proxy_lambda.js** — calls `InvokeHarness` instead of `InvokeAgent`, handles streaming response
+- **bedrock_lambda.js** — becomes a Gateway-targeted tool Lambda (simpler interface, receives tool args directly)
+- **Deployment** — `agentcore deploy` via CLI (Python CLI, installed with pip) or AWS CLI/SDK calls
+
+### Tasks
+
+#### Setup & Tooling
+- [ ] Install AgentCore CLI (`pip install bedrock-agentcore-starter-toolkit`)
+- [ ] Create AgentCore Gateway (tool routing layer)
+- [ ] Register tool Lambda as Gateway Target (Lambda ARN + tool schema)
+- [ ] Verify Gateway can invoke tool Lambda and get results
+
+#### Harness Configuration
+- [ ] Create AgentCore Harness via CLI or SDK (model, system prompt, tools, allowed tools)
+- [ ] Model: Claude Haiku (same as current) — evaluate upgrading later
+- [ ] System prompt: port from `bedrock-agent-system-prompt.txt` (content stays, format may change)
+- [ ] Tools: point to AgentCore Gateway ARN
+- [ ] AllowedTools: explicit list (calculate_stats, list_sessions, list_readings, get_session_details, get_user_summary)
+- [ ] Configure memory for conversation persistence (replaces Bedrock's 24-hour session)
+
+#### Tool Lambda Refactor
+- [ ] Simplify bedrock_lambda.js → receives tool name + args directly from Gateway (no action group envelope parsing)
+- [ ] Same Supabase RPC calls, same response shapes
+- [ ] Test each tool through Gateway independently
+
+#### Proxy Lambda (Streaming)
+- [ ] Replace `InvokeAgent` SDK call with `InvokeHarness` (AWS SDK JS v3 `@aws-sdk/client-bedrock-agentcore`)
+- [ ] Handle streaming response — iterate over response stream events
+- [ ] Forward text tokens to frontend via SSE as they arrive
+- [ ] Handle tool_use events gracefully (don't forward internal tool chatter to user)
+- [ ] Maintain session ID for conversation continuity
+
+#### Frontend Changes
+- [ ] Likely minimal — SSE handling already exists
+- [ ] Update thinking indicator behavior: show during tool execution, then stream text as it arrives
+- [ ] Remove any Classic Agent-specific session handling if different
+
+#### Cleanup
+- [ ] Delete or archive Classic Agent action group schema (`action-group-schema.json`)
+- [ ] Update `bedrock-agent-system-prompt.txt` → now lives in harness config (or keep as source-of-truth file that deployment reads from)
+- [ ] Remove Classic Agent console references from docs
+- [ ] Update ARCHITECTURE docs
+
+#### Testing & Validation
+- [ ] Smoke test: "How much did I make last weekend?" → verify calculate_stats tool call + correct numbers
+- [ ] Smoke test: "Show my readings from July" → verify list_readings tool call + streaming response
+- [ ] Verify conversation persistence (follow-up questions work)
+- [ ] Verify streaming UX: text appears incrementally, not buffered
+- [ ] Performance comparison: measure time-to-first-token vs Classic Agent's full-buffer wait
+- [ ] Verify offline/error handling still works (proxy Lambda error responses)
+
+### Python Exposure (Minimal)
+- AgentCore CLI is Python (`pip install`) — used for deployment commands only
+- All runtime code stays Node.js (tool Lambda, proxy Lambda)
+- Harness itself is config, not code — no Python in the agent logic
+- If future needs require code-based orchestration (Strands SDK), that would be Python — but harness covers Gpsy's use case
+
+### Risk & Rollback
+- Classic Agent stays intact during migration — don't delete until AgentCore version is validated in production
+- Can run both in parallel (different endpoints) for A/B comparison
+- Rollback = point proxy_lambda back to InvokeAgent call
+
+### Cost Considerations
+- AgentCore: per-invocation + compute time pricing (+ model inference, same as before)
+- Free tier: $200 in credits for new AgentCore usage
+- For Gpsy's volume (handful of queries per week), cost difference is negligible
+- Eliminates the Classic Agent resource (which has its own per-session pricing)
+
+### Estimated Effort
+- **Setup & Gateway**: 2-3 hours (one-time CLI + config)
+- **Harness creation**: 1-2 hours (port prompt, wire tools)
+- **Tool Lambda refactor**: 2-3 hours (simplify interface, test through Gateway)
+- **Proxy Lambda streaming**: 3-4 hours (InvokeHarness SDK, stream forwarding)
+- **Frontend tweaks**: 1 hour (if any)
+- **Testing & validation**: 2-3 hours
+- **Total**: ~12-16 hours
+
+### Dependencies
+- None on other phases — can be done independently
+- Recommend completing Phase 7.2 (reading labels / search_by refactor) first so the tool interface is stable before porting to Gateway
+- Phase 7 streaming item becomes obsolete (AgentCore gives us real streaming)
+
+### Success Criteria
+- Gpsy responds with real streaming (text appears token-by-token)
+- Time-to-first-token < 3 seconds (down from 8-15 second full-buffer wait)
+- All existing queries return correct results (same tool logic underneath)
+- No console dependency — all config in code, deployed via CLI
+- Conversation persistence works across page reloads

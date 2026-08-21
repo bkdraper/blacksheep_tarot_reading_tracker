@@ -44,64 +44,66 @@ class SessionStore {
             set sessionId(value) {
                 this._sessionId = value;
                 this.updateUI();
-                this.save();
             }
             set location(value) {
                 this._location = value;
                 this.updateUI();
-                this.debouncedSave();
             }
             set startDate(value) {
                 this._startDate = value;
                 this.updateUI();
-                this.debouncedSave();
             }
             set endDate(value) {
                 this._endDate = value;
                 this.updateUI();
-                this.debouncedSave();
             }
             set price(value) {
                 this._price = value;
                 this.updateUI();
-                this.debouncedSave();
             }
             set type(value) {
                 this._type = (value === 'private') ? 'private' : 'event';
                 this.updateUI();
-                this.save();
             }
             set format(value) {
                 this._format = value || null;
                 this.updateUI();
-                this.debouncedSave();
             }
             set readings(value) {
                 this._readings = value;
                 this.updateReadingsList();
                 this.updateTotals();
-                this.save();
             }
 
             // Methods
             async addReading(reading) {
+                // Set label default for private sessions
+                if (this._type === 'private') {
+                    reading.label = reading.label || this._location;
+                }
+
                 this._readings.push(reading);
                 this.updateReadingsList();
                 this.updateTotals();
                 
                 if (this._sessionId) {
                     try {
+                        const insertPayload = {
+                            session_id: this._sessionId,
+                            timestamp: reading.timestamp,
+                            tip: reading.tip || 0,
+                            price: reading.price,
+                            payment: reading.payment,
+                            source: reading.source,
+                            tz_offset: reading.tz_offset
+                        };
+                        if (reading.label !== undefined) {
+                            insertPayload.label = reading.label;
+                        }
+
                         const { data, error } = await supabaseClient
                             .from('blacksheep_reading_tracker_readings')
-                            .insert([{
-                                session_id: this._sessionId,
-                                timestamp: reading.timestamp,
-                                tip: reading.tip || 0,
-                                price: reading.price,
-                                payment: reading.payment,
-                                source: reading.source,
-                                tz_offset: reading.tz_offset
-                            }])
+                            .insert([insertPayload])
                             .select();
                         
                         if (error) throw error;
@@ -111,18 +113,22 @@ class SessionStore {
                         }
                     } catch (error) {
                         console.error('Failed to insert reading:', error);
+                        const offlinePayload = {
+                            timestamp: reading.timestamp,
+                            tip: reading.tip || 0,
+                            price: reading.price,
+                            payment: reading.payment,
+                            source: reading.source,
+                            tz_offset: reading.tz_offset
+                        };
+                        if (reading.label !== undefined) {
+                            offlinePayload.label = reading.label;
+                        }
                         window.offlineQueue.enqueue({
                             type: 'insert_reading',
                             createdAt: new Date().toISOString(),
                             sessionId: this._sessionId,
-                            payload: {
-                                timestamp: reading.timestamp,
-                                tip: reading.tip || 0,
-                                price: reading.price,
-                                payment: reading.payment,
-                                source: reading.source,
-                                tz_offset: reading.tz_offset
-                            }
+                            payload: offlinePayload
                         });
                     }
                 }
@@ -152,6 +158,8 @@ class SessionStore {
                 this.updateTotals();
             }
             async updateReading(index, field, value) {
+                const previousValue = field === 'label' ? this._readings[index][field] : undefined;
+                
                 this._readings[index][field] = value;
                 this.updateReadingsList();
                 this.updateTotals();
@@ -165,7 +173,13 @@ class SessionStore {
                             .eq('id', reading.id);
                         if (error) throw error;
                     } catch (error) {
+                        showSnackbar('Failed to update label', 'error')
                         console.error('Failed to update reading:', error);
+                        if (field === 'label') {
+                            this._readings[index].label = previousValue;
+                            this.updateReadingsList();
+                            showSnackbar('Failed to update label', 'error');
+                        }
                         window.offlineQueue.enqueue({
                             type: 'update_reading',
                             createdAt: new Date().toISOString(),
@@ -194,6 +208,86 @@ class SessionStore {
                 this.startOver();
             }
 
+            confirmDeleteSession() {
+                const location = this._location || 'Unknown';
+                const date = this._startDate ? Utils.formatSessionDate(this._startDate, this._endDate) : 'Unknown date';
+
+                // Remove any existing dialog
+                const existing = document.getElementById('confirm-delete-dialog');
+                if (existing) existing.remove();
+
+                const overlay = document.createElement('div');
+                overlay.id = 'confirm-delete-dialog';
+                overlay.className = 'confirm-dialog-overlay';
+                overlay.innerHTML = `
+                    <div class="confirm-dialog">
+                        <div class="confirm-dialog-icon">
+                            <i class="fas fa-trash"></i>
+                        </div>
+                        <h3 class="confirm-dialog-title">Delete Session?</h3>
+                        <p class="confirm-dialog-message">
+                            <strong>${Utils.sanitize(location)}</strong><br>
+                            <span class="confirm-dialog-date">${Utils.sanitize(date)}</span>
+                        </p>
+                        <p class="confirm-dialog-warning">This cannot be undone from the app.</p>
+                        <div class="confirm-dialog-actions">
+                            <button class="confirm-dialog-btn confirm-dialog-cancel">Cancel</button>
+                            <button class="confirm-dialog-btn confirm-dialog-delete">Delete</button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(overlay);
+
+                // Animate in
+                requestAnimationFrame(() => overlay.classList.add('visible'));
+
+                const dismiss = () => {
+                    overlay.classList.remove('visible');
+                    setTimeout(() => overlay.remove(), 200);
+                };
+
+                overlay.querySelector('.confirm-dialog-cancel').onclick = dismiss;
+                overlay.querySelector('.confirm-dialog-delete').onclick = () => {
+                    vibrate([100, 50, 100]);
+                    dismiss();
+                    this.deleteSession();
+                };
+
+                // Close on overlay background click
+                overlay.onclick = (e) => {
+                    if (e.target === overlay) dismiss();
+                };
+            }
+
+            async deleteSession() {
+                if (!this._sessionId) return;
+
+                const deletedAt = new Date().toISOString().replace('Z', '');
+
+                try {
+                    const { error } = await supabaseClient
+                        .from('blacksheep_reading_tracker_sessions')
+                        .update({ deleted_at: deletedAt })
+                        .eq('id', this._sessionId);
+                    if (error) throw error;
+
+                    this.startOver();
+                    showSnackbar('Session deleted', 'success');
+                } catch (error) {
+                    showSnackbar('Failed to delete session', 'error');
+                    console.error('Failed to delete session:', error);
+                    window.offlineQueue.enqueue({
+                        type: 'update_session',
+                        createdAt: new Date().toISOString(),
+                        sessionId: this._sessionId,
+                        payload: { deleted_at: deletedAt }
+                    });
+                    this.startOver();
+                    showSnackbar('Session deleted (will sync when online)', 'info');
+                }
+            }
+
             updateUI() {
                 // Only update if authenticated
                 if (!this.userId) {
@@ -212,6 +306,10 @@ class SessionStore {
                 // Session bar always visible when authenticated
                 const sessionBar = document.getElementById('session-bar');
                 if (sessionBar) sessionBar.style.removeProperty('display');
+                
+                // Readings list re-render (ensures label visibility responds to type changes)
+                this.updateReadingsList();
+                this.updateTotals();
                 
                 // Readings section visibility controlled by updateSections based on session state
                 this.updateButtons();
@@ -333,14 +431,20 @@ class SessionStore {
                     
                     return `${separator}
                     <div class="reading-item" data-index="${index}">
-                        <div class="reading-left">
+                        <div class="reading-header">
+                            <span class="reading-header-text"><span class="index">${index + 1}.</span> ${displayTime}</span>
                             <button class="delete-btn btn btn-danger btn-small" onclick="readingsManager.deleteReading(${index})">×</button>
-                            <div style="border-left: 2px solid #ddd; padding-left: 10px;">
-                                <span class="index">${index + 1}.</span>
-                                <span class="timestamp">${displayTime}</span>
-                            </div>
                         </div>
-                        <div class="reading-right">
+                        <div class="reading-fields">
+                            ${this._type === 'private' ? `
+                            <div class="reading-field reading-label-field">
+                                <span class="field-label">Name:</span>
+                                <input type="text" class="label-input"
+                                       value="${Utils.sanitize(reading.label || '')}"
+                                       placeholder="${Utils.sanitize(this._location)}"
+                                       onchange="session.updateReading(${index}, 'label', this.value)"
+                                       onkeydown="if(event.key==='Enter') this.blur()">
+                            </div>` : ''}
                             <div class="reading-field">
                                 <span class="field-label">Price:</span>
                                 <div class="field-input-container">
@@ -406,57 +510,6 @@ class SessionStore {
                 document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
             }
 
-            async save() {
-                if (!this.userId || this._loading) return;
-
-                if (this._sessionId) {
-                    try {
-                        const updateData = {
-                            user_id: this.userId,
-                            user_name: this.userName,
-                            location: this._location,
-                            reading_price: this._price
-                        };
-                        
-                        if (this._startDate && this._startDate.trim()) {
-                            updateData.start_date = this._startDate;
-                            updateData.session_date = this._startDate; // backwards compat
-                        }
-                        if (this._endDate && this._endDate.trim()) {
-                            updateData.end_date = this._endDate;
-                        }
-                        
-                        const { error } = await supabaseClient
-                            .from('blacksheep_reading_tracker_sessions')
-                            .update(updateData)
-                            .eq('id', this._sessionId);
-                        if (error) throw error;
-                    } catch (error) {
-                        console.error('Supabase update error:', error);
-                        const payload = {};
-                        if (this._location) payload.location = this._location;
-                        if (this._startDate && this._startDate.trim()) {
-                            payload.start_date = this._startDate;
-                            payload.end_date = this._endDate;
-                            payload.session_date = this._startDate; // backwards compat
-                        }
-                        if (this._price) payload.reading_price = this._price;
-                        if (this._format) payload.format = this._format;
-                        window.offlineQueue.enqueue({
-                            type: 'update_session',
-                            createdAt: new Date().toISOString(),
-                            sessionId: this._sessionId,
-                            payload
-                        });
-                    }
-                }
-            }
-
-            debouncedSave() {
-                clearTimeout(this.saveTimeout);
-                this.saveTimeout = setTimeout(() => this.save(), 500);
-            }
-            
             clearUserData() {
                 if (this.userId) {
                     localStorage.removeItem(`readingTracker_${this.userId}`);
@@ -494,83 +547,6 @@ class SessionStore {
             selectUser() {}
             addNewUser() {}
             loadUsers() { return []; }
-            
-            handleCreateSession() {
-                const createBtn = document.querySelector('.btn-create-session');
-                if (createBtn.classList.contains('inactive')) {
-                    showSnackbar('Location and date are required', 'error');
-                    vibrate([50]);
-                } else {
-                    this.createSession();
-                }
-            }
-
-            async createSession() {
-                if (!this.canCreateSession) {
-                    showSnackbar('Location and date are required', 'error');
-                    return;
-                }
-                
-                vibrate([50]);
-                const btn = document.querySelector('.btn-create-session');
-                const originalText = btn.textContent;
-                btn.innerHTML = '<span class="spinner inline"></span>Creating...';
-                btn.classList.add('loading');
-                
-                try {
-                    // Duplicate check by start_date + user + location
-                    const { data } = await supabaseClient
-                        .from('blacksheep_reading_tracker_sessions')
-                        .select('*')
-                        .eq('start_date', this._startDate)
-                        .eq('user_id', this.userId)
-                        .eq('location', this._location)
-                        .limit(1);
-                    
-                    if (data && data[0]) {
-                        btn.textContent = originalText;
-                        btn.classList.remove('loading');
-                        
-                        const message = `${data[0].location} on ${data[0].start_date || data[0].session_date} already exists`;
-                        showSnackbar(message);
-                        if (confirm(`${message}. Load existing session?`)) {
-                            await this.loadExistingSession(data[0]);
-                        } else {
-                            this.location = '';
-                            this.startDate = '';
-                            this.endDate = '';
-                        }
-                        return;
-                    }
-                    
-                    const { data: newData } = await supabaseClient
-                        .from('blacksheep_reading_tracker_sessions')
-                        .insert([{
-                            start_date: this._startDate,
-                            end_date: this._endDate,
-                            session_date: this._startDate, // backwards compat
-                            user_id: this.userId,
-                            user_name: this.userName,
-                            location: this._location,
-                            reading_price: this._price,
-                            type: this._type || 'event'
-                        }])
-                        .select();
-                    
-                    if (newData && newData[0]) {
-                        this.sessionId = newData[0].id;
-                        this.readings = [];
-                        showSnackbar('Session created successfully!');
-                    }
-                } catch (error) {
-                    showSnackbar('Database error, using offline mode', 'error');
-                    registerBackgroundSync();
-                } finally {
-                    btn.textContent = originalText;
-                    btn.classList.remove('loading');
-                    this.updateUI();
-                }
-            }
 
             startNewSession() {
                 vibrate([100, 50, 100]);
@@ -859,8 +835,59 @@ class SessionStore {
                     
                     editBtn.style.display = '';
                     editBtn.onclick = () => {
-                        this.openSessionSheet('edit', this._type || 'event');
+                        this.openSessionMenu();
                     };
+                }
+            }
+
+            // === Session Context Menu Methods ===
+
+            openSessionMenu() {
+                this.closeSessionMenu();
+                const btn = document.getElementById('btn-session-edit');
+                if (!btn) return;
+
+                const menu = document.createElement('div');
+                menu.id = 'session-context-menu';
+                menu.className = 'session-context-menu';
+                menu.innerHTML = `
+                    <button class="context-menu-item" id="ctx-menu-edit">
+                        <i class="fas fa-pencil-alt"></i> Edit Session
+                    </button>
+                    <button class="context-menu-item context-menu-danger" id="ctx-menu-delete">
+                        <i class="fas fa-trash"></i> Delete Session
+                    </button>
+                `;
+
+                btn.parentElement.style.position = 'relative';
+                btn.parentElement.appendChild(menu);
+
+                // Attach handlers after DOM insertion
+                document.getElementById('ctx-menu-edit').onclick = () => {
+                    this.closeSessionMenu();
+                    this.openSessionSheet('edit', this._type || 'event');
+                };
+                document.getElementById('ctx-menu-delete').onclick = () => {
+                    this.closeSessionMenu();
+                    this.confirmDeleteSession();
+                };
+
+                // Close on outside click
+                setTimeout(() => {
+                    document.addEventListener('click', this._closeMenuHandler = (e) => {
+                        if (!menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+                            this.closeSessionMenu();
+                        }
+                    });
+                }, 0);
+            }
+
+            closeSessionMenu() {
+                const menu = document.getElementById('session-context-menu');
+                if (menu) menu.remove();
+                if (this._closeMenuHandler) {
+                    document.removeEventListener('click', this._closeMenuHandler);
+                    this._closeMenuHandler = null;
                 }
             }
 
@@ -912,6 +939,8 @@ class SessionStore {
                 this._sheetSelectedPrice = null;
                 this._sheetSelectedSource = null;
                 this._sheetSelectedFormat = null;
+                this._sheetOriginalFormat = mode === 'edit' ? this._format : null;
+                this._sheetOriginalType = mode === 'edit' ? this._type : null;
 
                 // Set title
                 const titleEl = document.getElementById('sessionSheetTitle');
@@ -935,8 +964,19 @@ class SessionStore {
                 const editLocation = mode === 'edit' ? Utils.sanitize(this._location) : '';
                 const priceValue = mode === 'edit' ? this._price : this._price;
 
+                // Type toggle - only shown in edit mode
+                const typeToggleHtml = mode === 'edit' ? `
+                    <div class="input-group">
+                        <label>Type</label>
+                        <div class="type-toggle">
+                            <button class="type-toggle-btn${type === 'event' ? ' active' : ''}" onclick="session.selectSessionType('event')">Event</button>
+                            <button class="type-toggle-btn${type === 'private' ? ' active' : ''}" onclick="session.selectSessionType('private')">Private</button>
+                        </div>
+                    </div>` : '';
+
                 if (type === 'event') {
                     fieldsContainer.innerHTML = `
+                        ${typeToggleHtml}
                         <div class="input-group">
                             <label>Location</label>
                             <input type="text" id="sessionSheetLocation" maxlength="100" placeholder="Event Name / Location" value="${editLocation}">
@@ -998,6 +1038,7 @@ class SessionStore {
                     }
 
                     fieldsContainer.innerHTML = `
+                        ${typeToggleHtml}
                         <div class="input-group">
                             <label>Client</label>
                             <input type="text" id="sessionSheetLocation" maxlength="100" placeholder="Client Name" value="${editLocation}">
@@ -1028,8 +1069,9 @@ class SessionStore {
                 const matchingFormats = formats.filter(f => f.scope === type || f.scope === 'all');
 
                 // In edit mode, include the session's current format even if not in settings
+                // (only if it matches this type)
                 let editFormat = null;
-                if (mode === 'edit' && this._format) {
+                if (mode === 'edit' && this._format && type === this._type) {
                     editFormat = this._format;
                     const alreadyIncluded = matchingFormats.some(f => f.name === editFormat);
                     if (!alreadyIncluded) {
@@ -1040,8 +1082,11 @@ class SessionStore {
                 if (matchingFormats.length === 0) return;
 
                 // Determine default selection
+                // Use _sheetSelectedFormat if already set (e.g., from selectSessionType restoring it)
                 let defaultFormat = null;
-                if (mode === 'edit' && this._format) {
+                if (this._sheetSelectedFormat && matchingFormats.some(f => f.name === this._sheetSelectedFormat)) {
+                    defaultFormat = this._sheetSelectedFormat;
+                } else if (mode === 'edit' && this._format && matchingFormats.some(f => f.name === this._format)) {
                     defaultFormat = this._format;
                 } else if (type === 'event') {
                     defaultFormat = 'Expo';
@@ -1065,6 +1110,57 @@ class SessionStore {
                     </div>`;
 
                 fieldsContainer.insertAdjacentHTML('beforeend', formatHtml);
+            }
+
+            selectSessionType(newType) {
+                if (newType === this._sheetType) return;
+
+                this._sheetType = newType;
+
+                // Update type toggle button active states
+                const toggleContainer = document.querySelector('.type-toggle');
+                if (toggleContainer) {
+                    toggleContainer.querySelectorAll('.type-toggle-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.textContent.toLowerCase() === newType);
+                    });
+                }
+
+                // Update title icon
+                const titleEl = document.getElementById('sessionSheetTitle');
+                if (titleEl) {
+                    const editIcon = newType === 'private' ? 'fas fa-user' : 'fas fa-store';
+                    titleEl.innerHTML = `<i class="${editIcon}" style="margin-right: 8px;"></i>Edit Session`;
+                }
+
+                // Update location label
+                const locationLabel = document.querySelector('#sessionSheetFields .input-group:nth-child(2) label');
+                if (locationLabel) {
+                    locationLabel.textContent = newType === 'private' ? 'Client' : 'Location';
+                }
+                const locationInput = document.getElementById('sessionSheetLocation');
+                if (locationInput) {
+                    locationInput.placeholder = newType === 'private' ? 'Client Name' : 'Event Name / Location';
+                }
+
+                // Format validation: if switching back to original type, restore original format
+                // If switching away, check if current format is valid for new type
+                const formats = window.settings ? window.settings.get('formats') : [];
+                const validFormats = formats
+                    .filter(f => f.scope === newType || f.scope === 'all')
+                    .map(f => f.name);
+
+                if (newType === this._sheetOriginalType && this._sheetOriginalFormat) {
+                    // Switching back to original type — restore original format
+                    this._sheetSelectedFormat = this._sheetOriginalFormat;
+                } else if (this._sheetSelectedFormat && !validFormats.includes(this._sheetSelectedFormat)) {
+                    // Current format not valid for new type — clear it
+                    this._sheetSelectedFormat = null;
+                }
+
+                // Re-render format selector for the new type
+                const existingFormatGroup = document.getElementById('formatSelectorGroup');
+                if (existingFormatGroup) existingFormatGroup.remove();
+                this._renderFormatSelector(newType, this._sheetMode);
             }
 
             selectSessionFormat(name) {
@@ -1186,18 +1282,20 @@ class SessionStore {
 
                 try {
                     if (this._sheetMode === 'edit') {
-                        // UPDATE existing session (type is locked - never changed on edit)
+                        // UPDATE existing session
                         if (this._sessionId) {
+                            const updatePayload = {
+                                location: location,
+                                start_date: startDate,
+                                end_date: endDate,
+                                session_date: startDate, // backwards compat
+                                reading_price: price,
+                                type: this._sheetType,
+                                format: this._sheetSelectedFormat || null
+                            };
                             const { error } = await supabaseClient
                                 .from('blacksheep_reading_tracker_sessions')
-                                .update({
-                                    location: location,
-                                    start_date: startDate,
-                                    end_date: endDate,
-                                    session_date: startDate, // backwards compat
-                                    reading_price: price,
-                                    format: this._sheetSelectedFormat || null
-                                })
+                                .update(updatePayload)
                                 .eq('id', this._sessionId);
                             if (error) throw error;
                         }
@@ -1208,6 +1306,7 @@ class SessionStore {
                         this._startDate = startDate;
                         this._endDate = endDate;
                         this._price = price;
+                        this._type = this._sheetType;
                         this._format = this._sheetSelectedFormat || null;
                         this._loading = false;
 

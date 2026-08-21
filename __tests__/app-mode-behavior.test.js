@@ -145,24 +145,6 @@ describe('App Mode Behavior', () => {
   });
 
   describe('Transition to active mode on session create', () => {
-    test('creating session transitions readings from hidden to visible', async () => {
-      // Start in SETUP - readings hidden
-      session._location = 'Test Location';
-      session._startDate = '2025-06-14';
-      session._endDate = '2025-06-14';
-      session._price = 65;
-      session.updateUI();
-      expect(document.querySelector('.buttons').style.display).toBe('none');
-
-      // Create session triggers transition to ACTIVE
-      await session.createSession();
-
-      expect(session.sessionPhase).toBe('ACTIVE');
-      expect(document.querySelector('.buttons').style.display).toBe('flex');
-      expect(document.querySelector('.totals').style.display).toBe('block');
-      expect(document.querySelector('.readings-list').style.display).toBe('block');
-    });
-
     test('setting sessionId directly triggers updateUI and shows readings', () => {
       session._location = 'Test Location';
       session._startDate = '2025-06-14';

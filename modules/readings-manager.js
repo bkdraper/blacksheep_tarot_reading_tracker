@@ -50,10 +50,48 @@ class ReadingsManager {
         Utils.vibrate([50]);
         const reading = window.session.readings[index];
         const displayTime = window.session.formatTimestamp(reading.timestamp);
-        if (confirm(`Delete the ${displayTime} reading?`)) {
+
+        // Remove any existing dialog
+        const existing = document.getElementById('confirm-delete-reading-dialog');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'confirm-delete-reading-dialog';
+        overlay.className = 'confirm-dialog-overlay';
+        overlay.innerHTML = `
+            <div class="confirm-dialog">
+                <div class="confirm-dialog-icon">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <h3 class="confirm-dialog-title">Delete Reading?</h3>
+                <p class="confirm-dialog-message">
+                    <strong>#${index + 1}</strong> at <strong>${Utils.sanitize(displayTime)}</strong>
+                </p>
+                <div class="confirm-dialog-actions">
+                    <button class="confirm-dialog-btn confirm-dialog-cancel">Cancel</button>
+                    <button class="confirm-dialog-btn confirm-dialog-delete">Delete</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => overlay.classList.add('visible'));
+
+        const dismiss = () => {
+            overlay.classList.remove('visible');
+            setTimeout(() => overlay.remove(), 200);
+        };
+
+        overlay.querySelector('.confirm-dialog-cancel').onclick = dismiss;
+        overlay.querySelector('.confirm-dialog-delete').onclick = () => {
             Utils.vibrate([100, 50, 100]);
+            dismiss();
             window.session.removeReading(index);
-        }
+        };
+
+        overlay.onclick = (e) => {
+            if (e.target === overlay) dismiss();
+        };
     }
 
     // Payment sheet management
